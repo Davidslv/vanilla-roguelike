@@ -10,7 +10,7 @@ module Vanilla
       def initialize(name: 'player', row:, column:)
         super(row: row, column: column, tile: Support::TileType::PLAYER)
         @name = name
-        
+
         @level = 1
         @experience = 0
         @inventory = []
@@ -18,12 +18,13 @@ module Vanilla
 
       def gain_experience(amount)
         @experience += amount
-        level_up if @experience >= experience_to_next_level
+        check_for_level_ups
       end
 
       def level_up
+        xp_needed = experience_to_next_level
         @level += 1
-        @experience -= experience_to_next_level
+        @experience -= xp_needed
         # Add level up bonuses here
       end
 
@@ -36,6 +37,14 @@ module Vanilla
       end
 
       private
+
+      def check_for_level_ups
+        while @experience >= experience_to_next_level
+          next_level_xp = experience_to_next_level
+          @level += 1
+          @experience -= next_level_xp
+        end
+      end
 
       def experience_to_next_level
         @level * 100 # Simple formula, can be adjusted
