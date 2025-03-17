@@ -18,9 +18,6 @@ module Vanilla
     D: :KEY_LEFT
   }.freeze
 
-  # demo
-  require_relative 'vanilla/demo'
-
   # draw
   require_relative 'vanilla/draw'
 
