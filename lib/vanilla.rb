@@ -71,12 +71,11 @@ module Vanilla
   # @param rows [Integer] is the vertical length of the map
   # @param columns [Integer] is the  horizontal length of the map
   # @param algorithm [Object] choose the class object of the algorithm you would like to use
-  # @param png [Boolean] creates a png file from the generated map
   # @param display_distances [Boolean] displays a distance from two random points on the grid
   # @param display_longest [Boolean] displays the longest possible distance between two points on the grid, uses Djikra's algorithm
   # @param open_maze [Boolean] displays a different render output
   # @param seed [Integer] is the number necessary to regenerate a given grid
-  def self.play(rows: 10, columns: 10, algorithm: Vanilla::Algorithms::BinaryTree, png: false, display_distances: false, display_longest: false, open_maze: true, seed: nil)
+  def self.play(rows: 10, columns: 10, algorithm: Vanilla::Algorithms::BinaryTree, display_distances: false, display_longest: false, open_maze: true, seed: nil)
     $seed = seed || rand(999_999_999_999_999)
     grid = Vanilla::Map.create(rows: rows, columns: columns, algorithm: algorithm, seed: seed)
 
@@ -85,11 +84,6 @@ module Vanilla
     Vanilla::Algorithms::LongestPath.on(grid, start: start)       if display_longest
 
     Vanilla::Draw.map(grid, open_maze: open_maze)
-
-    if png
-      require_relative 'vanilla/output/png'
-      Vanilla::Output::Png.new(grid, algorithm: algorithm, seed: $seed, start: start, goal: goal).to_png
-    end
   end
 
   # defines the start position and end position
