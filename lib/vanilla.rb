@@ -18,6 +18,9 @@ module Vanilla
     D: :KEY_LEFT
   }.freeze
 
+  # logger
+  require_relative 'vanilla/logger'
+
   # draw
   require_relative 'vanilla/draw'
 
@@ -52,8 +55,12 @@ module Vanilla
   $seed = nil
 
   def self.run
+    logger = Vanilla::Logger.instance
+    logger.info("Game started")
+
     # level = Vanilla::Level.new(seed: 84625887428918)
     level = Vanilla::Level.new
+    logger.info("Initial level created")
 
     while key = STDIN.getch
       # Given that arrow keys are compose of more than one character
@@ -63,8 +70,13 @@ module Vanilla
       key        = STDIN.getch if second_key == "["
       key        = KEYBOARD_ARROWS[key.intern] || key
 
+      logger.debug("Key pressed: #{key.inspect}")
       Vanilla::Command.process(key: key, grid: level.grid, unit: level.player)
-      level = Vanilla::Level.random if level.player.found_stairs?
+
+      if level.player.found_stairs?
+        logger.info("Player found stairs, generating new level")
+        level = Vanilla::Level.random
+      end
     end
   end
 
