@@ -1,5 +1,5 @@
 module Vanilla
-  class NewLevel
+  class Level
     attr_reader :grid, :player
 
     def initialize(seed: nil, rows: 10, columns: 10)

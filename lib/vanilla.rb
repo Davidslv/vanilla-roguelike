@@ -46,14 +46,14 @@ module Vanilla
   # commands
   require_relative 'vanilla/command'
 
-  # new level
-  require_relative 'vanilla/new_level'
+  # level
+  require_relative 'vanilla/level'
 
   $seed = nil
 
   def self.run
-    # level = Vanilla::NewLevel.new(seed: 84625887428918)
-    level = Vanilla::NewLevel.new
+    # level = Vanilla::Level.new(seed: 84625887428918)
+    level = Vanilla::Level.new
 
     while key = STDIN.getch
       # Given that arrow keys are compose of more than one character
@@ -64,7 +64,7 @@ module Vanilla
       key        = KEYBOARD_ARROWS[key.intern] || key
 
       Vanilla::Command.process(key: key, grid: level.grid, unit: level.player)
-      level = Vanilla::NewLevel.random if level.player.found_stairs?
+      level = Vanilla::Level.random if level.player.found_stairs?
     end
   end
 
@@ -99,7 +99,7 @@ module Vanilla
     [start_position, end_position]
   end
 
-  # uses Dijkstra’s algorithm
+  # uses Dijkstra's algorithm
   def self.display_distances(grid:, start:, goal:)
     puts "displaying path distance from start to goal:"
 
