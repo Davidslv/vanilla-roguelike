@@ -1,4 +1,3 @@
-require 'curses'
 require 'io/console'
 
 module Vanilla
@@ -19,45 +18,21 @@ module Vanilla
     D: :KEY_LEFT
   }.freeze
 
-  # logger
-  require_relative 'vanilla/logger'
-
-  # draw
-  require_relative 'vanilla/draw'
-
-  # map
-  require_relative 'vanilla/map_utils'
-  require_relative 'vanilla/map'
-
-  # output
-  require_relative 'vanilla/output/terminal'
-
-  # algorithms
-  require_relative 'vanilla/algorithms'
-
-  # support
-  require_relative 'vanilla/support/tile_type'
-
-  # components (entity component system)
-  require_relative 'vanilla/components'
-
-  # systems (entity component system)
-  require_relative 'vanilla/systems'
-
-  # entities
-  require_relative 'vanilla/entities'
-
-  # commands
-  require_relative 'vanilla/input_handler'
-
-  # level
-  require_relative 'vanilla/level'
-
-  # new additions
-  require_relative 'vanilla/entities/player'
-  require_relative 'vanilla/characters/player'
+  # Systems
   require_relative 'vanilla/systems/movement_system'
   require_relative 'vanilla/systems/monster_system'
+
+  # game
+  require_relative 'vanilla/input_handler'
+  require_relative 'vanilla/draw'
+  require_relative 'vanilla/logger'
+  require_relative 'vanilla/level'
+
+  # entities
+  require_relative 'vanilla/entities/player'
+  require_relative 'vanilla/characters/player'
+
+  # event system
   require_relative 'vanilla/events'
 
   $seed = nil
@@ -78,7 +53,6 @@ module Vanilla
     # Initialize event system with file storage
     @event_manager = Events::EventManager.new(@logger)
 
-    initialize_ncurses
     @input_handler = InputHandler.new(logger: @logger, event_manager: @event_manager)
   end
 
@@ -102,12 +76,13 @@ module Vanilla
     monster_system.spawn_monsters(1) # Start with level 1 difficulty
     @logger.info("Spawned initial monsters")
 
-    display(level)
+    # Draw the map to show monsters immediately
+    Vanilla::Draw.map(level.grid)
+
     game_loop(level, monster_system)
   end
 
   def cleanup
-    Curses.close_screen
     @event_manager&.publish_event(Events::Types::GAME_ENDED)
     @event_manager&.close
     @logger.info("Player exiting game")
@@ -119,8 +94,13 @@ module Vanilla
     loop do
       @event_manager&.publish_event(Events::Types::TURN_STARTED)
 
-      # Get player input
-      key = Curses.getch
+      # Get player input using original method
+      key = STDIN.getch
+      # Given that arrow keys are composed of more than one character
+      # we are taking advantage of STDIN repeatedly to represent the correct action.
+      second_key = STDIN.getch if key == "\e"
+      key = STDIN.getch if second_key == "["
+      key = KEYBOARD_ARROWS[key.intern] || key
 
       # Process input
       command = @input_handler.handle_input(key, level.player, level.grid)
@@ -138,7 +118,8 @@ module Vanilla
         # Later we'll add combat here
       end
 
-      display(level)
+      # Redraw the map to show monster movements
+      Vanilla::Draw.map(level.grid)
 
       # Check if player found stairs
       if level.player.found_stairs?
@@ -165,26 +146,13 @@ module Vanilla
         # Spawn monsters based on level difficulty
         monster_system.spawn_monsters(next_level)
         @logger.info("Spawned monsters for level #{next_level}")
+
+        # Draw the map to show monsters on the new level
+        Vanilla::Draw.map(level.grid)
       end
 
       @event_manager&.publish_event(Events::Types::TURN_ENDED)
     end
-  end
-
-  def display(level)
-    Curses.clear
-    Vanilla::Draw.map(level.grid)
-    Vanilla::Draw.stats(level.player)
-    Curses.refresh
-  end
-
-  def initialize_ncurses
-    Curses.init_screen
-    Curses.cbreak
-    Curses.noecho
-    Curses.stdscr.keypad(true)
-    Curses.curs_set(0)
-    Curses.stdscr.timeout = 0
   end
 
   # @param rows [Integer] is the vertical length of the map
