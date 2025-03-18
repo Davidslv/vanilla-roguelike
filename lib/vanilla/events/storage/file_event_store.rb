@@ -69,7 +69,14 @@ module Vanilla
           session_id ||= @current_session
           events = []
 
-          filename = File.join(@directory, "events_#{session_id}.jsonl")
+          # First try without the events_ prefix (for backward compatibility)
+          filename = File.join(@directory, "#{session_id}.jsonl")
+
+          # If not found, try with the events_ prefix
+          unless File.exist?(filename)
+            filename = File.join(@directory, "events_#{session_id}.jsonl")
+          end
+
           return [] unless File.exist?(filename)
 
           File.open(filename, "r") do |file|
