@@ -7,16 +7,6 @@ RSpec.describe Vanilla::Level do
   let(:seed) { 12345 }
 
   describe '#initialize' do
-    it 'creates a level with specified dimensions' do
-      pending 'Skip test due to complex dependencies'
-      expect(false).to be true
-    end
-
-    it 'creates a level with a specific seed' do
-      pending 'Skip test due to complex dependencies'
-      expect(false).to be true
-    end
-
     it 'stores the difficulty value' do
       allow_any_instance_of(described_class).to receive(:update_grid_with_entities)
 
@@ -36,11 +26,6 @@ RSpec.describe Vanilla::Level do
 
       level = described_class.new(rows: rows, columns: columns, difficulty: difficulty, seed: seed)
       expect(level.stairs).to be_a(Vanilla::Entities::Stairs)
-    end
-
-    it 'updates the grid with entity information' do
-      pending 'This requires more extensive mocking'
-      expect(false).to be true
     end
   end
 
@@ -84,13 +69,6 @@ RSpec.describe Vanilla::Level do
       expect(entities).to include(player)
       expect(entities).to include(stairs)
       expect(entities.size).to eq(2)
-    end
-  end
-
-  describe '#update_grid_with_entities' do
-    it 'requires more extensive mocking to test properly' do
-      pending 'Not yet implemented'
-      expect(false).to be true
     end
   end
 end

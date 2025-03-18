@@ -4,7 +4,13 @@ RSpec.describe Vanilla::Systems::MonsterSystem do
   let(:rows) { 15 }
   let(:columns) { 15 }
   let(:grid) { Vanilla::MapUtils::Grid.new(rows: rows, columns: columns) }
-  let(:player) { Vanilla::Entities::Player.new(row: 7, column: 7) }
+  let(:player_position) { Vanilla::Components::PositionComponent.new(row: 7, column: 7) }
+  let(:player) do
+    # Use a proper double instead of trying to mock the Player class
+    player = double("Player")
+    allow(player).to receive(:get_component).with(:position).and_return(player_position)
+    player
+  end
   let(:system) { described_class.new(grid: grid, player: player) }
 
   # Set up grid with walkable cells
@@ -20,6 +26,26 @@ RSpec.describe Vanilla::Systems::MonsterSystem do
       expect(system.instance_variable_get(:@grid)).to eq(grid)
       expect(system.instance_variable_get(:@player)).to eq(player)
       expect(system.monsters).to be_empty
+    end
+
+    it 'initializes with a logger when provided' do
+      logger = instance_double('Logger')
+      custom_system = described_class.new(grid: grid, player: player, logger: logger)
+
+      expect(custom_system.instance_variable_get(:@logger)).to eq(logger)
+    end
+
+    it 'uses default logger when not provided' do
+      default_logger = instance_double('Vanilla::Logger')
+      allow(Vanilla::Logger).to receive(:instance).and_return(default_logger)
+
+      custom_system = described_class.new(grid: grid, player: player)
+
+      expect(custom_system.instance_variable_get(:@logger)).to eq(default_logger)
+    end
+
+    it 'initializes with a random number generator' do
+      expect(system.instance_variable_get(:@rng)).to be_a(Random)
     end
   end
 
@@ -118,6 +144,39 @@ RSpec.describe Vanilla::Systems::MonsterSystem do
         system.instance_variable_set(:@monsters, [])
       end
     end
+
+    it 'clears existing monsters before spawning new ones' do
+      # Add a monster first
+      monster = Vanilla::Entities::Monster.new(
+        monster_type: 'goblin',
+        row: 1,
+        column: 1,
+        health: 10,
+        damage: 1
+      )
+      system.instance_variable_set(:@monsters, [monster])
+
+      # Spawning new monsters should clear existing ones
+      system.spawn_monsters(1)
+
+      # The original monster should not be in the collection
+      expect(system.monsters).not_to include(monster)
+    end
+
+    it 'logs information about spawned monsters' do
+      logger = instance_double('Logger')
+      allow(logger).to receive(:info)
+      allow(logger).to receive(:debug)
+
+      custom_system = described_class.new(grid: grid, player: player, logger: logger)
+      allow(custom_system).to receive(:find_spawn_location).and_return(grid[1, 1])
+
+      # Should log spawn info
+      expect(logger).to receive(:info).with(/Spawning .+ monsters at level 1/)
+      expect(logger).to receive(:info).with(/Spawned .+ at \[\d+, \d+\]/)
+
+      custom_system.spawn_monsters(1)
+    end
   end
 
   describe '#update' do
@@ -183,8 +242,8 @@ RSpec.describe Vanilla::Systems::MonsterSystem do
       # Move a monster to the player's position
       monster = Vanilla::Entities::Monster.new(
         monster_type: 'goblin',
-        row: player.row,
-        column: player.column,
+        row: player_position.row,
+        column: player_position.column,
         health: 10,
         damage: 1
       )
@@ -198,8 +257,8 @@ RSpec.describe Vanilla::Systems::MonsterSystem do
       # Place monster away from player
       monster = Vanilla::Entities::Monster.new(
         monster_type: 'goblin',
-        row: player.row + 2,
-        column: player.column + 2,
+        row: player_position.row + 2,
+        column: player_position.column + 2,
         health: 10,
         damage: 1
       )
@@ -207,6 +266,104 @@ RSpec.describe Vanilla::Systems::MonsterSystem do
       system.instance_variable_set(:@monsters, [monster])
 
       expect(system.player_collision?).to be false
+    end
+  end
+
+  # Private method tests - these test implementation details, which is normally
+  # not recommended, but can be useful for complex methods like these
+  describe 'private methods' do
+    describe '#determine_monster_count' do
+      it 'returns a count based on the difficulty level' do
+        # Since the method uses randomness, we'll test that the count is within expected range
+        [1, 2, 3, 4, 10].each do |level|
+          max = described_class::MAX_MONSTERS[level] || described_class::MAX_MONSTERS.values.last
+          min = (max / 2.0).ceil
+
+          # Set a fixed random seed to avoid test flakiness
+          allow(system.instance_variable_get(:@rng)).to receive(:rand).and_return(min)
+
+          count = system.send(:determine_monster_count, level)
+          expect(count).to be >= min
+          expect(count).to be <= max
+        end
+      end
+
+      it 'uses the maximum value from the constant for high levels' do
+        # Test a level beyond those defined in MAX_MONSTERS
+        level = 100
+        max = described_class::MAX_MONSTERS.values.last
+
+        count = system.send(:determine_monster_count, level)
+        expect(count).to be <= max
+      end
+    end
+
+    describe '#select_weighted_monster_type' do
+      it 'selects a type based on weighted probability' do
+        # Create a test probability hash
+        types = {
+          'goblin' => 0.8,
+          'troll' => 0.2
+        }
+
+        # Set up deterministic roll
+        allow(system.instance_variable_get(:@rng)).to receive(:rand).with(1.0).and_return(0.5)
+
+        # Should select goblin
+        type = system.send(:select_weighted_monster_type, types)
+        expect(type).to eq('goblin')
+
+        # Now roll higher to get troll
+        allow(system.instance_variable_get(:@rng)).to receive(:rand).with(1.0).and_return(0.9)
+
+        type = system.send(:select_weighted_monster_type, types)
+        expect(type).to eq('troll')
+      end
+    end
+
+    describe '#valid_move?' do
+      it 'returns false if the cell does not exist' do
+        allow(grid).to receive(:[]).with(999, 999).and_return(nil)
+
+        result = system.send(:valid_move?, 999, 999)
+        expect(result).to be false
+      end
+
+      it 'returns false if the cell is not walkable' do
+        wall_cell = grid[5, 5]
+        wall_cell.tile = Vanilla::Support::TileType::WALL
+
+        result = system.send(:valid_move?, 5, 5)
+        expect(result).to be false
+      end
+
+      it 'returns false if another monster is at the location' do
+        # Create a monster at position 6,6
+        monster = Vanilla::Entities::Monster.new(
+          monster_type: 'goblin',
+          row: 6,
+          column: 6,
+          health: 10,
+          damage: 1
+        )
+
+        system.instance_variable_set(:@monsters, [monster])
+
+        result = system.send(:valid_move?, 6, 6)
+        expect(result).to be false
+      end
+
+      it 'returns true for a valid empty walkable cell' do
+        # Ensure cell is walkable and empty
+        empty_cell = grid[8, 8]
+        empty_cell.tile = Vanilla::Support::TileType::FLOOR
+
+        # No monsters at this location
+        system.instance_variable_set(:@monsters, [])
+
+        result = system.send(:valid_move?, 8, 8)
+        expect(result).to be true
+      end
     end
   end
 end
