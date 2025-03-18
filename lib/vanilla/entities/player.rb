@@ -89,6 +89,11 @@ module Vanilla
         )
       end
 
+      def found_stairs?
+        stairs_component = get_component(:stairs)
+        stairs_component&.found_stairs? || false
+      end
+
       # Create a player entity from a hash representation
       # @param hash [Hash] serialized player data
       # @return [Player] the deserialized player entity
