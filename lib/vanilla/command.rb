@@ -8,11 +8,6 @@ module Vanilla
       @unit = unit
       @logger = Vanilla::Logger.instance
       @input_handler = Vanilla::InputHandler.new(@logger)
-
-      # Log deprecation warning if using legacy Unit
-      if !unit.respond_to?(:has_component?) || !unit.has_component?(:position)
-        @logger.warn("DEPRECATED: Using legacy Unit object in Command. Please use Entity with components.")
-      end
     end
 
     def self.process(key:, grid:, unit:)
@@ -20,11 +15,6 @@ module Vanilla
     end
 
     def process
-      # Log deprecation warning if using legacy Unit
-      if !@unit.respond_to?(:has_component?) || !@unit.has_component?(:position)
-        @logger.warn("DEPRECATED: Using legacy Unit object in Command. Please use Entity with components.")
-      end
-
       # Delegate to input handler
       @input_handler.handle_input(@key, @unit, @grid)
     end

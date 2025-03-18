@@ -43,17 +43,14 @@ module Vanilla
   # systems (entity component system)
   require_relative 'vanilla/systems'
 
-  # characters
-  require_relative 'vanilla/characters/player'
+  # entities
+  require_relative 'vanilla/entities'
 
   # commands
   require_relative 'vanilla/command'
 
   # level
   require_relative 'vanilla/level'
-
-  # entities
-  require_relative 'vanilla/entities'
 
   $seed = nil
 
