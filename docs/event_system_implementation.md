@@ -127,19 +127,404 @@ module Vanilla
 end
 ```
 
-## 3. Implementation Plan
+## 3. Event Storage Strategy
+
+### Storage Requirements
+
+For effective debugging and analysis, the event system needs to:
+- Store events during gameplay for immediate access
+- Persist events between sessions for post-game analysis
+- Support efficient querying and filtering
+- Enable event replay for debugging
+- Manage storage size to prevent excessive resource usage
+
+### Storage Approaches
+
+#### In-Memory Storage
+
+For active gameplay and immediate debugging:
+
+```ruby
+module Vanilla
+  module Events
+    class InMemoryEventStore
+      attr_reader :events
+
+      def initialize(max_events = 10000)
+        @events = []
+        @max_events = max_events
+      end
+
+      def store(event)
+        @events << event
+        # Trim if exceeding max size
+        @events.shift if @events.size > @max_events
+      end
+
+      def query(options = {})
+        result = @events
+
+        # Filter by type
+        if options[:type]
+          result = result.select { |e| e.type == options[:type] }
+        end
+
+        # Filter by time range
+        if options[:start_time] && options[:end_time]
+          result = result.select { |e| e.timestamp >= options[:start_time] && e.timestamp <= options[:end_time] }
+        end
+
+        # Limit results
+        if options[:limit]
+          result = result.last(options[:limit])
+        end
+
+        result
+      end
+
+      def clear
+        @events.clear
+      end
+    end
+  end
+end
+```
+
+#### File-Based Persistence
+
+For long-term storage and post-session analysis:
+
+```ruby
+module Vanilla
+  module Events
+    class FileEventStore
+      def initialize(directory = "event_logs")
+        @directory = directory
+        FileUtils.mkdir_p(@directory) unless Dir.exist?(@directory)
+        @current_session = Time.now.strftime("%Y%m%d_%H%M%S")
+        @current_file = nil
+      end
+
+      def store(event)
+        ensure_file_open
+
+        # Convert event to JSON and write to file
+        event_json = {
+          type: event.type,
+          timestamp: event.timestamp,
+          source: event.source.to_s,
+          data: event.data
+        }.to_json
+
+        @current_file.puts(event_json)
+        @current_file.flush  # Ensure data is written immediately
+      end
+
+      def load_session(session_id = nil)
+        session_id ||= @current_session
+        events = []
+
+        filename = File.join(@directory, "events_#{session_id}.jsonl")
+        return [] unless File.exist?(filename)
+
+        File.open(filename, "r") do |file|
+          file.each_line do |line|
+            event_data = JSON.parse(line)
+            events << Event.new(
+              event_data["type"],
+              event_data["source"],
+              event_data["data"]
+            )
+          end
+        end
+
+        events
+      end
+
+      def list_sessions
+        Dir.glob(File.join(@directory, "events_*.jsonl")).map do |file|
+          File.basename(file).gsub(/^events_/, "").gsub(/\.jsonl$/, "")
+        end
+      end
+
+      def close
+        @current_file&.close
+        @current_file = nil
+      end
+
+      private
+
+      def ensure_file_open
+        return if @current_file && !@current_file.closed?
+
+        filename = File.join(@directory, "events_#{@current_session}.jsonl")
+        @current_file = File.open(filename, "a")
+      end
+    end
+  end
+end
+```
+
+#### Database Storage
+
+For complex filtering and analysis capabilities:
+
+```ruby
+module Vanilla
+  module Events
+    class DatabaseEventStore
+      def initialize(db_path = "events.db")
+        require 'sqlite3'
+        @db = SQLite3::Database.new(db_path)
+        @db.results_as_hash = true
+
+        # Create tables if they don't exist
+        create_schema
+      end
+
+      def store(event)
+        @db.execute(
+          "INSERT INTO events (type, timestamp, source, data, session_id) VALUES (?, ?, ?, ?, ?)",
+          [event.type, event.timestamp.to_s, event.source.to_s, event.data.to_json, current_session_id]
+        )
+      end
+
+      def query(options = {})
+        sql = "SELECT * FROM events WHERE 1=1"
+        params = []
+
+        if options[:type]
+          sql += " AND type = ?"
+          params << options[:type]
+        end
+
+        if options[:session_id]
+          sql += " AND session_id = ?"
+          params << options[:session_id]
+        end
+
+        if options[:start_time]
+          sql += " AND timestamp >= ?"
+          params << options[:start_time].to_s
+        end
+
+        if options[:end_time]
+          sql += " AND timestamp <= ?"
+          params << options[:end_time].to_s
+        end
+
+        sql += " ORDER BY timestamp"
+
+        if options[:limit]
+          sql += " LIMIT ?"
+          params << options[:limit]
+        end
+
+        results = @db.execute(sql, params)
+
+        # Convert results back to Event objects
+        results.map do |row|
+          Event.new(
+            row["type"],
+            row["source"],
+            JSON.parse(row["data"])
+          )
+        end
+      end
+
+      def clear_session(session_id = nil)
+        session_id ||= current_session_id
+        @db.execute("DELETE FROM events WHERE session_id = ?", [session_id])
+      end
+
+      def list_sessions
+        @db.execute("SELECT DISTINCT session_id FROM events").map { |row| row["session_id"] }
+      end
+
+      private
+
+      def create_schema
+        @db.execute(<<-SQL)
+          CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY,
+            type TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            source TEXT,
+            data TEXT NOT NULL,
+            session_id TEXT NOT NULL
+          )
+        SQL
+
+        @db.execute("CREATE INDEX IF NOT EXISTS idx_events_type ON events (type)")
+        @db.execute("CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events (timestamp)")
+        @db.execute("CREATE INDEX IF NOT EXISTS idx_events_session ON events (session_id)")
+      end
+
+      def current_session_id
+        @current_session_id ||= Time.now.strftime("%Y%m%d_%H%M%S")
+      end
+    end
+  end
+end
+```
+
+### Composite Event Store
+
+To leverage the benefits of all storage approaches:
+
+```ruby
+module Vanilla
+  module Events
+    class CompositeEventStore
+      def initialize(config = {})
+        @stores = []
+
+        # Configure stores based on options
+        if config[:in_memory] != false
+          max_events = config[:max_in_memory] || 10000
+          @stores << InMemoryEventStore.new(max_events)
+        end
+
+        if config[:file]
+          directory = config[:file_directory] || "event_logs"
+          @stores << FileEventStore.new(directory)
+        end
+
+        if config[:database]
+          db_path = config[:db_path] || "events.db"
+          @stores << DatabaseEventStore.new(db_path)
+        end
+      end
+
+      def store(event)
+        @stores.each { |store| store.store(event) }
+      end
+
+      def query(options = {})
+        # Default to using the first store for queries
+        # Usually this will be in-memory for performance
+        @stores.first&.query(options) || []
+      end
+
+      def close
+        @stores.each { |store| store.close if store.respond_to?(:close) }
+      end
+    end
+  end
+end
+```
+
+### Event Replay System
+
+For debugging and development:
+
+```ruby
+module Vanilla
+  module Events
+    class EventReplaySystem
+      def initialize(event_manager, event_store)
+        @event_manager = event_manager
+        @event_store = event_store
+      end
+
+      def replay_session(session_id = nil, speed = 1.0)
+        events =
+          if @event_store.respond_to?(:load_session)
+            @event_store.load_session(session_id)
+          else
+            @event_store.query(session_id: session_id)
+          end
+
+        return if events.empty?
+
+        # Sort events by timestamp
+        events.sort_by(&:timestamp)
+
+        # Set up a new game state
+        # Note: This is a simplified example; actual implementation would reset game state
+
+        # Replay events with timing
+        last_time = events.first.timestamp
+
+        events.each do |event|
+          # Calculate delay
+          if speed > 0
+            delay = (event.timestamp - last_time) / speed
+            sleep(delay) if delay > 0
+          end
+
+          # Republish the event
+          @event_manager.publish(event)
+          last_time = event.timestamp
+        end
+      end
+
+      def step_replay(events, current_index = 0)
+        return if current_index >= events.size
+
+        @event_manager.publish(events[current_index])
+        current_index + 1
+      end
+    end
+  end
+end
+```
+
+### Integration with Event Manager
+
+Adding storage capability to the event manager:
+
+```ruby
+module Vanilla
+  module Events
+    class EventManager
+      def initialize(logger, store_config = {in_memory: true})
+        @subscribers = Hash.new { |h, k| h[k] = [] }
+        @logger = logger
+        @event_store = CompositeEventStore.new(store_config)
+      end
+
+      def publish(event)
+        @logger.debug("Publishing event: #{event}")
+
+        # Store the event
+        @event_store.store(event)
+
+        # Deliver to subscribers
+        @subscribers[event.type].each do |subscriber|
+          begin
+            subscriber.handle_event(event)
+          rescue => e
+            @logger.error("Error in subscriber #{subscriber.class}: #{e.message}")
+          end
+        end
+      end
+
+      def query_events(options = {})
+        @event_store.query(options)
+      end
+
+      # Existing methods (subscribe, unsubscribe) remain unchanged
+    end
+  end
+end
+```
+
+## 4. Implementation Plan
 
 ### Phase 1: Core Event Infrastructure (Week 1)
 1. Implement `Event`, `EventManager`, and `EventSubscriber` classes
 2. Create common event types
 3. Add event manager to the game instance
 4. Set up basic event logging
+5. Implement in-memory event storage
 
 ### Phase 2: System Integration (Week 2-3)
 1. Modify the `InputHandler` to publish input events
 2. Update the `MovementSystem` to subscribe to movement events
 3. Convert direct method calls to event publications where appropriate
 4. Implement event-based collision detection
+5. Add file-based event persistence
 
 ### Phase 3: Monster System Refactoring (Week 4)
 1. Refactor `MonsterSystem` to use events for:
@@ -148,14 +533,16 @@ end
    - Monster-player interaction
 2. Implement turn-based event processing
 3. Add monster decision events for debugging
+4. Implement database storage for complex analysis
 
 ### Phase 4: Debugging Tools (Week 5)
 1. Implement event history recording
 2. Create event filtering and searching
 3. Build event visualization system
 4. Add event replay functionality
+5. Integrate with step-by-step execution
 
-## 4. Example Integration - Monster Movement
+## 5. Example Integration - Monster Movement
 
 ### Current Implementation (Simplified)
 ```ruby
@@ -231,7 +618,7 @@ def handle_event(event)
 end
 ```
 
-## 5. Debug Event Monitoring
+## 6. Debug Event Monitoring
 
 ### Event Filter and Viewer
 ```ruby
@@ -326,7 +713,7 @@ module Vanilla
 end
 ```
 
-## 6. Testing Strategy
+## 7. Testing Strategy
 
 ### Unit Testing
 ```ruby
@@ -380,7 +767,7 @@ describe "Monster movement with events" do
 end
 ```
 
-## 7. Migration Strategy
+## 8. Migration Strategy
 
 ### Risks and Mitigations
 - **Risk**: Extensive refactoring could introduce new bugs
