@@ -48,6 +48,8 @@ module Vanilla
       # @param session_id [String] the session ID
       # @return [String] HTML content
       def generate_html(events, session_id)
+        return "<html><body><h1>No events found</h1></body></html>" if events.empty?
+
         # Group events by type
         event_types = events.map(&:type).uniq.sort
         events_by_type = {}
@@ -56,8 +58,8 @@ module Vanilla
         end
 
         # Find time boundaries
-        start_time = events.map { |e| Time.parse(e.timestamp) }.min
-        end_time = events.map { |e| Time.parse(e.timestamp) }.max
+        start_time = Time.parse(events.first.timestamp.to_s)
+        end_time = Time.parse(events.last.timestamp.to_s)
         duration = end_time - start_time
 
         # Generate the HTML
