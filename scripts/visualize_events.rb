@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require_relative '../lib/vanilla/events/event'
 require_relative '../lib/vanilla/events/storage/event_store'
 require_relative '../lib/vanilla/events/storage/file_event_store'
 require_relative '../lib/vanilla/events/event_visualization'
