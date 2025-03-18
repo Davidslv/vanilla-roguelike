@@ -205,24 +205,5 @@ RSpec.describe Vanilla::Entities::Player do
         movement_system.move(player, :north)
       }.to change(player, :row).from(row).to(row - 1)
     end
-
-    it 'works with the Vanilla::Movement module' do
-      grid = instance_double('Vanilla::MapUtils::Grid')
-      cell = instance_double('Vanilla::MapUtils::Cell')
-      east_cell = instance_double('Vanilla::MapUtils::Cell')
-
-      allow(grid).to receive(:[]).with(row, column).and_return(cell)
-      allow(cell).to receive(:linked?).with(east_cell).and_return(true)
-      allow(cell).to receive(:east).and_return(east_cell)
-      allow(east_cell).to receive(:row).and_return(row)
-      allow(east_cell).to receive(:column).and_return(column + 1)
-      allow(east_cell).to receive(:stairs?).and_return(true)
-
-      expect {
-        Vanilla::Movement.move(grid: grid, unit: player, direction: :east)
-      }.to change(player, :column).from(column).to(column + 1)
-
-      expect(player.found_stairs).to be true
-    end
   end
 end

@@ -24,7 +24,18 @@ module Vanilla
     end
 
     def self.player(grid:, unit:)
-      self.tile(grid: grid, row: unit.row, column: unit.column, tile: unit.tile)
+      # Handle both Entity and legacy Unit objects
+      if unit.respond_to?(:has_component?) && unit.has_component?(:position) && unit.has_component?(:tile)
+        # Preferred approach: Entity with components
+        position = unit.get_component(:position)
+        tile_component = unit.get_component(:tile)
+        self.tile(grid: grid, row: position.row, column: position.column, tile: tile_component.tile)
+      else
+        # Legacy approach: Unit object
+        logger = Vanilla::Logger.instance
+        logger.warn("DEPRECATED: Using legacy Unit object in Draw.player. Please use Entity with components.")
+        self.tile(grid: grid, row: unit.row, column: unit.column, tile: unit.tile)
+      end
     end
 
     def self.stairs(grid:, row:, column:)
@@ -32,14 +43,37 @@ module Vanilla
     end
 
     def self.movement(grid:, unit:, direction:)
-      # Save old position before movement
-      old_row, old_column = unit.row, unit.column
+      # Use the MovementSystem for all objects
+      movement_system = Vanilla::Systems::MovementSystem.new(grid)
 
-      # Perform movement
-      Vanilla::Movement.move(grid: grid, unit: unit, direction: direction)
+      # Determine if this is an Entity or legacy Unit
+      if unit.respond_to?(:has_component?) && unit.has_component?(:position)
+        # Entity approach - get position before movement
+        position = unit.get_component(:position)
+        old_row, old_column = position.row, position.column
+
+        # Move the entity
+        success = movement_system.move(unit, direction)
+
+        # Get updated position
+        new_row, new_column = position.row, position.column
+      else
+        # Legacy Unit approach
+        logger = Vanilla::Logger.instance
+        logger.warn("DEPRECATED: Using legacy Unit object in Draw.movement. Please use Entity with components.")
+
+        # Get position before movement
+        old_row, old_column = unit.row, unit.column
+
+        # Move the unit
+        success = movement_system.move(unit, direction)
+
+        # Get updated position
+        new_row, new_column = unit.row, unit.column
+      end
 
       # If player moved, clear the old position
-      if old_row != unit.row || old_column != unit.column
+      if old_row != new_row || old_column != new_column
         old_cell = grid[old_row, old_column]
         old_cell.tile = Support::TileType::EMPTY if old_cell
       end
