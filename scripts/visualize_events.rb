@@ -12,7 +12,7 @@ def list_sessions
 end
 
 def visualize_session(session_id = nil)
-  event_store = Vanilla::Events::FileEventStore.new("event_logs")
+  event_store = Vanilla::Events::Storage::FileEventStore.new("event_logs")
   visualizer = Vanilla::Events::EventVisualization.new(event_store)
 
   if session_id.nil?
@@ -27,6 +27,8 @@ def visualize_session(session_id = nil)
       system "open #{output_path}"
     elsif RbConfig::CONFIG['host_os'] =~ /linux/
       system "xdg-open #{output_path}"
+    elsif RbConfig::CONFIG['host_os'] =~ /mswin|mingw/
+      system "start #{output_path}"
     else
       puts "Please open the file manually in your browser"
     end
