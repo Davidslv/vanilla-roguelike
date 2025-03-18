@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
-require_relative '../lib/vanilla/events/event_store'
+require_relative '../lib/vanilla/events/storage/event_store'
+require_relative '../lib/vanilla/events/storage/file_event_store'
 require_relative '../lib/vanilla/events/event_visualization'
 
 def list_sessions
@@ -26,8 +27,6 @@ def visualize_session(session_id = nil)
       system "open #{output_path}"
     elsif RbConfig::CONFIG['host_os'] =~ /linux/
       system "xdg-open #{output_path}"
-    elsif RbConfig::CONFIG['host_os'] =~ /mswin|mingw/
-      system "start #{output_path}"
     else
       puts "Please open the file manually in your browser"
     end
