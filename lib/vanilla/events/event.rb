@@ -1,63 +1,64 @@
 require 'json'
 require 'time'
+require 'securerandom'
 
 module Vanilla
   module Events
     # Base class for all events in the system
     class Event
-      attr_reader :timestamp, :source, :type, :data
+      attr_reader :id, :timestamp, :source, :type, :data
 
       # Initialize a new event
       # @param type [String] The event type identifier
       # @param source [Object] The source/originator of the event
       # @param data [Hash] Additional event data
-      def initialize(type, source = nil, data = {})
+      # @param id [String, nil] Optional event ID, generated if not provided
+      # @param timestamp [Time, nil] Optional timestamp, current time if not provided
+      def initialize(type, source = nil, data = {}, id = nil, timestamp = nil)
+        @id = id || SecureRandom.uuid
         @type = type
         @source = source
         @data = data
-        @timestamp = Time.now
+        @timestamp = timestamp || Time.now.utc.iso8601(3)
       end
 
       # String representation of the event
-      # @return [String] Human-readable event description
+      # @return [String] Human-readable event string
       def to_s
         "[#{@timestamp}] #{@type}: #{@data.inspect}"
       end
 
-      # Convert the event to a JSON-serializable hash
-      # @return [Hash] The event data as a serializable hash
+      # Hash representation of the event
+      # @return [Hash] Event data as a hash
       def to_h
         {
+          id: @id,
           type: @type,
-          timestamp: @timestamp.iso8601,
           source: @source.to_s,
+          timestamp: @timestamp,
           data: @data
         }
       end
 
-      # Serialize the event to JSON
-      # @return [String] JSON string representation of the event
+      # JSON representation of the event
+      # @return [String] Event data as a JSON string
       def to_json(*_args)
         to_h.to_json
       end
 
-      # Create an event from a JSON string
-      # @param json [String] JSON string representation of an event
-      # @return [Event] A new Event instance
+      # Create an event from its JSON representation
+      # @param json [String] JSON representation of an event
+      # @return [Event] Reconstructed event
       def self.from_json(json)
         data = JSON.parse(json, symbolize_names: true)
 
-        # Create new event with parsed data
-        event = new(
+        new(
           data[:type],
           data[:source],
-          data[:data] || {}
+          data[:data] || {},
+          data[:id],
+          data[:timestamp]
         )
-
-        # Set timestamp manually to preserve original time
-        event.instance_variable_set(:@timestamp, Time.iso8601(data[:timestamp]))
-
-        event
       end
     end
   end
