@@ -6,6 +6,8 @@ RSpec.describe Vanilla::Movement do
 
   before do
     allow(Vanilla::Logger).to receive(:instance).and_return(logger)
+    # Allow all deprecation warnings
+    allow(logger).to receive(:warn)
   end
 
   describe '.move' do
@@ -54,6 +56,7 @@ RSpec.describe Vanilla::Movement do
 
         expect(unit).to have_received(:row=).with(4)
         expect(unit).to have_received(:column=).with(5)
+        expect(logger).to have_received(:warn).with("DEPRECATED: Legacy movement system is deprecated. Please migrate to the ECS pattern.")
       end
 
       it 'checks if the path is linked before moving' do
@@ -63,6 +66,7 @@ RSpec.describe Vanilla::Movement do
 
         expect(unit).not_to have_received(:row=)
         expect(unit).not_to have_received(:column=)
+        expect(logger).to have_received(:warn).with("DEPRECATED: Legacy movement system is deprecated. Please migrate to the ECS pattern.")
       end
 
       it 'updates found_stairs when moving to a cell with stairs' do
@@ -71,6 +75,7 @@ RSpec.describe Vanilla::Movement do
         described_class.move(grid: grid, unit: unit, direction: :up)
 
         expect(unit).to have_received(:found_stairs=).with(true)
+        expect(logger).to have_received(:warn).with("DEPRECATED: Legacy movement system is deprecated. Please migrate to the ECS pattern.")
       end
     end
   end

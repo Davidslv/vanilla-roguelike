@@ -112,33 +112,46 @@ RSpec.describe Vanilla::Draw do
   describe '.movement' do
     before do
       allow(described_class).to receive(:map)
+      allow(described_class).to receive(:player)
     end
 
     context 'with a legacy unit' do
       let(:unit) { instance_double('Vanilla::Unit', row: 5, column: 10, tile: '@') }
+      let(:movement_system) { instance_double('Vanilla::Systems::MovementSystem') }
 
-      it 'processes movement and redraws the map' do
-        expect(Vanilla::Movement).to receive(:move).with(
-          grid: grid,
-          unit: unit,
-          direction: :up
-        )
-        expect(described_class).to receive(:map).with(grid)
+      before do
+        allow(unit).to receive(:respond_to?).with(:get_component).and_return(false)
+        allow(unit).to receive(:respond_to?).with(:has_component?).and_return(false)
+
+        allow(Vanilla::Systems::MovementSystem).to receive(:new).with(grid).and_return(movement_system)
+        allow(movement_system).to receive(:move).and_return(true)
+        allow(grid).to receive(:[]).with(5, 10).and_return(cell)
+        allow(cell).to receive(:tile=)
+      end
+
+      it 'uses the movement system directly' do
+        expect(Vanilla::Systems::MovementSystem).to receive(:new).with(grid)
+        expect(movement_system).to receive(:move).with(unit, :up)
 
         described_class.movement(grid: grid, unit: unit, direction: :up)
       end
     end
 
     context 'with an entity' do
+      # Instead of mocking Entity directly, use a real Player entity
       let(:player) { Vanilla::Entities::Player.new(row: 5, column: 10) }
+      let(:movement_system) { instance_double('Vanilla::Systems::MovementSystem') }
 
-      it 'processes movement and redraws the map' do
-        expect(Vanilla::Movement).to receive(:move).with(
-          grid: grid,
-          unit: player,
-          direction: :up
-        )
-        expect(described_class).to receive(:map).with(grid)
+      before do
+        allow(Vanilla::Systems::MovementSystem).to receive(:new).with(grid).and_return(movement_system)
+        allow(movement_system).to receive(:move).and_return(true)
+        allow(grid).to receive(:[]).with(5, 10).and_return(cell)
+        allow(cell).to receive(:tile=)
+      end
+
+      it 'uses the movement system directly' do
+        expect(Vanilla::Systems::MovementSystem).to receive(:new).with(grid)
+        expect(movement_system).to receive(:move).with(player, :up)
 
         described_class.movement(grid: grid, unit: player, direction: :up)
       end
