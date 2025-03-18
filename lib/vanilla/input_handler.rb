@@ -7,7 +7,7 @@ module Vanilla
     # Initialize a new input handler
     # @param logger [Logger] Logger instance
     # @param event_manager [Vanilla::Events::EventManager, nil] Optional event manager
-    def initialize(logger: Vanilla::Logger.instance, event_manager: nil)
+    def initialize(logger = Vanilla::Logger.instance, event_manager = nil)
       @logger = logger
       @event_manager = event_manager
     end
