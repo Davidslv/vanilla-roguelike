@@ -30,7 +30,6 @@ module Vanilla
 
   # entities
   require_relative 'vanilla/entities/player'
-  require_relative 'vanilla/characters/player'
 
   # event system
   require_relative 'vanilla/events'
