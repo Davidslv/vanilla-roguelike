@@ -11,6 +11,7 @@ module Vanilla
     def handle_input(key, entity, grid)
       command = create_command(key, entity, grid)
       command.execute
+      command  # Return the command object
     end
 
     private

@@ -64,6 +64,18 @@ module Vanilla
     # Create an InputHandler for the game loop
     input_handler = Vanilla::InputHandler.new(logger)
 
+    # Create a monster system for the current level
+    monster_system = Vanilla::Systems::MonsterSystem.new(
+      grid: level.grid,
+      player: level.player,
+      logger: logger
+    )
+
+    # Spawn monsters for the initial level
+    monster_system.spawn_monsters(1) # Start with level 1 difficulty
+    logger.info("Spawned initial monsters")
+
+    # Game loop
     while key = STDIN.getch
       # Given that arrow keys are compose of more than one character
       # we are taking advantage of STDIN repeatedly to represent the correct action.
@@ -73,11 +85,46 @@ module Vanilla
       key        = KEYBOARD_ARROWS[key.intern] || key
 
       logger.debug("Key pressed: #{key.inspect}")
-      input_handler.handle_input(key, level.player, level.grid)
 
+      # Handle player input
+      command = input_handler.handle_input(key, level.player, level.grid)
+
+      # If a valid command was executed, update monsters
+      if command && command.executed
+        # Update monster positions and behaviors
+        monster_system.update
+        logger.debug("Updated #{monster_system.monsters.count} monsters")
+
+        # Check for player-monster collision after monster movement
+        player_pos = level.player.get_component(:position)
+        monster = monster_system.monster_at(player_pos.row, player_pos.column)
+
+        if monster
+          # Handle combat (simple version - monster damages player)
+          logger.info("Player encountered a #{monster.monster_type}!")
+          # In a real implementation, you would handle combat here
+          # For now, we just pretend the encounter happened
+        end
+      end
+
+      # Check if player found stairs
       if level.player.found_stairs?
-        logger.info("Player found stairs, generating new level")
-        level = Vanilla::Level.random
+        current_level = level.difficulty || 1
+        next_level = current_level + 1
+
+        logger.info("Player found stairs, advancing to level #{next_level}")
+        level = Vanilla::Level.random(difficulty: next_level)
+
+        # Create new monster system for the new level
+        monster_system = Vanilla::Systems::MonsterSystem.new(
+          grid: level.grid,
+          player: level.player,
+          logger: logger
+        )
+
+        # Spawn monsters with increased difficulty
+        monster_system.spawn_monsters(next_level)
+        logger.info("Spawned monsters for level #{next_level}")
       end
     end
   end

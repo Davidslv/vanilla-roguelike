@@ -6,6 +6,7 @@ module Vanilla
       attr_reader :entity, :direction, :grid
 
       def initialize(entity, direction, grid)
+        super()
         @entity = entity
         @direction = direction
         @grid = grid
@@ -34,6 +35,9 @@ module Vanilla
           # Update display
           Vanilla::Draw.player(grid: @grid, unit: @entity)
           Vanilla::Draw.map(@grid)
+
+          # Set executed flag
+          @executed = true
         end
 
         success
