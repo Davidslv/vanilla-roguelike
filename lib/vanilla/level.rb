@@ -29,9 +29,8 @@ module Vanilla
       @stairs = Entities::Stairs.new(row: stairs_row, column: stairs_column)
       logger.info("Stairs placed at position [#{stairs_row}, #{stairs_column}]")
 
-      # Add entities to the grid for traditional rendering
-      Vanilla::Draw.player(grid: grid, unit: @player)
-      Vanilla::Draw.stairs(grid: grid, row: stairs_row, column: stairs_column)
+      # Update grid cells with entity information (for backwards compatibility)
+      update_grid_with_entities
     end
 
     def self.random(difficulty: 1)
@@ -56,6 +55,25 @@ module Vanilla
     end
 
     private
+
+    # Updates grid cells with entity information for backwards compatibility
+    # with code that still uses the grid's tile properties directly
+    def update_grid_with_entities
+      # Update player position on grid
+      if @player
+        pos = @player.get_component(:position)
+        tile_component = @player.get_component(:tile)
+        cell = @grid[pos.row, pos.column]
+        cell.tile = tile_component.tile if cell
+      end
+
+      # Update stairs position on grid
+      if @stairs
+        pos = @stairs.get_component(:position)
+        cell = @grid[pos.row, pos.column]
+        cell.tile = Vanilla::Support::TileType::STAIRS if cell
+      end
+    end
 
     def start_position(grid:)
       grid[rand(0..((grid.rows - 1) / 2)), rand(0..((grid.columns - 1) / 2))]

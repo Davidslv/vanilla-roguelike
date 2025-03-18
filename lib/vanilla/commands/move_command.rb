@@ -5,12 +5,13 @@ module Vanilla
     class MoveCommand < Command
       attr_reader :entity, :direction, :grid
 
-      def initialize(entity, direction, grid)
+      def initialize(entity, direction, grid, render_system = nil)
         super()
         @entity = entity
         @direction = direction
         @grid = grid
         @movement_system = Vanilla::Systems::MovementSystem.new(grid)
+        @render_system = render_system || Vanilla::Systems::RenderSystemFactory.create
       end
 
       def execute
@@ -33,8 +34,22 @@ module Vanilla
           end
 
           # Update display
-          Vanilla::Draw.player(grid: @grid, unit: @entity)
-          Vanilla::Draw.map(@grid)
+          # Get all renderable entities and update the display
+          if @entity.respond_to?(:all_entities)
+            # If entity is a level or has a collection
+            entities = @entity.all_entities
+          else
+            # If we just have a single entity
+            entities = [@entity]
+          end
+
+          # Add monster entities if available
+          if @grid.respond_to?(:monster_system) && @grid.monster_system.respond_to?(:monsters)
+            entities += @grid.monster_system.monsters
+          end
+
+          # Render the scene
+          @render_system.render(entities, @grid)
 
           # Set executed flag
           @executed = true

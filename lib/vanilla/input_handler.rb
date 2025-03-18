@@ -7,9 +7,11 @@ module Vanilla
     # Initialize a new input handler
     # @param logger [Logger] Logger instance
     # @param event_manager [Vanilla::Events::EventManager, nil] Optional event manager
-    def initialize(logger = Vanilla::Logger.instance, event_manager = nil)
+    # @param render_system [Vanilla::Systems::RenderSystem, nil] Optional render system
+    def initialize(logger = Vanilla::Logger.instance, event_manager = nil, render_system = nil)
       @logger = logger
       @event_manager = event_manager
+      @render_system = render_system || Vanilla::Systems::RenderSystemFactory.create
     end
 
     # Handle a key press from the user
@@ -61,16 +63,16 @@ module Vanilla
       case key
       when "k", "K", :KEY_UP
         @logger.info("Player attempting to move UP")
-        Commands::MoveCommand.new(entity, :up, grid)
+        Commands::MoveCommand.new(entity, :up, grid, @render_system)
       when "j", "J", :KEY_DOWN
         @logger.info("Player attempting to move DOWN")
-        Commands::MoveCommand.new(entity, :down, grid)
+        Commands::MoveCommand.new(entity, :down, grid, @render_system)
       when "l", "L", :KEY_RIGHT
         @logger.info("Player attempting to move RIGHT")
-        Commands::MoveCommand.new(entity, :right, grid)
+        Commands::MoveCommand.new(entity, :right, grid, @render_system)
       when "h", "H", :KEY_LEFT
         @logger.info("Player attempting to move LEFT")
-        Commands::MoveCommand.new(entity, :left, grid)
+        Commands::MoveCommand.new(entity, :left, grid, @render_system)
       when "\C-c", "q"
         Commands::ExitCommand.new
       else
