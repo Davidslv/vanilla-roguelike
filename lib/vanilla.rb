@@ -23,16 +23,12 @@ module Vanilla
 
   # game
   require_relative 'vanilla/input_handler'
-  require_relative 'vanilla/draw'
   require_relative 'vanilla/logger'
   require_relative 'vanilla/level'
 
   # map
   require_relative 'vanilla/map_utils'
   require_relative 'vanilla/map'
-
-  # output
-  require_relative 'vanilla/output/terminal'
 
   # renderers
   require_relative 'vanilla/renderers'
