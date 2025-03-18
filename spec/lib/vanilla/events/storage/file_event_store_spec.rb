@@ -2,7 +2,7 @@ require 'spec_helper'
 require 'fileutils'
 
 RSpec.describe Vanilla::Events::Storage::FileEventStore do
-  let(:test_dir) { "tmp/event_test" }
+  let(:test_dir) { "event_logs/test/event_test" }
   let(:store) { described_class.new(test_dir) }
   let(:event) { Vanilla::Events::Event.new("test_event", "test_source", { data: "value" }) }
 

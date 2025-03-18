@@ -90,7 +90,7 @@ module Vanilla
       @logger.info("Starting game loop")
 
       # Record game start event for debugging and analytics
-      @event_manager&.publish_event(Events::Types::GAME_STARTED)
+      @event_manager.publish_event(Events::Types::GAME_STARTED)
 
       # Initialize the first level
       level = initialize_level(difficulty: 1)
@@ -103,8 +103,8 @@ module Vanilla
     # This ensures resources are properly released
     # @return [void]
     def cleanup
-      @event_manager&.publish_event(Events::Types::GAME_ENDED)
-      @event_manager&.close
+      @event_manager.publish_event(Events::Types::GAME_ENDED)
+      @event_manager.close
       @logger.info("Player exiting game")
     end
 
@@ -146,7 +146,7 @@ module Vanilla
     def game_loop(level)
       loop do
         # 1. START FRAME - mark the beginning of a new turn
-        @event_manager&.publish_event(Events::Types::TURN_STARTED)
+        @event_manager.publish_event(Events::Types::TURN_STARTED)
 
         # 2. PROCESS INPUT - get and process player input
         command = process_input(level)
@@ -170,7 +170,7 @@ module Vanilla
         level = handle_level_transition(level) if level.player.found_stairs?
 
         # 6. END FRAME - mark the end of this turn
-        @event_manager&.publish_event(Events::Types::TURN_ENDED)
+        @event_manager.publish_event(Events::Types::TURN_ENDED)
       end
     end
 
@@ -198,6 +198,8 @@ module Vanilla
       if monster_system.player_collision?
         player_pos = level.player.get_component(:position)
         @logger.info("Player encountered a monster!")
+
+        # TODO: Handle combat mechanics
         # In the future, this will handle combat mechanics
         # For now, it just logs the encounter
       end
@@ -214,7 +216,7 @@ module Vanilla
       @logger.info("Player found stairs, advancing to level #{next_difficulty}")
 
       # Publish level change event
-      @event_manager&.publish_event(
+      @event_manager.publish_event(
         Events::Types::LEVEL_CHANGED,
         current_level,
         { old_level: current_difficulty, new_level: next_difficulty }

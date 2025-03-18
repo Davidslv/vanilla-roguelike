@@ -4,7 +4,7 @@ doc/**/*.js
 doc/**/*.html
 .yardoc/*
 png-mazes/
-logs/*.log
+logs/**/*.log
 coverage/*
 coverage
-event_logs/*.jsonl
+event_logs/**/*.jsonl
