@@ -1,3 +1,81 @@
+# Changes - Architecture Streamlining
+
+## Latest Changes (2023-XX-XX)
+
+### Removal of Command Class
+
+- Removed `lib/vanilla/command.rb` - Eliminated the redundant adapter layer
+- Removed `spec/lib/vanilla/command_spec.rb` - Removed tests for the Command class
+- Modified `lib/vanilla.rb` to directly use the InputHandler:
+  - Added creation of InputHandler instance in the run method
+  - Updated to call `input_handler.handle_input()` directly
+  - Changed import to require `input_handler.rb` instead of `command.rb`
+
+This change simplifies the architecture by removing an unnecessary layer of indirection. The game loop now communicates directly with the InputHandler, which creates and executes the appropriate commands.
+
+## Current Architecture
+
+```
+┌───────────────┐      ┌───────────────┐       ┌───────────────┐
+│  Game Loop    │      │ InputHandler  │       │   Commands    │
+│ (vanilla.rb)  │──────▶ (creates      │───────▶ MoveCommand   │
+└───────────────┘      │  commands)    │       │ ExitCommand   │
+        │              └───────────────┘       │ NullCommand   │
+        │                      │               └───────────────┘
+        │                      │                      │
+        ▼                      ▼                      ▼
+┌───────────────┐      ┌───────────────┐       ┌───────────────┐
+│     Level     │      │    Systems    │       │     Draw      │
+│ (contains     │◀─────│ MovementSystem│◀──────│ (renders      │
+│  grid/player) │      └───────────────┘       │  changes)     │
+└───────────────┘              │               └───────────────┘
+        │                      │                      │
+        ▼                      ▼                      ▼
+┌───────────────┐      ┌───────────────┐       ┌───────────────┐
+│     Grid      │      │    Entity     │       │    Output     │
+│ (maze cells,  │◀─────│ (components:  │───────▶ (terminal     │
+│  algorithms)  │      │  position,etc)│       │  rendering)   │
+└───────────────┘      └───────────────┘       └───────────────┘
+```
+
+## Class Responsibilities
+
+- **Game Loop** (vanilla.rb): Entry point, manages game state and input handling
+- **InputHandler**: Translates key inputs into appropriate command objects
+- **Commands**: Encapsulate actions (movement, exit game, etc.) with the Command pattern
+- **Level**: Contains and manages the current game level including grid and player
+- **Entity**: Base class for game objects following Entity-Component-System pattern
+- **Components**: Data containers (Position, Movement, Tile, Stairs) attached to entities
+- **Systems**: Logic that operates on entities with specific components (e.g., MovementSystem)
+- **Draw**: Rendering utilities for displaying game state
+- **Grid/MapUtils**: Maze generation and management
+- **Algorithms**: Various maze generation algorithms
+
+## Suggestions for Further Improvements
+
+1. **Complete ECS Implementation**:
+   - Add a proper System Manager to systematically update all systems
+   - Consider implementing a Component Manager for better performance
+
+2. **Additional Systems**:
+   - CollisionSystem - Dedicated collision detection and response
+   - AISystem - For enemy movement and behavior
+   - ItemSystem - For handling item interactions
+   - CombatSystem - For implementing combat mechanics
+
+3. **Performance Optimizations**:
+   - Use spatial partitioning for collision detection if adding many entities
+   - Consider caching rendered output for static parts of the grid
+
+4. **UI Improvements**:
+   - Add a proper UI layer for displaying stats, inventory, etc.
+   - Consider implementing a menu system for game options
+
+5. **Technical Debt**:
+   - Improve test coverage for edge cases
+   - Add documentation for each class and module
+   - Consider extracting maze generation into a separate gem
+
 # Changes - Legacy Code Removal
 
 This document outlines the changes made to remove legacy code from the codebase, specifically the Unit and Characters::Player classes as part of the migration to the Entity-Component-System architecture.
