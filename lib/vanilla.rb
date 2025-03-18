@@ -75,6 +75,9 @@ module Vanilla
     monster_system.spawn_monsters(1) # Start with level 1 difficulty
     logger.info("Spawned initial monsters")
 
+    # Draw the map to show monsters immediately
+    Vanilla::Draw.map(level.grid)
+
     # Game loop
     while key = STDIN.getch
       # Given that arrow keys are compose of more than one character
@@ -125,6 +128,9 @@ module Vanilla
         # Spawn monsters with increased difficulty
         monster_system.spawn_monsters(next_level)
         logger.info("Spawned monsters for level #{next_level}")
+
+        # Draw the map to show monsters on the new level
+        Vanilla::Draw.map(level.grid)
       end
     end
   end

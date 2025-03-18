@@ -193,6 +193,9 @@ module Vanilla
         # Calculate distance to player
         distance = (position.row - player_position.row).abs + (position.column - player_position.column).abs
 
+        # Track if the monster moved successfully
+        moved = false
+
         # If player is nearby (within 5 cells), move towards them
         if distance <= 5
           # Simple pathfinding - move in the direction of the player
@@ -222,6 +225,7 @@ module Vanilla
             # Update cells
             old_cell.tile = Support::TileType::EMPTY
             @grid[new_row, new_col].tile = Support::TileType::MONSTER
+            moved = true
           end
         else
           # Random movement if player is not nearby
@@ -249,9 +253,19 @@ module Vanilla
                 # Update cells
                 old_cell.tile = Support::TileType::EMPTY
                 @grid[new_row, new_col].tile = Support::TileType::MONSTER
+                moved = true
                 break
               end
             end
+          end
+        end
+
+        # If monster didn't move, make sure it's still visible on the grid
+        unless moved
+          # Ensure the monster's current position still shows the monster tile
+          current_cell = @grid[position.row, position.column]
+          if current_cell && current_cell.tile != Support::TileType::MONSTER
+            current_cell.tile = Support::TileType::MONSTER
           end
         end
       end
