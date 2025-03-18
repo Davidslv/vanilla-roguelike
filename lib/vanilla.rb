@@ -69,7 +69,7 @@ module Vanilla
     # Initialize event system with file storage
     @event_manager = Events::EventManager.new(@logger)
 
-    @input_handler = InputHandler.new(logger: @logger, event_manager: @event_manager)
+    @input_handler = InputHandler.new(@logger, @event_manager)
   end
 
   def start
