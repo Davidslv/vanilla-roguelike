@@ -1,19 +1,57 @@
-require_relative 'shared/movement'
-
 module Vanilla
   module Characters
+    # @deprecated Use Vanilla::Entities::Player instead
     class Player < Unit
-      include Vanilla::Characters::Shared::Movement
-
       attr_accessor :name, :level, :experience, :inventory
 
       def initialize(name: 'player', row:, column:)
+        logger = Vanilla::Logger.instance
+        logger.warn("DEPRECATED: #{self.class} is deprecated. Please use Vanilla::Entities::Player instead.")
+
         super(row: row, column: column, tile: Support::TileType::PLAYER)
         @name = name
 
         @level = 1
         @experience = 0
         @inventory = []
+      end
+
+      # Movement methods are now handled by the MovementSystem
+      # All movement methods are deprecated
+
+      def move(direction)
+        logger = Vanilla::Logger.instance
+        logger.warn("DEPRECATED: #{self.class}##{__method__} is deprecated. Please use Vanilla::Entities::Player with Vanilla::Systems::MovementSystem.")
+        # Legacy movement is no longer supported
+        logger.info("Movement with #{direction} direction ignored - legacy movement is removed")
+      end
+
+      def move_left
+        logger = Vanilla::Logger.instance
+        logger.warn("DEPRECATED: #{self.class}##{__method__} is deprecated. Please use Vanilla::Entities::Player with Vanilla::Systems::MovementSystem.")
+        # Legacy movement is no longer supported
+        logger.info("Left movement ignored - legacy movement is removed")
+      end
+
+      def move_right
+        logger = Vanilla::Logger.instance
+        logger.warn("DEPRECATED: #{self.class}##{__method__} is deprecated. Please use Vanilla::Entities::Player with Vanilla::Systems::MovementSystem.")
+        # Legacy movement is no longer supported
+        logger.info("Right movement ignored - legacy movement is removed")
+      end
+
+      def move_up
+        logger = Vanilla::Logger.instance
+        logger.warn("DEPRECATED: #{self.class}##{__method__} is deprecated. Please use Vanilla::Entities::Player with Vanilla::Systems::MovementSystem.")
+        # Legacy movement is no longer supported
+        logger.info("Up movement ignored - legacy movement is removed")
+      end
+
+      def move_down
+        logger = Vanilla::Logger.instance
+        logger.warn("DEPRECATED: #{self.class}##{__method__} is deprecated. Please use Vanilla::Entities::Player with Vanilla::Systems::MovementSystem.")
+        # Legacy movement is no longer supported
+        logger.info("Down movement ignored - legacy movement is removed")
       end
 
       def gain_experience(amount)

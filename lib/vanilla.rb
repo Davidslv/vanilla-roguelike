@@ -37,9 +37,6 @@ module Vanilla
   # support
   require_relative 'vanilla/support/tile_type'
 
-  # movement
-  require_relative 'vanilla/movement'
-
   # components (entity component system)
   require_relative 'vanilla/components'
 

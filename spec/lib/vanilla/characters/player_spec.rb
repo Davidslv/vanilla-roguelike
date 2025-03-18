@@ -43,11 +43,7 @@ RSpec.describe Vanilla::Characters::Player do
   describe 'movement methods' do
     let(:player) do
       allow(logger).to receive(:warn)
-      # Create a test character that implements the required methods for movement
-      player = described_class.new(row: row, column: column)
-      allow(player).to receive(:can_move?).and_return(true)
-      allow(player).to receive(:stairs?).and_return(false)
-      player
+      described_class.new(row: row, column: column)
     end
 
     it 'logs deprecation warnings when movement methods are called' do
@@ -83,5 +79,6 @@ RSpec.describe Vanilla::Characters::Player do
     end
   end
 end
+
 
 
