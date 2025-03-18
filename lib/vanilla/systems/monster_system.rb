@@ -230,16 +230,18 @@ module Vanilla
 
         # If player is nearby (within 5 cells), move towards them
         if distance <= 5
+          # Calculate row and column differences first
+          row_diff = player_position.row - position.row
+          col_diff = player_position.column - position.column
+
           # Simple pathfinding - move in the direction of the player
           # BUT only one step at a time in either row OR column (not both)
           if @rng.rand < 0.5 && row_diff != 0  # Prioritize row movement 50% of the time
             # Move one step vertically
-            row_diff = player_position.row - position.row
             new_row = position.row + (row_diff > 0 ? 1 : -1)
             new_col = position.column
           else # Otherwise move horizontally if possible
             # Move one step horizontally
-            col_diff = player_position.column - position.column
             new_row = position.row
             new_col = position.column + (col_diff != 0 ? (col_diff > 0 ? 1 : -1) : 0)
           end
