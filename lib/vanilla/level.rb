@@ -22,10 +22,10 @@ module Vanilla
       stairs_row = stairs_position[0]
       stairs_column = stairs_position[1]
 
-      @player = Characters::Player.new(row: player_row, column: player_column)
+      @player = Entities::Player.new(row: player_row, column: player_column)
       logger.info("Player created at position [#{player_row}, #{player_column}]")
 
-      Vanilla::Draw.player(grid: grid, unit: player)
+      Vanilla::Draw.player(grid: grid, unit: @player)
       Vanilla::Draw.stairs(grid: grid, row: stairs_row, column: stairs_column)
       logger.info("Stairs placed at position [#{stairs_row}, #{stairs_column}]")
     end

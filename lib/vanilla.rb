@@ -58,15 +58,17 @@ module Vanilla
   # level
   require_relative 'vanilla/level'
 
+  # entities
+  require_relative 'vanilla/entities'
+
   $seed = nil
 
   def self.run
     logger = Vanilla::Logger.instance
-    logger.info("Game started")
+    logger.info("Starting game loop")
 
-    # level = Vanilla::Level.new(seed: 84625887428918)
-    level = Vanilla::Level.new
-    logger.info("Initial level created")
+    level = Vanilla::Level.random
+    logger.info("Level created")
 
     while key = STDIN.getch
       # Given that arrow keys are compose of more than one character
