@@ -17,7 +17,9 @@ module Vanilla
 
     def initialize
       @level = ENV['VANILLA_LOG_LEVEL']&.downcase&.to_sym || :info
-      @log_dir = File.join(Dir.pwd, 'logs')
+      @log_env = ENV['VANILLA_LOG_DIR'] || 'development'
+
+      @log_dir = File.join(Dir.pwd, 'logs', @log_env)
       FileUtils.mkdir_p(@log_dir) unless Dir.exist?(@log_dir)
 
       @log_file = File.join(@log_dir, "vanilla_#{Time.now.strftime('%Y%m%d_%H%M%S')}.log")

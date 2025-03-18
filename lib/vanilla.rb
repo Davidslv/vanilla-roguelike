@@ -18,11 +18,15 @@ module Vanilla
     D: :KEY_LEFT
   }.freeze
 
-  # logger
-  require_relative 'vanilla/logger'
+  # Systems
+  require_relative 'vanilla/systems/movement_system'
+  require_relative 'vanilla/systems/monster_system'
 
-  # draw
+  # game
+  require_relative 'vanilla/input_handler'
   require_relative 'vanilla/draw'
+  require_relative 'vanilla/logger'
+  require_relative 'vanilla/level'
 
   # map
   require_relative 'vanilla/map_utils'
@@ -40,145 +44,199 @@ module Vanilla
   # components (entity component system)
   require_relative 'vanilla/components'
 
-  # systems (entity component system)
-  require_relative 'vanilla/systems'
-
   # entities
   require_relative 'vanilla/entities'
+  require_relative 'vanilla/entities/player'
 
-  # commands
-  require_relative 'vanilla/input_handler'
+  # event system
+  require_relative 'vanilla/events'
 
-  # level
-  require_relative 'vanilla/level'
-
+  # Have a seed for the random number generator
+  # This is used to generate the same map for the same seed
+  # This is useful for testing
+  # This is a global variable so that it can be accessed by the map generator
+  # and the game loop
   $seed = nil
 
-  def self.run
-    logger = Vanilla::Logger.instance
-    logger.info("Starting game loop")
+  # Game class implements the core game loop pattern and orchestrates the game's
+  # main components. It manages the game lifecycle from initialization to cleanup.
+  #
+  # The Game Loop pattern provides a way to:
+  # 1. Process player input
+  # 2. Update game state
+  # 3. Render the updated state
+  # 4. Repeat until the game ends
+  #
+  # This implementation uses a turn-based approach appropriate for roguelike games,
+  # where updates happen in discrete steps rather than in real-time.
+  class Game
+    # Initialize a new game instance with all required systems
+    # @return [Game] a new Game instance
+    def initialize
+      @logger = Vanilla::Logger.instance
+      @logger.info("Starting Vanilla game")
 
-    level = Vanilla::Level.random
-    logger.info("Level created")
+      # Initialize event system with file storage for debugging and analytics
+      @event_manager = Events::EventManager.new(@logger)
 
-    # Create an InputHandler for the game loop
-    input_handler = Vanilla::InputHandler.new(logger)
+      # Input handler translates raw keyboard input into game commands
+      @input_handler = InputHandler.new(@logger, @event_manager)
+    end
 
-    # Create a monster system for the current level
-    monster_system = Vanilla::Systems::MonsterSystem.new(
-      grid: level.grid,
-      player: level.player,
-      logger: logger
-    )
+    # Start the game by initializing the first level and entering the game loop
+    # This is the main entry point after initialization
+    # @return [void]
+    def start
+      @logger.info("Starting game loop")
 
-    # Spawn monsters for the initial level
-    monster_system.spawn_monsters(1) # Start with level 1 difficulty
-    logger.info("Spawned initial monsters")
+      # Record game start event for debugging and analytics
+      @event_manager.publish_event(Events::Types::GAME_STARTED)
 
-    # Draw the map to show monsters immediately
-    Vanilla::Draw.map(level.grid)
+      # Initialize the first level
+      level = initialize_level(difficulty: 1)
 
-    # Game loop
-    while key = STDIN.getch
-      # Given that arrow keys are compose of more than one character
-      # we are taking advantage of STDIN repeatedly to represent the correct action.
-      # It's not a perfect solution but it does avoid using Ncurses/Curses
-      second_key = STDIN.getch if key == "\e"
-      key        = STDIN.getch if second_key == "["
-      key        = KEYBOARD_ARROWS[key.intern] || key
+      # Enter the main game loop - this will continue until the player exits
+      game_loop(level)
+    end
 
-      logger.debug("Key pressed: #{key.inspect}")
+    # Perform cleanup operations when the game ends
+    # This ensures resources are properly released
+    # @return [void]
+    def cleanup
+      @event_manager.publish_event(Events::Types::GAME_ENDED)
+      @event_manager.close
+      @logger.info("Player exiting game")
+    end
 
-      # Handle player input
-      command = input_handler.handle_input(key, level.player, level.grid)
+    private
 
-      # If a valid command was executed, update monsters
-      if command && command.executed
-        # Update monster positions and behaviors
+    # Initialize a new level with the specified difficulty
+    # This creates the level, spawns monsters, and prepares it for play
+    # @param difficulty [Integer] the difficulty level (affects monster count and strength)
+    # @return [Level, MonsterSystem] the initialized level and its monster system
+    def initialize_level(difficulty:)
+      # Generate a new random level
+      level = Vanilla::Level.random(difficulty: difficulty)
+      @logger.info("Level created")
+
+      # Create a monster system for this level
+      monster_system = Vanilla::Systems::MonsterSystem.new(
+        grid: level.grid,
+        player: level.player,
+        logger: @logger
+      )
+
+      # Spawn monsters appropriate for this difficulty level
+      monster_system.spawn_monsters(difficulty)
+      @logger.info("Spawned initial monsters")
+
+      # Initial render of the level
+      Vanilla::Draw.map(level.grid)
+
+      # Store the monster system with the level for later access
+      level.instance_variable_set(:@monster_system, monster_system)
+
+      level
+    end
+
+    # The main game loop that implements the Game Loop pattern
+    # This loop continues until the player exits or the game ends
+    # @param level [Level] the current game level
+    # @return [void]
+    def game_loop(level)
+      loop do
+        # 1. START FRAME - mark the beginning of a new turn
+        @event_manager.publish_event(Events::Types::TURN_STARTED)
+
+        # 2. PROCESS INPUT - get and process player input
+        command = process_input(level)
+
+        # Check if player wants to exit the game
+        break if command.is_a?(Vanilla::Commands::ExitCommand)
+
+        # 3. UPDATE GAME STATE - update game world and check conditions
+        monster_system = level.instance_variable_get(:@monster_system)
+
+        # Update monster positions according to AI
         monster_system.update
-        logger.debug("Updated #{monster_system.monsters.count} monsters")
 
-        # Redraw the map to show monster movements
+        # Handle collisions between player and monsters
+        handle_collisions(level, monster_system)
+
+        # 4. RENDER - update the display to reflect the new state
         Vanilla::Draw.map(level.grid)
 
-        # Check for player-monster collision after monster movement
+        # 5. LEVEL TRANSITION - check if player advances to next level
+        level = handle_level_transition(level) if level.player.found_stairs?
+
+        # 6. END FRAME - mark the end of this turn
+        @event_manager.publish_event(Events::Types::TURN_ENDED)
+      end
+    end
+
+    # Process player input and convert it to game commands
+    # @param level [Level] the current game level
+    # @return [Command] the command that was executed
+    def process_input(level)
+      # Get raw keyboard input
+      key = STDIN.getch
+
+      # Handle multi-character input sequences (arrow keys)
+      second_key = STDIN.getch if key == "\e"
+      key = STDIN.getch if second_key == "["
+      key = KEYBOARD_ARROWS[key.intern] || key
+
+      # Process input through the input handler
+      @input_handler.handle_input(key, level.player, level.grid)
+    end
+
+    # Handle collisions between player and game entities
+    # @param level [Level] the current game level
+    # @param monster_system [MonsterSystem] the monster management system
+    # @return [void]
+    def handle_collisions(level, monster_system)
+      if monster_system.player_collision?
         player_pos = level.player.get_component(:position)
-        monster = monster_system.monster_at(player_pos.row, player_pos.column)
+        @logger.info("Player encountered a monster!")
 
-        if monster
-          # Handle combat (simple version - monster damages player)
-          logger.info("Player encountered a #{monster.monster_type}!")
-          # In a real implementation, you would handle combat here
-          # For now, we just pretend the encounter happened
-        end
+        # TODO: Handle combat mechanics
+        # In the future, this will handle combat mechanics
+        # For now, it just logs the encounter
       end
+    end
 
-      # Check if player found stairs
-      if level.player.found_stairs?
-        current_level = level.difficulty || 1
-        next_level = current_level + 1
+    # Handle transition to a new level when player finds stairs
+    # @param current_level [Level] the current level being completed
+    # @return [Level] the new level
+    def handle_level_transition(current_level)
+      # Calculate new difficulty
+      current_difficulty = current_level.difficulty
+      next_difficulty = current_difficulty + 1
 
-        logger.info("Player found stairs, advancing to level #{next_level}")
-        level = Vanilla::Level.random(difficulty: next_level)
+      @logger.info("Player found stairs, advancing to level #{next_difficulty}")
 
-        # Create new monster system for the new level
-        monster_system = Vanilla::Systems::MonsterSystem.new(
-          grid: level.grid,
-          player: level.player,
-          logger: logger
-        )
+      # Publish level change event
+      @event_manager.publish_event(
+        Events::Types::LEVEL_CHANGED,
+        current_level,
+        { old_level: current_difficulty, new_level: next_difficulty }
+      )
 
-        # Spawn monsters with increased difficulty
-        monster_system.spawn_monsters(next_level)
-        logger.info("Spawned monsters for level #{next_level}")
-
-        # Draw the map to show monsters on the new level
-        Vanilla::Draw.map(level.grid)
-      end
+      # Initialize the next level with increased difficulty
+      initialize_level(difficulty: next_difficulty)
     end
   end
 
-  # @param rows [Integer] is the vertical length of the map
-  # @param columns [Integer] is the  horizontal length of the map
-  # @param algorithm [Object] choose the class object of the algorithm you would like to use
-  # @param display_distances [Boolean] displays a distance from two random points on the grid
-  # @param display_longest [Boolean] displays the longest possible distance between two points on the grid, uses Djikra's algorithm
-  # @param open_maze [Boolean] displays a different render output
-  # @param seed [Integer] is the number necessary to regenerate a given grid
-  def self.play(rows: 10, columns: 10, algorithm: Vanilla::Algorithms::BinaryTree, display_distances: false, display_longest: false, open_maze: true, seed: nil)
-    $seed = seed || rand(999_999_999_999_999)
-    grid = Vanilla::Map.create(rows: rows, columns: columns, algorithm: algorithm, seed: seed)
-
-    start, goal = self.start_and_goal_points(grid: grid)          if display_distances || display_longest
-    self.display_distances(grid: grid, start: start, goal: goal)  if (display_distances && !display_longest)
-    Vanilla::Algorithms::LongestPath.on(grid, start: start)       if display_longest
-
-    Vanilla::Draw.map(grid, open_maze: open_maze)
-  end
-
-  # defines the start position and end position
-  # recalculates end position when it is the same as start position
-  def self.start_and_goal_points(grid:)
-    start_position = grid[rand(0...grid.rows), rand(0...grid.columns)]
-    end_position = grid[rand(0...grid.rows), rand(0...grid.columns)]
-
-    until start_position != end_position
-      end_position = grid[rand(0...grid.rows), rand(0...grid.columns)]
+  # Entry point for starting the game
+  # Creates a new Game instance and manages its lifecycle
+  # @return [void]
+  def self.run
+    game = Game.new
+    begin
+      game.start
+    ensure
+      game.cleanup
     end
-
-    [start_position, end_position]
   end
 
-  # uses Dijkstra's algorithm
-  def self.display_distances(grid:, start:, goal:)
-    puts "displaying path distance from start to goal:"
-
-    distances = start.distances
-
-    puts "start: [#{start.row}, #{start.column}] goal: [#{goal.row}, #{goal.column}]"
-
-    grid.distances = distances.path_to(goal)
-
-    grid
-  end
 end
