@@ -51,50 +51,57 @@ module Vanilla
   # event system
   require_relative 'vanilla/events'
 
-  # Have a seed for the random number generator
-  # This is used to generate the same map for the same seed
+  # Have a seed for the random number generator
+  # This is used to generate the same map for the same seed
   # This is useful for testing
   # This is a global variable so that it can be accessed by the map generator
   # and the game loop
   $seed = nil
 
+  # Game class implements the core game loop pattern and orchestrates the game's
+  # main components. It manages the game lifecycle from initialization to cleanup.
+  #
+  # The Game Loop pattern provides a way to:
+  # 1. Process player input
+  # 2. Update game state
+  # 3. Render the updated state
+  # 4. Repeat until the game ends
+  #
+  # This implementation uses a turn-based approach appropriate for roguelike games,
+  # where updates happen in discrete steps rather than in real-time.
   class Game
+    # Initialize a new game instance with all required systems
+    # @return [Game] a new Game instance
     def initialize
       @logger = Vanilla::Logger.instance
       @logger.info("Starting Vanilla game")
 
-      # Initialize event system with file storage
+      # Initialize event system with file storage for debugging and analytics
       @event_manager = Events::EventManager.new(@logger)
 
+      # Input handler translates raw keyboard input into game commands
       @input_handler = InputHandler.new(@logger, @event_manager)
     end
 
+    # Start the game by initializing the first level and entering the game loop
+    # This is the main entry point after initialization
+    # @return [void]
     def start
       @logger.info("Starting game loop")
 
-      # Record game start event
+      # Record game start event for debugging and analytics
       @event_manager&.publish_event(Events::Types::GAME_STARTED)
 
-      level = Vanilla::Level.random
-      @logger.info("Level created")
+      # Initialize the first level
+      level = initialize_level(difficulty: 1)
 
-      # Create a monster system for the current level
-      monster_system = Vanilla::Systems::MonsterSystem.new(
-        grid: level.grid,
-        player: level.player,
-        logger: @logger
-      )
-
-      # Spawn monsters for the initial level
-      monster_system.spawn_monsters(1) # Start with level 1 difficulty
-      @logger.info("Spawned initial monsters")
-
-      # Draw the map to show monsters immediately
-      Vanilla::Draw.map(level.grid)
-
-      game_loop(level, monster_system)
+      # Enter the main game loop - this will continue until the player exits
+      game_loop(level)
     end
 
+    # Perform cleanup operations when the game ends
+    # This ensures resources are properly released
+    # @return [void]
     def cleanup
       @event_manager&.publish_event(Events::Types::GAME_ENDED)
       @event_manager&.close
@@ -103,72 +110,124 @@ module Vanilla
 
     private
 
-    def game_loop(level, monster_system)
+    # Initialize a new level with the specified difficulty
+    # This creates the level, spawns monsters, and prepares it for play
+    # @param difficulty [Integer] the difficulty level (affects monster count and strength)
+    # @return [Level, MonsterSystem] the initialized level and its monster system
+    def initialize_level(difficulty:)
+      # Generate a new random level
+      level = Vanilla::Level.random(difficulty: difficulty)
+      @logger.info("Level created")
+
+      # Create a monster system for this level
+      monster_system = Vanilla::Systems::MonsterSystem.new(
+        grid: level.grid,
+        player: level.player,
+        logger: @logger
+      )
+
+      # Spawn monsters appropriate for this difficulty level
+      monster_system.spawn_monsters(difficulty)
+      @logger.info("Spawned initial monsters")
+
+      # Initial render of the level
+      Vanilla::Draw.map(level.grid)
+
+      # Store the monster system with the level for later access
+      level.instance_variable_set(:@monster_system, monster_system)
+
+      level
+    end
+
+    # The main game loop that implements the Game Loop pattern
+    # This loop continues until the player exits or the game ends
+    # @param level [Level] the current game level
+    # @return [void]
+    def game_loop(level)
       loop do
+        # 1. START FRAME - mark the beginning of a new turn
         @event_manager&.publish_event(Events::Types::TURN_STARTED)
 
-        # Get player input using original method
-        key = STDIN.getch
-        # Given that arrow keys are composed of more than one character
-        # we are taking advantage of STDIN repeatedly to represent the correct action.
-        second_key = STDIN.getch if key == "\e"
-        key = STDIN.getch if second_key == "["
-        key = KEYBOARD_ARROWS[key.intern] || key
+        # 2. PROCESS INPUT - get and process player input
+        command = process_input(level)
 
-        # Process input
-        command = @input_handler.handle_input(key, level.player, level.grid)
-
-        # Check if player wants to exit
+        # Check if player wants to exit the game
         break if command.is_a?(Vanilla::Commands::ExitCommand)
 
-        # Update monster positions
+        # 3. UPDATE GAME STATE - update game world and check conditions
+        monster_system = level.instance_variable_get(:@monster_system)
+
+        # Update monster positions according to AI
         monster_system.update
 
-        # Check for player-monster collision
-        if monster_system.player_collision?
-          player_pos = level.player.get_component(:position)
-          @logger.info("Player encountered a monster!")
-          # Later we'll add combat here
-        end
+        # Handle collisions between player and monsters
+        handle_collisions(level, monster_system)
 
-        # Redraw the map to show monster movements
+        # 4. RENDER - update the display to reflect the new state
         Vanilla::Draw.map(level.grid)
 
-        # Check if player found stairs
-        if level.player.found_stairs?
-          current_level = level.difficulty
-          next_level = current_level + 1
-          @logger.info("Player found stairs, advancing to level #{next_level}")
+        # 5. LEVEL TRANSITION - check if player advances to next level
+        level = handle_level_transition(level) if level.player.found_stairs?
 
-          @event_manager&.publish_event(
-            Events::Types::LEVEL_CHANGED,
-            level,
-            { old_level: current_level, new_level: next_level }
-          )
-
-          # Create new level with increased difficulty
-          level = Vanilla::Level.random(difficulty: next_level)
-
-          # Create a monster system for the new level
-          monster_system = Vanilla::Systems::MonsterSystem.new(
-            grid: level.grid,
-            player: level.player,
-            logger: @logger
-          )
-
-          # Spawn monsters based on level difficulty
-          monster_system.spawn_monsters(next_level)
-          @logger.info("Spawned monsters for level #{next_level}")
-
-          # Draw the map to show monsters on the new level
-          Vanilla::Draw.map(level.grid)
-        end
-
+        # 6. END FRAME - mark the end of this turn
         @event_manager&.publish_event(Events::Types::TURN_ENDED)
       end
     end
+
+    # Process player input and convert it to game commands
+    # @param level [Level] the current game level
+    # @return [Command] the command that was executed
+    def process_input(level)
+      # Get raw keyboard input
+      key = STDIN.getch
+
+      # Handle multi-character input sequences (arrow keys)
+      second_key = STDIN.getch if key == "\e"
+      key = STDIN.getch if second_key == "["
+      key = KEYBOARD_ARROWS[key.intern] || key
+
+      # Process input through the input handler
+      @input_handler.handle_input(key, level.player, level.grid)
+    end
+
+    # Handle collisions between player and game entities
+    # @param level [Level] the current game level
+    # @param monster_system [MonsterSystem] the monster management system
+    # @return [void]
+    def handle_collisions(level, monster_system)
+      if monster_system.player_collision?
+        player_pos = level.player.get_component(:position)
+        @logger.info("Player encountered a monster!")
+        # In the future, this will handle combat mechanics
+        # For now, it just logs the encounter
+      end
+    end
+
+    # Handle transition to a new level when player finds stairs
+    # @param current_level [Level] the current level being completed
+    # @return [Level] the new level
+    def handle_level_transition(current_level)
+      # Calculate new difficulty
+      current_difficulty = current_level.difficulty
+      next_difficulty = current_difficulty + 1
+
+      @logger.info("Player found stairs, advancing to level #{next_difficulty}")
+
+      # Publish level change event
+      @event_manager&.publish_event(
+        Events::Types::LEVEL_CHANGED,
+        current_level,
+        { old_level: current_difficulty, new_level: next_difficulty }
+      )
+
+      # Initialize the next level with increased difficulty
+      initialize_level(difficulty: next_difficulty)
+    end
   end
 
+  # Entry point for starting the game
+  # Creates a new Game instance and manages its lifecycle
+  # @return [void]
   def self.run
     game = Game.new
     begin
