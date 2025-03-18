@@ -51,15 +51,8 @@ module Vanilla
       # Update all monsters
       # This should be called once per game turn
       def update
-        @monsters.each do |monster|
-          # Skip dead monsters
-          next unless monster.alive?
-
-          # Basic AI: Move randomly or towards player if nearby
-          move_monster(monster)
-        end
-
-        # Remove dead monsters
+        # Currently disabled: monster movement
+        # Just remove dead monsters for now
         @monsters.reject! { |m| !m.alive? }
       end
 
@@ -196,117 +189,6 @@ module Vanilla
 
         # Fallback
         types.keys.first
-      end
-
-      # Basic AI for monster movement
-      # @param monster [Vanilla::Entities::Monster] the monster to move
-      def move_monster(monster)
-        # Get current position
-        position = monster.get_component(:position)
-        old_row, old_col = position.row, position.column
-
-        # Get player position
-        player_position = @player.get_component(:position)
-
-        # Calculate distance to player
-        distance = (position.row - player_position.row).abs + (position.column - player_position.column).abs
-
-        # Track if the monster moved successfully
-        moved = false
-
-        # Limit movement frequency - monsters only move every few turns
-        # Each monster has approximately 50% chance to move each turn
-        should_move = @rng.rand < 0.5
-
-        # Don't move this turn
-        unless should_move
-          # Ensure the monster remains visible in its current position
-          current_cell = @grid[position.row, position.column]
-          if current_cell && current_cell.tile != Support::TileType::MONSTER
-            current_cell.tile = Support::TileType::MONSTER
-          end
-          return
-        end
-
-        # If player is nearby (within 5 cells), move towards them
-        if distance <= 5
-          # Calculate row and column differences first
-          row_diff = player_position.row - position.row
-          col_diff = player_position.column - position.column
-
-          # Simple pathfinding - move in the direction of the player
-          # BUT only one step at a time in either row OR column (not both)
-          if @rng.rand < 0.5 && row_diff != 0  # Prioritize row movement 50% of the time
-            # Move one step vertically
-            new_row = position.row + (row_diff > 0 ? 1 : -1)
-            new_col = position.column
-          else # Otherwise move horizontally if possible
-            # Move one step horizontally
-            new_row = position.row
-            new_col = position.column + (col_diff != 0 ? (col_diff > 0 ? 1 : -1) : 0)
-          end
-
-          # Check if move is valid (cell exists and is walkable)
-          if valid_move?(new_row, new_col)
-            # Log monster movement
-            @logger.debug("Monster (#{monster.monster_type}) moving from [#{position.row}, #{position.column}] to [#{new_row}, #{new_col}]")
-
-            # Get the cell at the monster's current position
-            old_cell = @grid[position.row, position.column]
-
-            # Update monster position
-            position.row = new_row
-            position.column = new_col
-
-            # Update cells
-            old_cell.tile = Support::TileType::EMPTY
-            @grid[new_row, new_col].tile = Support::TileType::MONSTER
-            moved = true
-          end
-        else
-          # Random movement if player is not nearby - reduced frequency (1/5 chance)
-          if @rng.rand(5) == 0
-            directions = [
-              [0, 1],  # Right
-              [1, 0],  # Down
-              [0, -1], # Left
-              [-1, 0]  # Up
-            ]
-
-            # Try directions in random order
-            directions.shuffle(random: @rng).each do |dr, dc|
-              new_row = position.row + dr
-              new_col = position.column + dc
-
-              if valid_move?(new_row, new_col)
-                # Log monster movement
-                @logger.debug("Monster (#{monster.monster_type}) wandering from [#{position.row}, #{position.column}] to [#{new_row}, #{new_col}]")
-
-                # Get the cell at the monster's current position
-                old_cell = @grid[position.row, position.column]
-
-                # Update monster position
-                position.row = new_row
-                position.column = new_col
-
-                # Update cells
-                old_cell.tile = Support::TileType::EMPTY
-                @grid[new_row, new_col].tile = Support::TileType::MONSTER
-                moved = true
-                break
-              end
-            end
-          end
-        end
-
-        # If monster didn't move, make sure it's still visible on the grid
-        unless moved
-          # Ensure the monster's current position still shows the monster tile
-          current_cell = @grid[position.row, position.column]
-          if current_cell && current_cell.tile != Support::TileType::MONSTER
-            current_cell.tile = Support::TileType::MONSTER
-          end
-        end
       end
 
       # Check if a move to the given position is valid
