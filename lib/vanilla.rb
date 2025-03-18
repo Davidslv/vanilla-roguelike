@@ -81,11 +81,11 @@ module Vanilla
       # Initialize event system with file storage for debugging and analytics
       @event_manager = Events::EventManager.new(@logger)
 
-      # Input handler translates raw keyboard input into game commands
-      @input_handler = InputHandler.new(@logger, @event_manager)
-
       # Initialize render system
       @render_system = Systems::RenderSystemFactory.create
+
+      # Input handler translates raw keyboard input into game commands
+      @input_handler = InputHandler.new(@logger, @event_manager, @render_system)
     end
 
     # Start the game by initializing the first level and entering the game loop
