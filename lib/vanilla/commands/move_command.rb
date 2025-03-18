@@ -14,16 +14,8 @@ module Vanilla
 
       def execute
         # Store position before movement
-        old_row = nil
-        old_column = nil
-
-        if @entity.respond_to?(:has_component?) && @entity.has_component?(:position)
-          position = @entity.get_component(:position)
-          old_row, old_column = position.row, position.column
-        else
-          # Handle legacy Unit
-          old_row, old_column = @entity.row, @entity.column
-        end
+        position = @entity.get_component(:position)
+        old_row, old_column = position.row, position.column
 
         # Execute movement
         success = @movement_system.move(@entity, @direction)
@@ -31,16 +23,7 @@ module Vanilla
         # Update display if movement was successful
         if success
           # Get new position
-          new_row = nil
-          new_column = nil
-
-          if @entity.respond_to?(:has_component?) && @entity.has_component?(:position)
-            position = @entity.get_component(:position)
-            new_row, new_column = position.row, position.column
-          else
-            # Handle legacy Unit
-            new_row, new_column = @entity.row, @entity.column
-          end
+          new_row, new_column = position.row, position.column
 
           # If player moved, clear the old position
           if old_row != new_row || old_column != new_column

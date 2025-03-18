@@ -43,17 +43,14 @@ module Vanilla
   # systems (entity component system)
   require_relative 'vanilla/systems'
 
-  # characters
-  require_relative 'vanilla/characters/player'
+  # entities
+  require_relative 'vanilla/entities'
 
   # commands
-  require_relative 'vanilla/command'
+  require_relative 'vanilla/input_handler'
 
   # level
   require_relative 'vanilla/level'
-
-  # entities
-  require_relative 'vanilla/entities'
 
   $seed = nil
 
@@ -64,6 +61,9 @@ module Vanilla
     level = Vanilla::Level.random
     logger.info("Level created")
 
+    # Create an InputHandler for the game loop
+    input_handler = Vanilla::InputHandler.new(logger)
+
     while key = STDIN.getch
       # Given that arrow keys are compose of more than one character
       # we are taking advantage of STDIN repeatedly to represent the correct action.
@@ -73,7 +73,7 @@ module Vanilla
       key        = KEYBOARD_ARROWS[key.intern] || key
 
       logger.debug("Key pressed: #{key.inspect}")
-      Vanilla::Command.process(key: key, grid: level.grid, unit: level.player)
+      input_handler.handle_input(key, level.player, level.grid)
 
       if level.player.found_stairs?
         logger.info("Player found stairs, generating new level")
