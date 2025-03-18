@@ -1,7 +1,8 @@
 require 'fileutils'
 require 'json'
 require 'time'
-require_relative 'event_store'
+require_relative 'storage/event_store'
+require_relative 'storage/file_event_store'
 
 module Vanilla
   module Events
