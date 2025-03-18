@@ -36,7 +36,7 @@ module Vanilla
       # @return [String] the latest session ID
       def latest_session_id
         Dir.glob(File.join(@event_store.storage_path, '*.jsonl'))
-           .map { |f| File.basename(f, '.jsonl') }
+           .map { |f| File.basename(f, '.jsonl').gsub(/^events_/, '') }
            .sort
            .last
       end

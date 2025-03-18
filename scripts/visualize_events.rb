@@ -6,7 +6,10 @@ require_relative '../lib/vanilla/events/storage/file_event_store'
 require_relative '../lib/vanilla/events/event_visualization'
 
 def list_sessions
-  sessions = Dir.glob("event_logs/*.jsonl").map { |f| File.basename(f, '.jsonl') }.sort
+  # Get all JSONL files and normalize session names by removing any events_ prefix
+  files = Dir.glob("event_logs/*.jsonl")
+  sessions = files.map { |f| File.basename(f, '.jsonl').gsub(/^events_/, '') }.uniq.sort
+
   puts "Available sessions:"
   sessions.each_with_index { |s, i| puts "#{i+1}. #{s}" }
   return sessions
