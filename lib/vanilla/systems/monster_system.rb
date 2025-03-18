@@ -67,6 +67,13 @@ module Vanilla
         end
       end
 
+      # Check if a monster is at the player's current position
+      # @return [Boolean] true if a monster is at the player's position
+      def player_collision?
+        player_pos = @player.get_component(:position)
+        monster_at(player_pos.row, player_pos.column) != nil
+      end
+
       private
 
       # Determine how many monsters to spawn based on level
