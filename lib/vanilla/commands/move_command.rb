@@ -35,18 +35,19 @@ module Vanilla
 
           # Update display
           # Get all renderable entities and update the display
-          if @entity.respond_to?(:all_entities)
-            # If entity is a level or has a collection
+          if @entity.is_a?(Vanilla::Level)
+            # If entity is a level
             entities = @entity.all_entities
           else
             # If we just have a single entity
             entities = [@entity]
           end
 
+          # TODO: Monsters do not move yet
           # Add monster entities if available
-          if @grid.respond_to?(:monster_system) && @grid.monster_system.respond_to?(:monsters)
-            entities += @grid.monster_system.monsters
-          end
+          # if @grid.respond_to?(:monster_system) && @grid.monster_system.respond_to?(:monsters)
+          #   entities += @grid.monster_system.monsters
+          # end
 
           # Render the scene
           @render_system.render(entities, @grid)

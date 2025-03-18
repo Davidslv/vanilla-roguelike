@@ -3,13 +3,20 @@ module Vanilla
     # RenderComponent stores visual representation data for entities.
     # It defines how an entity appears in the rendering system, including
     # its character, color, and rendering layer (z-index).
+    #
+    # It also stores the entity type information to replace TileComponent.
     class RenderComponent < Component
-      attr_reader :character, :color, :layer
+      attr_reader :character, :color, :layer, :entity_type
 
-      def initialize(character:, color: nil, layer: 0)
+      def initialize(character:, color: nil, layer: 0, entity_type: nil)
+        unless Vanilla::Support::TileType.valid?(character)
+          raise ArgumentError, "Invalid character type: #{character}"
+        end
+
         @character = character
         @color = color
         @layer = layer
+        @entity_type = entity_type || character  # Default entity_type to character if not provided
         super()
       end
 
@@ -17,11 +24,17 @@ module Vanilla
         :render
       end
 
+      # For backward compatibility with TileComponent
+      def tile
+        @character
+      end
+
       def data
         {
           character: @character,
           color: @color,
-          layer: @layer
+          layer: @layer,
+          entity_type: @entity_type
         }
       end
 
@@ -29,7 +42,8 @@ module Vanilla
         new(
           character: hash[:character],
           color: hash[:color],
-          layer: hash[:layer] || 0
+          layer: hash[:layer] || 0,
+          entity_type: hash[:entity_type]
         )
       end
     end

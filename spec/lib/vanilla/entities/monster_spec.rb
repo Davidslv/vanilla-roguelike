@@ -15,7 +15,7 @@ RSpec.describe Vanilla::Entities::Monster do
     it 'has the correct components' do
       expect(monster.has_component?(:position)).to be(true)
       expect(monster.has_component?(:movement)).to be(true)
-      expect(monster.has_component?(:tile)).to be(true)
+      expect(monster.has_component?(:render)).to be(true)
     end
 
     it 'positions the monster at the given coordinates' do
@@ -24,9 +24,14 @@ RSpec.describe Vanilla::Entities::Monster do
       expect(position.column).to eq(column)
     end
 
-    it 'uses the monster tile type' do
-      tile = monster.get_component(:tile)
-      expect(tile.tile).to eq(Vanilla::Support::TileType::MONSTER)
+    it 'uses the monster character for rendering' do
+      render = monster.get_component(:render)
+      expect(render.character).to eq(Vanilla::Support::TileType::MONSTER)
+    end
+
+    it 'has the correct entity type' do
+      render = monster.get_component(:render)
+      expect(render.entity_type).to eq('troll')
     end
   end
 
@@ -97,7 +102,7 @@ RSpec.describe Vanilla::Entities::Monster do
       # Check that the components were serialized
       components = serialized[:components]
       expect(components).to be_an(Array)
-      expect(components.map { |c| c[:type] }).to include(:position, :movement, :tile)
+      expect(components.map { |c| c[:type] }).to include(:position, :movement, :render)
     end
 
     # Test deserialization with a hand-crafted hash with proper component structure
@@ -117,8 +122,8 @@ RSpec.describe Vanilla::Entities::Monster do
             data: {}
           },
           {
-            type: :tile,
-            data: { tile: Vanilla::Support::TileType::MONSTER }
+            type: :render,
+            data: { character: Vanilla::Support::TileType::MONSTER, entity_type: 'ogre' }
           }
         ]
       }
