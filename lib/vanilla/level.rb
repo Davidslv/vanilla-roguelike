@@ -62,16 +62,20 @@ module Vanilla
       # Update player position on grid
       if @player
         pos = @player.get_component(:position)
-        tile_component = @player.get_component(:tile)
+        render_component = @player.get_component(:render)
         cell = @grid[pos.row, pos.column]
-        cell.tile = tile_component.tile if cell
+        cell.tile = render_component.character if cell
       end
 
       # Update stairs position on grid
       if @stairs
         pos = @stairs.get_component(:position)
+        render_component = @stairs.get_component(:render)
         cell = @grid[pos.row, pos.column]
-        cell.tile = Vanilla::Support::TileType::STAIRS if cell
+        if cell
+          # Use character from render component if available, otherwise fallback to STAIRS
+          cell.tile = render_component ? render_component.character : Vanilla::Support::TileType::STAIRS
+        end
       end
     end
 

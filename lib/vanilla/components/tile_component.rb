@@ -1,6 +1,8 @@
 module Vanilla
   module Components
     # Component for tracking an entity's visual representation
+    #
+    # @deprecated Use RenderComponent instead which provides better visual representation control
     class TileComponent < Component
       # @return [String] the visual representation character
       attr_reader :tile
@@ -8,6 +10,8 @@ module Vanilla
       # Initialize a new tile component
       # @param tile [String] the tile character
       def initialize(tile: Vanilla::Support::TileType::EMPTY)
+        # Log deprecation warning
+        Vanilla::Logger.instance.warn("TileComponent is deprecated. Use RenderComponent instead.")
         change_tile(tile)
       end
 

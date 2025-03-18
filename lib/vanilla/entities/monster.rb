@@ -7,8 +7,7 @@ module Vanilla
     # This entity uses the ECS architecture by combining various components:
     # * PositionComponent - For tracking position in the grid
     # * MovementComponent - For movement capabilities
-    # * TileComponent - For visual representation 'M'
-    # * RenderComponent - For visual rendering in the new system
+    # * RenderComponent - For visual representation and rendering
     #
     # Monsters can move around the map and interact with the player.
     class Monster < Components::Entity
@@ -37,11 +36,11 @@ module Vanilla
         # Add required components
         add_component(Components::PositionComponent.new(row: row, column: column))
         add_component(Components::MovementComponent.new)
-        add_component(Components::TileComponent.new(tile: Support::TileType::MONSTER))
 
-        # Add new RenderComponent
+        # Add RenderComponent for visual representation
         add_component(Components::RenderComponent.new(
           character: Support::TileType::MONSTER,
+          entity_type: @monster_type,
           layer: 5  # Monsters are below player
         ))
       end
@@ -103,6 +102,12 @@ module Vanilla
         monster.instance_variable_set(:@id, hash[:id])
 
         monster
+      end
+
+      # For backward compatibility - get the tile character
+      def tile
+        render_component = get_component(:render)
+        render_component&.character || Support::TileType::MONSTER
       end
 
       private

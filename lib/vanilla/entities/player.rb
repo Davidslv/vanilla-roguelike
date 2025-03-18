@@ -9,7 +9,7 @@ module Vanilla
     # * MovementComponent - For movement capabilities
     # * TileComponent - For visual representation
     # * StairsComponent - For tracking stairs discovery
-    # * RenderComponent - For visual rendering in the new system
+    # * RenderComponent - For visual representation and rendering
     #
     # The entity maintains backward compatibility with the old Unit-based system
     # by delegating methods to the appropriate components.
@@ -44,9 +44,10 @@ module Vanilla
         add_component(Components::TileComponent.new(tile: Support::TileType::PLAYER))
         add_component(Components::StairsComponent.new)
 
-        # Add new RenderComponent
+        # Add RenderComponent (replacing TileComponent)
         add_component(Components::RenderComponent.new(
           character: Support::TileType::PLAYER,
+          entity_type: Support::TileType::PLAYER,
           layer: 10  # Player is usually drawn on top
         ))
       end
@@ -87,6 +88,18 @@ module Vanilla
           experience: @experience,
           inventory: @inventory
         )
+      end
+
+      # For backward compatibility - get the tile character
+      def tile
+        render_component = get_component(:render)
+        render_component&.character || Support::TileType::PLAYER
+      end
+
+      # For backward compatibility - check if stairs were found
+      def found_stairs?
+        stairs_component = get_component(:stairs)
+        stairs_component&.found_stairs || false
       end
 
       # Create a player entity from a hash representation
