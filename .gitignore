@@ -7,3 +7,4 @@ png-mazes/
 logs/*.log
 coverage/*
 coverage
+event_logs/*.jsonl

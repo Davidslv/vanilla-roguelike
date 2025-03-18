@@ -1,4 +1,4 @@
-require 'io/console'
+require 'pry'
 
 module Vanilla
   # required to use STDIN.getch
@@ -51,6 +51,11 @@ module Vanilla
   # event system
   require_relative 'vanilla/events'
 
+  # Have a seed for the random number generator
+  # This is used to generate the same map for the same seed
+  # This is useful for testing
+  # This is a global variable so that it can be accessed by the map generator
+  # and the game loop
   $seed = nil
 
   class Game
@@ -173,47 +178,4 @@ module Vanilla
     end
   end
 
-  # @param rows [Integer] is the vertical length of the map
-  # @param columns [Integer] is the  horizontal length of the map
-  # @param algorithm [Object] choose the class object of the algorithm you would like to use
-  # @param display_distances [Boolean] displays a distance from two random points on the grid
-  # @param display_longest [Boolean] displays the longest possible distance between two points on the grid, uses Djikra's algorithm
-  # @param open_maze [Boolean] displays a different render output
-  # @param seed [Integer] is the number necessary to regenerate a given grid
-  def self.play(rows: 10, columns: 10, algorithm: Vanilla::Algorithms::BinaryTree, display_distances: false, display_longest: false, open_maze: true, seed: nil)
-    $seed = seed || rand(999_999_999_999_999)
-    grid = Vanilla::Map.create(rows: rows, columns: columns, algorithm: algorithm, seed: seed)
-
-    start, goal = self.start_and_goal_points(grid: grid)          if display_distances || display_longest
-    self.display_distances(grid: grid, start: start, goal: goal)  if (display_distances && !display_longest)
-    Vanilla::Algorithms::LongestPath.on(grid, start: start)       if display_longest
-
-    Vanilla::Draw.map(grid, open_maze: open_maze)
-  end
-
-  # defines the start position and end position
-  # recalculates end position when it is the same as start position
-  def self.start_and_goal_points(grid:)
-    start_position = grid[rand(0...grid.rows), rand(0...grid.columns)]
-    end_position = grid[rand(0...grid.rows), rand(0...grid.columns)]
-
-    until start_position != end_position
-      end_position = grid[rand(0...grid.rows), rand(0...grid.columns)]
-    end
-
-    [start_position, end_position]
-  end
-
-  # uses Dijkstra's algorithm
-  def self.display_distances(grid:, start:, goal:)
-    puts "displaying path distance from start to goal:"
-
-    distances = start.distances
-
-    puts "start: [#{start.row}, #{start.column}] goal: [#{goal.row}, #{goal.column}]"
-
-    grid.distances = distances.path_to(goal)
-
-    grid
-  end
 end
