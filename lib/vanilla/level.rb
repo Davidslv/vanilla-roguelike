@@ -1,6 +1,6 @@
 module Vanilla
   class Level
-    attr_reader :grid, :player, :difficulty
+    attr_reader :grid, :player, :difficulty, :stairs
 
     def initialize(seed: nil, rows: 10, columns: 10, difficulty: 1)
       logger = Vanilla::Logger.instance
@@ -26,9 +26,12 @@ module Vanilla
       @player = Entities::Player.new(row: player_row, column: player_column)
       logger.info("Player created at position [#{player_row}, #{player_column}]")
 
+      @stairs = Entities::Stairs.new(row: stairs_row, column: stairs_column)
+      logger.info("Stairs placed at position [#{stairs_row}, #{stairs_column}]")
+
+      # Add entities to the grid for traditional rendering
       Vanilla::Draw.player(grid: grid, unit: @player)
       Vanilla::Draw.stairs(grid: grid, row: stairs_row, column: stairs_column)
-      logger.info("Stairs placed at position [#{stairs_row}, #{stairs_column}]")
     end
 
     def self.random(difficulty: 1)
@@ -46,6 +49,10 @@ module Vanilla
 
       logger.info("Generating random level with rows: #{rows}, columns: #{columns}, difficulty: #{difficulty}")
       new(rows: rows, columns: columns, difficulty: difficulty)
+    end
+
+    def all_entities
+      [@player, @stairs]
     end
 
     private

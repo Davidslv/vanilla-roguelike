@@ -136,7 +136,7 @@ module Vanilla
       @logger.info("Spawned initial monsters")
 
       # Initial render of the level
-      all_entities = [level.player] + monster_system.monsters
+      all_entities = level.all_entities + monster_system.monsters
       @render_system.render(all_entities, level.grid)
 
       # Store the monster system with the level for later access
@@ -170,7 +170,7 @@ module Vanilla
         handle_collisions(level, monster_system)
 
         # 4. RENDER - update the display to reflect the new state
-        all_entities = [level.player] + monster_system.monsters
+        all_entities = level.all_entities + monster_system.monsters
         @render_system.render(all_entities, level.grid)
 
         # 5. LEVEL TRANSITION - check if player advances to next level
