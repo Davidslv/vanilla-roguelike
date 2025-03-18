@@ -1,4 +1,5 @@
-require 'pry'
+require 'curses'
+require 'io/console'
 
 module Vanilla
   # required to use STDIN.getch
@@ -52,90 +53,138 @@ module Vanilla
   # level
   require_relative 'vanilla/level'
 
+  # new additions
+  require_relative 'vanilla/entities/player'
+  require_relative 'vanilla/characters/player'
+  require_relative 'vanilla/systems/movement_system'
+  require_relative 'vanilla/systems/monster_system'
+  require_relative 'vanilla/events'
+
   $seed = nil
 
   def self.run
-    logger = Vanilla::Logger.instance
-    logger.info("Starting game loop")
+    instance = new
+    begin
+      instance.start
+    ensure
+      instance.cleanup
+    end
+  end
+
+  def initialize
+    @logger = Vanilla::Logger.instance
+    @logger.info("Starting Vanilla game")
+
+    # Initialize event system with file storage
+    @event_manager = Events::EventManager.new(@logger)
+
+    initialize_ncurses
+    @input_handler = InputHandler.new(logger: @logger, event_manager: @event_manager)
+  end
+
+  def start
+    @logger.info("Starting game loop")
+
+    # Record game start event
+    @event_manager&.publish_event(Events::Types::GAME_STARTED)
 
     level = Vanilla::Level.random
-    logger.info("Level created")
-
-    # Create an InputHandler for the game loop
-    input_handler = Vanilla::InputHandler.new(logger)
+    @logger.info("Level created")
 
     # Create a monster system for the current level
     monster_system = Vanilla::Systems::MonsterSystem.new(
       grid: level.grid,
       player: level.player,
-      logger: logger
+      logger: @logger
     )
 
     # Spawn monsters for the initial level
     monster_system.spawn_monsters(1) # Start with level 1 difficulty
-    logger.info("Spawned initial monsters")
+    @logger.info("Spawned initial monsters")
 
-    # Draw the map to show monsters immediately
-    Vanilla::Draw.map(level.grid)
+    display(level)
+    game_loop(level, monster_system)
+  end
 
-    # Game loop
-    while key = STDIN.getch
-      # Given that arrow keys are compose of more than one character
-      # we are taking advantage of STDIN repeatedly to represent the correct action.
-      # It's not a perfect solution but it does avoid using Ncurses/Curses
-      second_key = STDIN.getch if key == "\e"
-      key        = STDIN.getch if second_key == "["
-      key        = KEYBOARD_ARROWS[key.intern] || key
+  def cleanup
+    Curses.close_screen
+    @event_manager&.publish_event(Events::Types::GAME_ENDED)
+    @event_manager&.close
+    @logger.info("Player exiting game")
+  end
 
-      logger.debug("Key pressed: #{key.inspect}")
+  private
 
-      # Handle player input
-      command = input_handler.handle_input(key, level.player, level.grid)
+  def game_loop(level, monster_system)
+    loop do
+      @event_manager&.publish_event(Events::Types::TURN_STARTED)
 
-      # If a valid command was executed, update monsters
-      if command && command.executed
-        # Update monster positions and behaviors
-        monster_system.update
-        logger.debug("Updated #{monster_system.monsters.count} monsters")
+      # Get player input
+      key = Curses.getch
 
-        # Redraw the map to show monster movements
-        Vanilla::Draw.map(level.grid)
+      # Process input
+      command = @input_handler.handle_input(key, level.player, level.grid)
 
-        # Check for player-monster collision after monster movement
+      # Check if player wants to exit
+      break if command.is_a?(Vanilla::Commands::ExitCommand)
+
+      # Update monster positions
+      monster_system.update
+
+      # Check for player-monster collision
+      if monster_system.player_collision?
         player_pos = level.player.get_component(:position)
-        monster = monster_system.monster_at(player_pos.row, player_pos.column)
-
-        if monster
-          # Handle combat (simple version - monster damages player)
-          logger.info("Player encountered a #{monster.monster_type}!")
-          # In a real implementation, you would handle combat here
-          # For now, we just pretend the encounter happened
-        end
+        @logger.info("Player encountered a monster!")
+        # Later we'll add combat here
       end
+
+      display(level)
 
       # Check if player found stairs
       if level.player.found_stairs?
-        current_level = level.difficulty || 1
+        current_level = level.difficulty
         next_level = current_level + 1
+        @logger.info("Player found stairs, advancing to level #{next_level}")
 
-        logger.info("Player found stairs, advancing to level #{next_level}")
+        @event_manager&.publish_event(
+          Events::Types::LEVEL_CHANGED,
+          level,
+          { old_level: current_level, new_level: next_level }
+        )
+
+        # Create new level with increased difficulty
         level = Vanilla::Level.random(difficulty: next_level)
 
-        # Create new monster system for the new level
+        # Create a monster system for the new level
         monster_system = Vanilla::Systems::MonsterSystem.new(
           grid: level.grid,
           player: level.player,
-          logger: logger
+          logger: @logger
         )
 
-        # Spawn monsters with increased difficulty
+        # Spawn monsters based on level difficulty
         monster_system.spawn_monsters(next_level)
-        logger.info("Spawned monsters for level #{next_level}")
-
-        # Draw the map to show monsters on the new level
-        Vanilla::Draw.map(level.grid)
+        @logger.info("Spawned monsters for level #{next_level}")
       end
+
+      @event_manager&.publish_event(Events::Types::TURN_ENDED)
     end
+  end
+
+  def display(level)
+    Curses.clear
+    Vanilla::Draw.map(level.grid)
+    Vanilla::Draw.stats(level.player)
+    Curses.refresh
+  end
+
+  def initialize_ncurses
+    Curses.init_screen
+    Curses.cbreak
+    Curses.noecho
+    Curses.stdscr.keypad(true)
+    Curses.curs_set(0)
+    Curses.stdscr.timeout = 0
   end
 
   # @param rows [Integer] is the vertical length of the map
