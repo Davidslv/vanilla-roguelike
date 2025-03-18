@@ -5,4 +5,7 @@ gem 'pry'
 # documentation
 gem 'yard'
 
-gem 'rspec'
+group :test do
+  gem 'rspec'
+  gem 'simplecov', require: false
+end

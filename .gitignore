@@ -5,3 +5,5 @@ doc/**/*.html
 .yardoc/*
 png-mazes/
 logs/*.log
+coverage/*
+coverage
