@@ -62,6 +62,7 @@ RSpec.describe Vanilla::Draw do
     end
 
     context 'with a legacy unit' do
+      # Note: Unit class is deprecated, this test is for backward compatibility
       let(:unit) { instance_double('Vanilla::Unit', row: 5, column: 10, tile: '@') }
 
       it 'draws the player at their position' do

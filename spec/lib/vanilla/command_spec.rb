@@ -12,6 +12,7 @@ RSpec.describe Vanilla::Command do
 
   describe '.process' do
     context 'with a legacy unit' do
+      # Note: Unit class is deprecated, this test is for backward compatibility
       let(:unit) { instance_double('Vanilla::Unit', row: 5, column: 5, tile: '@') }
 
       it 'processes up movement' do
