@@ -98,6 +98,9 @@ module Vanilla
         monster_system.update
         logger.debug("Updated #{monster_system.monsters.count} monsters")
 
+        # Redraw the map to show monster movements
+        Vanilla::Draw.map(level.grid)
+
         # Check for player-monster collision after monster movement
         player_pos = level.player.get_component(:position)
         monster = monster_system.monster_at(player_pos.row, player_pos.column)

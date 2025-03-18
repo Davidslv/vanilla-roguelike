@@ -146,21 +146,39 @@ module Vanilla
         walkable_cells = []
 
         @grid.each_cell do |cell|
-          # Skip cells that already have entities
-          next if cell.tile != Support::TileType::EMPTY
+          # Only use truly empty cells (not player, stairs, or other monsters)
+          next unless cell.tile == Support::TileType::EMPTY
 
           # Skip cells that are too close to the player
           player_pos = @player.get_component(:position)
           distance = (cell.row - player_pos.row).abs + (cell.column - player_pos.column).abs
           next if distance < 5 # Minimum distance from player
 
+          # Skip cells that have another monster nearby (to spread them out)
+          has_nearby_monster = @monsters.any? do |m|
+            m_pos = m.get_component(:position)
+            nearby_distance = (cell.row - m_pos.row).abs + (cell.column - m_pos.column).abs
+            nearby_distance < 3 # Keep monsters at least 3 cells apart
+          end
+          next if has_nearby_monster
+
           walkable_cells << cell
+        end
+
+        # If we couldn't find ideal cells, just find any empty cell
+        if walkable_cells.empty?
+          @grid.each_cell do |cell|
+            next unless cell.tile == Support::TileType::EMPTY
+            walkable_cells << cell
+          end
         end
 
         return nil if walkable_cells.empty?
 
         # Randomly select a cell
-        walkable_cells.sample(random: @rng)
+        selected_cell = walkable_cells.sample(random: @rng)
+        @logger.debug("Selected spawn location at [#{selected_cell.row}, #{selected_cell.column}]")
+        selected_cell
       end
 
       # Select a monster type based on weighted probability
@@ -196,25 +214,41 @@ module Vanilla
         # Track if the monster moved successfully
         moved = false
 
+        # Limit movement frequency - monsters only move every few turns
+        # Each monster has approximately 50% chance to move each turn
+        should_move = @rng.rand < 0.5
+
+        # Don't move this turn
+        unless should_move
+          # Ensure the monster remains visible in its current position
+          current_cell = @grid[position.row, position.column]
+          if current_cell && current_cell.tile != Support::TileType::MONSTER
+            current_cell.tile = Support::TileType::MONSTER
+          end
+          return
+        end
+
         # If player is nearby (within 5 cells), move towards them
         if distance <= 5
           # Simple pathfinding - move in the direction of the player
-          row_diff = player_position.row - position.row
-          col_diff = player_position.column - position.column
-
-          # Determine primary direction to move
-          if row_diff.abs > col_diff.abs
-            # Move vertically
+          # BUT only one step at a time in either row OR column (not both)
+          if @rng.rand < 0.5 && row_diff != 0  # Prioritize row movement 50% of the time
+            # Move one step vertically
+            row_diff = player_position.row - position.row
             new_row = position.row + (row_diff > 0 ? 1 : -1)
             new_col = position.column
-          else
-            # Move horizontally
+          else # Otherwise move horizontally if possible
+            # Move one step horizontally
+            col_diff = player_position.column - position.column
             new_row = position.row
-            new_col = position.column + (col_diff > 0 ? 1 : -1)
+            new_col = position.column + (col_diff != 0 ? (col_diff > 0 ? 1 : -1) : 0)
           end
 
           # Check if move is valid (cell exists and is walkable)
           if valid_move?(new_row, new_col)
+            # Log monster movement
+            @logger.debug("Monster (#{monster.monster_type}) moving from [#{position.row}, #{position.column}] to [#{new_row}, #{new_col}]")
+
             # Get the cell at the monster's current position
             old_cell = @grid[position.row, position.column]
 
@@ -228,8 +262,8 @@ module Vanilla
             moved = true
           end
         else
-          # Random movement if player is not nearby
-          if @rng.rand(3) == 0 # 1/3 chance to move
+          # Random movement if player is not nearby - reduced frequency (1/5 chance)
+          if @rng.rand(5) == 0
             directions = [
               [0, 1],  # Right
               [1, 0],  # Down
@@ -243,6 +277,9 @@ module Vanilla
               new_col = position.column + dc
 
               if valid_move?(new_row, new_col)
+                # Log monster movement
+                @logger.debug("Monster (#{monster.monster_type}) wandering from [#{position.row}, #{position.column}] to [#{new_row}, #{new_col}]")
+
                 # Get the cell at the monster's current position
                 old_cell = @grid[position.row, position.column]
 
