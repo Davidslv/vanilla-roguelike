@@ -314,10 +314,10 @@ module Vanilla
       # @param column [Integer] the column to check
       # @return [Boolean] true if the move is valid
       def valid_move?(row, column)
-        # Check if the cell exists and is empty
+        # Check if the cell exists and is walkable (not a wall or other obstacle)
         cell = @grid[row, column]
         return false unless cell
-        return false unless cell.tile == Support::TileType::EMPTY
+        return false unless Support::TileType.walkable?(cell.tile)
 
         # Check if there's already a monster there
         @monsters.none? do |other|
