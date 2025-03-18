@@ -15,13 +15,16 @@ module Vanilla
       else
         # For backward compatibility with non-entity units
         logger.debug("Using legacy movement system")
+        logger.warn("DEPRECATED: Legacy movement system is deprecated. Please migrate to the ECS pattern.")
         legacy_move(grid: grid, unit: unit, direction: direction)
       end
     end
 
     # Legacy movement implementation for backward compatibility
+    # @deprecated Use Vanilla::Systems::MovementSystem instead
     def self.legacy_move(grid:, unit:, direction:)
       logger = Vanilla::Logger.instance
+      logger.warn("DEPRECATED: Method #{__method__} is deprecated. Please use Vanilla::Systems::MovementSystem.")
       cell = grid[*unit.coordinates]
 
       case direction
@@ -36,8 +39,10 @@ module Vanilla
       end
     end
 
+    # @deprecated Use Vanilla::Systems::MovementSystem instead
     def self.move_left(cell, unit)
       logger = Vanilla::Logger.instance
+      logger.warn("DEPRECATED: Method #{__method__} is deprecated. Please use Vanilla::Systems::MovementSystem.")
 
       unless cell.linked?(cell.west)
         logger.info("Movement blocked: Cannot move left from [#{unit.row}, #{unit.column}]")
@@ -58,8 +63,10 @@ module Vanilla
       logger.info("Player moved left from #{old_position} to [#{unit.row}, #{unit.column}]")
     end
 
+    # @deprecated Use Vanilla::Systems::MovementSystem instead
     def self.move_right(cell, unit)
       logger = Vanilla::Logger.instance
+      logger.warn("DEPRECATED: Method #{__method__} is deprecated. Please use Vanilla::Systems::MovementSystem.")
 
       unless cell.linked?(cell.east)
         logger.info("Movement blocked: Cannot move right from [#{unit.row}, #{unit.column}]")
@@ -80,8 +87,10 @@ module Vanilla
       logger.info("Player moved right from #{old_position} to [#{unit.row}, #{unit.column}]")
     end
 
+    # @deprecated Use Vanilla::Systems::MovementSystem instead
     def self.move_up(cell, unit)
       logger = Vanilla::Logger.instance
+      logger.warn("DEPRECATED: Method #{__method__} is deprecated. Please use Vanilla::Systems::MovementSystem.")
 
       unless cell.linked?(cell.north)
         logger.info("Movement blocked: Cannot move up from [#{unit.row}, #{unit.column}]")
@@ -102,8 +111,10 @@ module Vanilla
       logger.info("Player moved up from #{old_position} to [#{unit.row}, #{unit.column}]")
     end
 
+    # @deprecated Use Vanilla::Systems::MovementSystem instead
     def self.move_down(cell, unit)
       logger = Vanilla::Logger.instance
+      logger.warn("DEPRECATED: Method #{__method__} is deprecated. Please use Vanilla::Systems::MovementSystem.")
 
       unless cell.linked?(cell.south)
         logger.info("Movement blocked: Cannot move down from [#{unit.row}, #{unit.column}]")
