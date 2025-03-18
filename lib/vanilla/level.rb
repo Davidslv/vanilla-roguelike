@@ -33,8 +33,8 @@ module Vanilla
     def self.random
       logger = Vanilla::Logger.instance
 
-      rows = rand(8..20)
-      columns = rand(8..20)
+      rows = rand(4..10)
+      columns = rand(4..10)
 
       logger.info("Generating random level with rows: #{rows}, columns: #{columns}")
       new(rows: rows, columns: columns)
