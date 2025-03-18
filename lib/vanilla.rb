@@ -43,9 +43,6 @@ module Vanilla
   # systems (entity component system)
   require_relative 'vanilla/systems'
 
-  # unit
-  require_relative 'vanilla/unit'
-
   # characters
   require_relative 'vanilla/characters/player'
 
