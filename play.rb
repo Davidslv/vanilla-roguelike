@@ -1,1 +1,1 @@
-require './lib/vanilla'
+require './bin/vanilla'
