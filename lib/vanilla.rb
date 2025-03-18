@@ -18,6 +18,9 @@ module Vanilla
     D: :KEY_LEFT
   }.freeze
 
+  # logger
+  require_relative 'vanilla/logger'
+
   # draw
   require_relative 'vanilla/draw'
 
@@ -25,7 +28,7 @@ module Vanilla
   require_relative 'vanilla/map_utils'
   require_relative 'vanilla/map'
 
-  # output
+  # output
   require_relative 'vanilla/output/terminal'
 
   # algorithms
@@ -37,7 +40,13 @@ module Vanilla
   # movement
   require_relative 'vanilla/movement'
 
-  # unit
+  # components (entity component system)
+  require_relative 'vanilla/components'
+
+  # systems (entity component system)
+  require_relative 'vanilla/systems'
+
+  # unit
   require_relative 'vanilla/unit'
 
   # characters
@@ -49,11 +58,17 @@ module Vanilla
   # level
   require_relative 'vanilla/level'
 
+  # entities
+  require_relative 'vanilla/entities'
+
   $seed = nil
 
   def self.run
-    # level = Vanilla::Level.new(seed: 84625887428918)
-    level = Vanilla::Level.new
+    logger = Vanilla::Logger.instance
+    logger.info("Starting game loop")
+
+    level = Vanilla::Level.random
+    logger.info("Level created")
 
     while key = STDIN.getch
       # Given that arrow keys are compose of more than one character
@@ -63,8 +78,13 @@ module Vanilla
       key        = STDIN.getch if second_key == "["
       key        = KEYBOARD_ARROWS[key.intern] || key
 
+      logger.debug("Key pressed: #{key.inspect}")
       Vanilla::Command.process(key: key, grid: level.grid, unit: level.player)
-      level = Vanilla::Level.random if level.player.found_stairs?
+
+      if level.player.found_stairs?
+        logger.info("Player found stairs, generating new level")
+        level = Vanilla::Level.random
+      end
     end
   end
 
@@ -86,7 +106,7 @@ module Vanilla
     Vanilla::Draw.map(grid, open_maze: open_maze)
   end
 
-  # defines the start position and end position
+  # defines the start position and end position
   # recalculates end position when it is the same as start position
   def self.start_and_goal_points(grid:)
     start_position = grid[rand(0...grid.rows), rand(0...grid.columns)]
