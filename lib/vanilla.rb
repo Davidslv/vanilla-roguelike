@@ -28,7 +28,24 @@ module Vanilla
   require_relative 'vanilla/logger'
   require_relative 'vanilla/level'
 
+  # map
+  require_relative 'vanilla/map_utils'
+  require_relative 'vanilla/map'
+
+  # output
+  require_relative 'vanilla/output/terminal'
+
+  # algorithms
+  require_relative 'vanilla/algorithms'
+
+  # support
+  require_relative 'vanilla/support/tile_type'
+
+  # components (entity component system)
+  require_relative 'vanilla/components'
+
   # entities
+  require_relative 'vanilla/entities'
   require_relative 'vanilla/entities/player'
 
   # event system
