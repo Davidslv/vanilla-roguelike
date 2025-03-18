@@ -19,7 +19,7 @@ module Vanilla
         @type = type
         @source = source
         @data = data
-        @timestamp = timestamp || Time.now.utc.iso8601(3)
+        @timestamp = timestamp.is_a?(String) ? Time.parse(timestamp) : (timestamp || Time.now.utc)
       end
 
       # String representation of the event
@@ -35,7 +35,7 @@ module Vanilla
           id: @id,
           type: @type,
           source: @source.to_s,
-          timestamp: @timestamp,
+          timestamp: @timestamp.iso8601(3),
           data: @data
         }
       end
