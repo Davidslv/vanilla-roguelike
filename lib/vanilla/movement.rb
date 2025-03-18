@@ -3,6 +3,25 @@ module Vanilla
     def self.move(grid:, unit:, direction:)
       logger = Vanilla::Logger.instance
       logger.debug("Processing movement in direction: #{direction}")
+
+      # If the unit is an entity with required components, use the Movement System
+      if unit.respond_to?(:has_component?) &&
+         unit.has_component?(:position) &&
+         unit.has_component?(:movement)
+
+        logger.debug("Using ECS MovementSystem for movement")
+        movement_system = Vanilla::Systems::MovementSystem.new(grid)
+        movement_system.move(unit, direction)
+      else
+        # For backward compatibility with non-entity units
+        logger.debug("Using legacy movement system")
+        legacy_move(grid: grid, unit: unit, direction: direction)
+      end
+    end
+
+    # Legacy movement implementation for backward compatibility
+    def self.legacy_move(grid:, unit:, direction:)
+      logger = Vanilla::Logger.instance
       cell = grid[*unit.coordinates]
 
       case direction

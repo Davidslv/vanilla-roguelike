@@ -28,7 +28,7 @@ module Vanilla
   require_relative 'vanilla/map_utils'
   require_relative 'vanilla/map'
 
-  # output
+  # output
   require_relative 'vanilla/output/terminal'
 
   # algorithms
@@ -42,6 +42,9 @@ module Vanilla
 
   # components (entity component system)
   require_relative 'vanilla/components'
+
+  # systems (entity component system)
+  require_relative 'vanilla/systems'
 
   # unit
   require_relative 'vanilla/unit'
@@ -101,7 +104,7 @@ module Vanilla
     Vanilla::Draw.map(grid, open_maze: open_maze)
   end
 
-  # defines the start position and end position
+  # defines the start position and end position
   # recalculates end position when it is the same as start position
   def self.start_and_goal_points(grid:)
     start_position = grid[rand(0...grid.rows), rand(0...grid.columns)]
