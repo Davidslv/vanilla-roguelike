@@ -1,9 +1,13 @@
+require_relative 'input_handler'
+
 module Vanilla
   class Command
     def initialize(key:, grid:, unit:)
       @key = key
-      @grid, @unit = grid, unit
+      @grid = grid
+      @unit = unit
       @logger = Vanilla::Logger.instance
+      @input_handler = Vanilla::InputHandler.new(@logger)
 
       # Log deprecation warning if using legacy Unit
       if !unit.respond_to?(:has_component?) || !unit.has_component?(:position)
@@ -16,25 +20,13 @@ module Vanilla
     end
 
     def process
-      case key
-      when "k", "K", :KEY_UP
-        @logger.info("Player attempting to move UP")
-        Vanilla::Draw.movement(grid: grid, unit: unit, direction: :up)
-      when "j", "J", :KEY_DOWN
-        @logger.info("Player attempting to move DOWN")
-        Vanilla::Draw.movement(grid: grid, unit: unit, direction: :down)
-      when "l", "L", :KEY_RIGHT
-        @logger.info("Player attempting to move RIGHT")
-        Vanilla::Draw.movement(grid: grid, unit: unit, direction: :right)
-      when "h", "H", :KEY_LEFT
-        @logger.info("Player attempting to move LEFT")
-        Vanilla::Draw.movement(grid: grid, unit: unit, direction: :left)
-      when "\C-c", "q"
-        @logger.info("Player exiting game")
-        exit
-      else
-        @logger.debug("Unknown key pressed: #{key.inspect}")
+      # Log deprecation warning if using legacy Unit
+      if !@unit.respond_to?(:has_component?) || !@unit.has_component?(:position)
+        @logger.warn("DEPRECATED: Using legacy Unit object in Command. Please use Entity with components.")
       end
+
+      # Delegate to input handler
+      @input_handler.handle_input(@key, @unit, @grid)
     end
 
     private
