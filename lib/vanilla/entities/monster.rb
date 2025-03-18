@@ -8,6 +8,7 @@ module Vanilla
     # * PositionComponent - For tracking position in the grid
     # * MovementComponent - For movement capabilities
     # * TileComponent - For visual representation 'M'
+    # * RenderComponent - For visual rendering in the new system
     #
     # Monsters can move around the map and interact with the player.
     class Monster < Components::Entity
@@ -37,6 +38,12 @@ module Vanilla
         add_component(Components::PositionComponent.new(row: row, column: column))
         add_component(Components::MovementComponent.new)
         add_component(Components::TileComponent.new(tile: Support::TileType::MONSTER))
+
+        # Add new RenderComponent
+        add_component(Components::RenderComponent.new(
+          character: Support::TileType::MONSTER,
+          layer: 5  # Monsters are below player
+        ))
       end
 
       # Check if the monster is alive

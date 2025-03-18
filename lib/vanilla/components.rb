@@ -9,5 +9,6 @@ module Vanilla
     require_relative 'components/tile_component'
     require_relative 'components/stairs_component'
     require_relative 'components/movement_component'
+    require_relative 'components/render_component'
   end
 end

@@ -1,319 +1,380 @@
-# Draw System Architecture Improvement Proposal
+# Drawing System Architecture Proposal
 
 ## Current Implementation Analysis
 
-The existing `draw.rb` module implements a simplified rendering system that directly maps game state to terminal output. Current limitations include:
+The current drawing system in Vanilla is implemented as a simple module with class methods that handle rendering the game state to the terminal. While functional, it has several limitations:
 
-- Mixing of rendering logic with state update logic (especially in movement)
-- Lack of separation between rendering commands and actual display
-- Limited flexibility for supporting different output types (e.g., different terminal libraries, graphical interfaces)
-- Direct coupling with the game grid and entities
-- Backward compatibility layer adds complexity
-
-## Proposed Architecture: Renderer Pattern with MVC Principles
-
-I propose implementing a proper Renderer Pattern that follows Model-View-Controller principles, separating the concerns of rendering, display, and game state.
-
-### Architectural Diagram
-
-```
-┌────────────┐     ┌─────────────────────┐     ┌────────────────┐
-│            │     │                     │     │                │
-│ Game State ├────►│ Rendering Pipeline  ├────►│ Display Output │
-│ (Model)    │     │ (Controller)        │     │ (View)         │
-│            │     │                     │     │                │
-└────────────┘     └─────────────────────┘     └────────────────┘
-                           │
-                           │
-                           ▼
-                   ┌────────────────┐    ┌────────────────┐
-                   │ Renderer       │    │ Asset Manager  │
-                   │ Strategy       ├───►│ (tiles, colors,│
-                   │ (ASCII/Unicode)│    │  symbols)      │
-                   └────────────────┘    └────────────────┘
+```mermaid
+graph TD
+    A[Game Loop] --> B[Draw.map]
+    A --> C[Draw.movement]
+    C --> D[MovementSystem]
+    D --> E[Entity Position Update]
+    E --> F[Draw.player]
+    F --> G[Draw.tile]
+    G --> B
+    B --> H[Terminal Output]
 ```
 
-### Game Flow Diagram
+### Limitations of Current Approach
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────────┐
-│ Game Event  │     │ Game State  │     │ Scene Manager   │
-│ (Movement)  ├────►│ Updated     ├────►│                 │
-└─────────────┘     └─────────────┘     └────────┬────────┘
-                                                 │
-                                                 │ Triggers
-                                                 ▼
-┌────────────────┐     ┌──────────────┐     ┌─────────────┐
-│ Terminal       │     │ Renderer     │     │ RenderQueue │
-│ Display        │◄────┤ Strategy     │◄────┤ (grid, UI,  │
-│                │     │              │     │  entities)   │
-└────────────────┘     └──────────────┘     └─────────────┘
-```
+1. **Mixed Responsibilities**: The Draw module combines rendering logic with game mechanics (e.g., the `movement` method invokes MovementSystem)
+2. **Tight Coupling**: Direct dependencies between drawing and game systems
+3. **Limited Extensibility**: Difficult to add new visual effects or rendering methods
+4. **Inconsistent with ECS**: Doesn't follow the same Entity-Component-System architecture used elsewhere
+5. **No Rendering Abstraction**: Terminal output is the only supported rendering target
 
-## Implementation Details
+## Proposed Approaches
 
-### 1. Rendering Pipeline
+Below are three architectural approaches for a new drawing system, each with different trade-offs.
 
-```ruby
-# Core rendering pipeline
-class RenderingPipeline
-  def initialize(display_adapter)
-    @display_adapter = display_adapter
-    @render_queue = []
-  end
+### Option 1: Renderer + RenderComponent Pattern
 
-  def queue_render_command(command)
-    @render_queue << command
-  end
+This approach introduces a dedicated Renderer system and RenderComponent for entities, fully embracing the ECS pattern.
 
-  def render
-    # Clear the display
-    @display_adapter.clear
-
-    # Process render queue in order (back-to-front)
-    @render_queue.each do |command|
-      command.execute(@display_adapter)
-    end
-
-    # Display the completed frame
-    @display_adapter.display
-
-    # Clear queue for next frame
-    @render_queue.clear
-  end
-end
+```mermaid
+graph TD
+    A[Game Loop] --> B[RenderSystem]
+    B --> C[Entity Query: Entities with RenderComponent & PositionComponent]
+    C --> D[Sort Entities by Z-Index/Layer]
+    D --> E[For Each Entity: Draw Based on RenderComponent]
+    E --> F[Renderer Interface]
+    F --> G[TerminalRenderer Implementation]
+    F --> H[Future: CursesRenderer]
+    F --> I[Future: GraphicalRenderer]
 ```
 
-### 2. Render Commands
+#### Implementation Details
 
-```ruby
-# Abstract render command
-class RenderCommand
-  def execute(display)
-    raise NotImplementedError
-  end
-end
+1. **RenderComponent**:
+   ```ruby
+   class RenderComponent < Component
+     attr_reader :character, :color, :layer
 
-# Grid render command
-class GridRenderCommand < RenderCommand
-  def initialize(grid)
-    @grid = grid
-  end
+     def initialize(character:, color: nil, layer: 0)
+       @character = character
+       @color = color
+       @layer = layer
+       super()
+     end
 
-  def execute(display)
-    # Render the base grid
-    display.render_grid(@grid)
-  end
-end
+     def type
+       :render
+     end
 
-# Entity render command
-class EntityRenderCommand < RenderCommand
-  def initialize(entity)
-    @entity = entity
-  end
+     # ... serialization methods
+   end
+   ```
 
-  def execute(display)
-    if @entity.has_component?(:position) && @entity.has_component?(:tile)
-      position = @entity.get_component(:position)
-      tile = @entity.get_component(:tile)
-      display.render_tile(position.row, position.column, tile.tile)
-    end
-  end
-end
+2. **RenderSystem**:
+   ```ruby
+   class RenderSystem
+     def initialize(renderer)
+       @renderer = renderer
+     end
 
-# UI element render command
-class UIRenderCommand < RenderCommand
-  def initialize(ui_element)
-    @ui_element = ui_element
-  end
+     def render(entities, grid)
+       @renderer.clear
 
-  def execute(display)
-    display.render_ui(@ui_element)
-  end
-end
+       # Draw the grid first
+       @renderer.draw_grid(grid)
+
+       # Draw entities with render components
+       drawable_entities = entities.select do |entity|
+         entity.has_component?(:render) && entity.has_component?(:position)
+       end
+
+       # Sort by layer for proper drawing order
+       drawable_entities.sort_by! { |e| e.get_component(:render).layer }
+
+       drawable_entities.each do |entity|
+         render_component = entity.get_component(:render)
+         position = entity.get_component(:position)
+         @renderer.draw_character(
+           position.row,
+           position.column,
+           render_component.character,
+           render_component.color
+         )
+       end
+
+       @renderer.present
+     end
+   end
+   ```
+
+3. **Renderer Interface**:
+   ```ruby
+   class Renderer
+     def clear
+       raise NotImplementedError
+     end
+
+     def draw_grid(grid)
+       raise NotImplementedError
+     end
+
+     def draw_character(row, column, character, color = nil)
+       raise NotImplementedError
+     end
+
+     def present
+       raise NotImplementedError
+     end
+   end
+   ```
+
+#### Pros and Cons
+
+**Pros:**
+- Complete alignment with ECS architecture
+- Clear separation of concerns
+- Highly extensible for different rendering implementations
+- Supports layered rendering (z-ordering)
+- Easy to add visual effects to specific entity types
+
+**Cons:**
+- Requires more significant refactoring
+- More complex than current implementation
+- Requires adding RenderComponent to all visible entities
+
+### Option 2: View/Presenter Pattern with Event System
+
+This approach separates rendering logic from game state using a View/Presenter pattern integrated with the event system.
+
+```mermaid
+graph TD
+    A[Game State Changes] --> B[Event: EntityMoved]
+    A --> C[Event: GridChanged]
+    A --> D[Event: EntityAppearanceChanged]
+    B --> E[RenderView]
+    C --> E
+    D --> E
+    E --> F[Screen Presenter]
+    F --> G[Terminal Output]
 ```
 
-### 3. Display Adapters
+#### Implementation Details
 
-```ruby
-# Abstract display adapter
-class DisplayAdapter
-  def clear
-    raise NotImplementedError
-  end
+1. **Rendering Events**:
+   ```ruby
+   module Events
+     module Types
+       # Add rendering-related event types
+       GRID_UPDATED = "grid_updated"
+       ENTITY_MOVED = "entity_moved"
+       ENTITY_APPEARANCE_CHANGED = "entity_appearance_changed"
+       RENDER_REQUESTED = "render_requested"
+     end
+   end
+   ```
 
-  def render_grid(grid)
-    raise NotImplementedError
-  end
+2. **RenderView**:
+   ```ruby
+   class RenderView
+     def initialize(event_manager, presenter)
+       @event_manager = event_manager
+       @presenter = presenter
+       @dirty = true
 
-  def render_tile(row, column, tile)
-    raise NotImplementedError
-  end
+       # Subscribe to rendering events
+       @event_manager.subscribe(Events::Types::GRID_UPDATED, method(:mark_dirty))
+       @event_manager.subscribe(Events::Types::ENTITY_MOVED, method(:mark_dirty))
+       @event_manager.subscribe(Events::Types::ENTITY_APPEARANCE_CHANGED, method(:mark_dirty))
+       @event_manager.subscribe(Events::Types::RENDER_REQUESTED, method(:render))
+     end
 
-  def render_ui(ui_element)
-    raise NotImplementedError
-  end
+     def mark_dirty(*_args)
+       @dirty = true
+     end
 
-  def display
-    raise NotImplementedError
-  end
-end
+     def render(event)
+       return unless @dirty
 
-# Terminal display adapter
-class TerminalDisplayAdapter < DisplayAdapter
-  def clear
-    system("clear")
-  end
+       grid = event.data[:grid]
+       entities = event.data[:entities]
 
-  def render_grid(grid)
-    @buffer = Array.new(grid.rows) { Array.new(grid.columns, ' ') }
+       @presenter.present(grid, entities)
+       @dirty = false
+     end
+   end
+   ```
 
-    grid.rows.times do |row|
-      grid.columns.times do |col|
-        cell = grid[row, col]
-        @buffer[row][col] = cell.tile || ' '
-      end
-    end
-  end
+3. **ScreenPresenter**:
+   ```ruby
+   class ScreenPresenter
+     def present(grid, entities)
+       # Clear the screen
+       Kernel.system("clear")
 
-  def render_tile(row, column, tile)
-    @buffer[row][column] = tile if valid_position?(row, column)
-  end
+       # Create visual representation
+       output = build_output(grid, entities)
 
-  def render_ui(ui_element)
-    # Render UI elements like stats, inventory, etc.
-    # Add to separate buffer or to main buffer depending on implementation
-  end
+       # Display to user
+       puts output
+     end
 
-  def display
-    # Header
-    puts "Seed: #{$seed} | Rows: #{@buffer.size} | Columns: #{@buffer.first&.size || 0}"
-    puts "-" * 35
-    puts "\n"
+     private
 
-    # Grid
-    @buffer.each_with_index do |row, idx|
-      puts row.join('')
-    end
-  end
+     def build_output(grid, entities)
+       # Logic to build the visual representation
+       # ...
+     end
+   end
+   ```
 
-  private
+#### Pros and Cons
 
-  def valid_position?(row, column)
-    row >= 0 && row < @buffer.size && column >= 0 && column < @buffer.first.size
-  end
-end
+**Pros:**
+- Decoupled from game logic via events
+- Only renders when necessary (dirty flag)
+- Separates rendering logic (view) from display (presenter)
+- Works well with existing event system
 
-# Curses display adapter (example of alternative display)
-class CursesDisplayAdapter < DisplayAdapter
-  # Similar implementation but using the Curses library
-end
+**Cons:**
+- Less aligned with pure ECS architecture
+- Requires careful event management
+- May lead to multiple redraws without proper debouncing
+
+### Option 3: Hybrid Approach with Render Components and Events
+
+This approach combines elements from both previous options, using RenderComponents for entity appearance but triggering rendering through the event system.
+
+```mermaid
+graph TD
+    A[Game Loop] --> B[Event: RenderRequested]
+    B --> C[RenderSystem]
+    C --> D[Scene Graph Builder]
+    D --> E[Query Entities with RenderComponent]
+    D --> F[Add Grid Elements]
+    E --> G[Build Render Scene]
+    F --> G
+    G --> H[Renderer]
+    H --> I[Terminal Output]
 ```
 
-### 4. Scene Manager
+#### Implementation Details
 
-```ruby
-class SceneManager
-  def initialize(renderer)
-    @renderer = renderer
-    @entities = []
-    @grid = nil
-    @ui_elements = []
-  end
+1. **RenderComponent** (as in Option 1)
 
-  def set_grid(grid)
-    @grid = grid
-  end
+2. **Event-Driven RenderSystem**:
+   ```ruby
+   class RenderSystem
+     def initialize(event_manager, renderer)
+       @event_manager = event_manager
+       @renderer = renderer
 
-  def add_entity(entity)
-    @entities << entity
-  end
+       # Subscribe to render events
+       @event_manager.subscribe(Events::Types::RENDER_REQUESTED, method(:render))
+     end
 
-  def remove_entity(entity)
-    @entities.delete(entity)
-  end
+     def render(event)
+       grid = event.data[:grid]
+       entities = event.data[:entities]
 
-  def add_ui_element(element)
-    @ui_elements << element
-  end
+       # Create a scene graph
+       scene = build_scene(grid, entities)
 
-  def render
-    # Queue grid first (background)
-    @renderer.queue_render_command(GridRenderCommand.new(@grid)) if @grid
+       # Render the scene
+       @renderer.render(scene)
+     end
 
-    # Queue all entities
-    @entities.each do |entity|
-      @renderer.queue_render_command(EntityRenderCommand.new(entity))
-    end
+     private
 
-    # Queue UI elements last (foreground)
-    @ui_elements.each do |element|
-      @renderer.queue_render_command(UIRenderCommand.new(element))
-    end
+     def build_scene(grid, entities)
+       # Build a structured scene representation
+       # with layers, grid elements, and entities
+       # ...
+     end
+   end
+   ```
 
-    # Execute the render
-    @renderer.render
-  end
-end
-```
+3. **Scene Graph**:
+   ```ruby
+   class SceneNode
+     attr_reader :layer, :position, :character, :color
 
-### 5. Integration with Movement System
+     def initialize(layer:, position:, character:, color: nil)
+       @layer = layer
+       @position = position
+       @character = character
+       @color = color
+     end
+   end
 
-```ruby
-# Decouple movement from rendering
-class MovementSystem
-  def initialize(grid)
-    @grid = grid
-    @logger = Vanilla::Logger.instance
-  end
+   class Scene
+     attr_reader :nodes, :dimensions
 
-  def move(entity, direction)
-    # Movement logic (unchanged)
+     def initialize(rows, columns)
+       @nodes = []
+       @dimensions = { rows: rows, columns: columns }
+     end
 
-    # Instead of rendering directly, emit an event
-    EntityMovedEvent.emit(entity: entity, grid: @grid)
-  end
-end
+     def add_node(node)
+       @nodes << node
+     end
 
-# Event system
-class EntityMovedEvent
-  def self.emit(entity:, grid:)
-    EventBus.publish(:entity_moved, entity: entity, grid: grid)
-  end
-end
+     def sorted_nodes
+       @nodes.sort_by(&:layer)
+     end
+   end
+   ```
 
-# Main game updates scene and triggers render
-EventBus.subscribe(:entity_moved) do |event|
-  # Update scene with new entity position
-  scene_manager.render  # Trigger rendering
-end
-```
+#### Pros and Cons
 
-## Benefits
+**Pros:**
+- Combines the strengths of both approaches
+- Maintains ECS compatibility with RenderComponent
+- Event-driven rendering for efficiency
+- Scene graph provides more advanced rendering capabilities
+- Most extensible for future enhancements
 
-1. **Separation of Concerns** - Clean separation between game state, rendering logic, and display
-2. **Flexibility** - Easy to add new display adapters (e.g., Curses, GUI)
-3. **Testability** - Each component can be tested in isolation
-4. **Maintainability** - Clearer architecture and responsibilities
-5. **Performance** - Better control over when rendering occurs
-6. **Extensibility** - Easy to add new visual elements or effects
+**Cons:**
+- Most complex implementation
+- Requires careful coordination between components and events
+- Higher learning curve for new developers
 
-## Migration Plan
+## Recommendation
 
-1. **Phase 1: Core Rendering Architecture**
-   - Implement display adapters and rendering pipeline
-   - Keep existing draw.rb as fallback
+### Option 3: Hybrid Approach with Render Components and Events
 
-2. **Phase 2: Dual Implementation**
-   - Create wrapper around new rendering system
-   - Add feature flag to choose between implementations
+While all three approaches would improve the current implementation, the hybrid approach (Option 3) offers the best balance of alignment with existing architecture, extensibility, and rendering capabilities.
 
-3. **Phase 3: Event-Based Integration**
-   - Migrate game systems to use events rather than direct rendering
-   - Update game loop to use scene manager
+The hybrid approach allows:
 
-4. **Phase 4: Complete Transition**
-   - Move to exclusively using new rendering system
-   - Remove old draw.rb implementation
+1. **Full ECS Integration**: RenderComponents align with the existing Entity-Component-System pattern
+2. **Event-Driven Efficiency**: Only render when needed, triggered by game events
+3. **Advanced Rendering**: Scene graph enables more sophisticated visual effects
+4. **Future-Proofing**: Abstraction layers make it easy to add new renderers (e.g., ncurses, SDL)
+5. **Cleaner Game Loop**: Rendering is triggered by events rather than direct method calls
 
-This phased approach ensures the game remains playable throughout the migration while moving towards a more robust rendering architecture.
+## Implementation Plan
+
+1. **Phase 1: Create Basic Components**
+   - Implement RenderComponent
+   - Create Renderer interface and TerminalRenderer implementation
+   - Define rendering-related events
+
+2. **Phase 2: Scene Graph**
+   - Implement Scene and SceneNode classes
+   - Create scene building utilities
+
+3. **Phase 3: RenderSystem**
+   - Implement event-driven RenderSystem
+   - Connect to existing event manager
+
+4. **Phase 4: Integration**
+   - Refactor entities to use RenderComponent
+   - Update game loop to publish render events
+   - Remove old Draw module
+
+5. **Phase 5: Extensions**
+   - Add support for colors, animations, or other visual effects
+   - Implement additional renderers as needed
+   - Add debugging visualizations (e.g., pathfinding, vision cones)
+
+## Conclusion
+
+This proposal presents three viable options for upgrading Vanilla's drawing mechanism to better align with the game's Entity-Component-System architecture and event system. The recommended hybrid approach offers the most flexibility while maintaining consistency with the codebase's design patterns.
+
+By implementing this proposal, Vanilla will gain a more modular, extensible rendering system that separates concerns properly and enables more sophisticated visual effects in the future.
