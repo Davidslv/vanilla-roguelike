@@ -58,8 +58,8 @@ module Vanilla
         end
 
         # Find time boundaries
-        start_time = Time.parse(events.first.timestamp.to_s)
-        end_time = Time.parse(events.last.timestamp.to_s)
+        start_time = events.first.timestamp
+        end_time = events.last.timestamp
         duration = end_time - start_time
 
         # Generate the HTML
@@ -133,8 +133,8 @@ module Vanilla
                 type: e.type,
                 source: e.source.to_s,
                 timestamp: e.timestamp,
-                time_offset: (Time.parse(e.timestamp) - start_time).round(3),
-                position_percent: duration > 0 ? (Time.parse(e.timestamp) - start_time) / duration : 0,
+                time_offset: (e.timestamp - start_time).round(3),
+                position_percent: duration > 0 ? (e.timestamp - start_time) / duration : 0,
                 data: e.data || {}
               }}.to_json};
 
