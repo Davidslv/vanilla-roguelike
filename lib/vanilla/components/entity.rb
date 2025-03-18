@@ -103,6 +103,9 @@ module Vanilla
       # @param args [Array] arguments to the method
       # @param block [Proc] optional block
       def method_missing(method, *args, &block)
+        # Log a warning about using method_missing
+        Vanilla::Logger.instance.warn("Entity#method_missing called for #{method}. Consider accessing the component directly instead. Entity: #{id}")
+
         # Check if method is a setter (ends with =)
         if method.to_s.end_with?('=')
           attr_name = method.to_s.chomp('=').to_sym
@@ -130,6 +133,9 @@ module Vanilla
       # @param method [Symbol] the method name
       # @param include_private [Boolean] whether to include private methods
       def respond_to_missing?(method, include_private = false)
+        # Log a warning about using respond_to_missing?
+        Vanilla::Logger.instance.warn("Entity#respond_to_missing? called for #{method}. Consider checking component types directly. Entity: #{id}")
+
         # Check if method is a setter (ends with =)
         if method.to_s.end_with?('=')
           attr_name = method.to_s.chomp('=').to_sym
