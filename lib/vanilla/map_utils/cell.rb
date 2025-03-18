@@ -1,3 +1,5 @@
+require_relative 'cell_type_factory'
+
 module Vanilla
   module MapUtils
     # Represents a single cell in a maze or grid-based map
@@ -20,16 +22,21 @@ module Vanilla
     # The `player?` method checks if this cell contains the player.
     # The `stairs?` method checks if this cell contains stairs.
     class Cell
-      attr_reader :row, :column
+      attr_reader :row, :column, :cell_type
       attr_accessor :north, :south, :east, :west
-      attr_accessor :dead_end, :tile
+      attr_accessor :dead_end
 
       # Initialize a new cell with its position in the grid
       # @param row [Integer] The row position of the cell
       # @param column [Integer] The column position of the cell
-      def initialize(row:, column:)
+      # @param type_factory [CellTypeFactory] Factory for cell types
+      def initialize(row:, column:, type_factory: nil)
         @row, @column = row, column
         @links = {}
+
+        # Use the provided factory or create a default one
+        @type_factory = type_factory || CellTypeFactory.new
+        @cell_type = @type_factory.get_cell_type(:empty)
       end
 
       # Get the position of the cell as an array
@@ -82,19 +89,31 @@ module Vanilla
       # Check if this cell contains the player
       # @return [Boolean] True if it contains the player, false otherwise
       def player?
-        tile == Support::TileType::PLAYER
+        @cell_type.player?
       end
 
       # Check if this cell contains stairs
       # @return [Boolean] True if it contains stairs, false otherwise
       def stairs?
-        tile == Support::TileType::STAIRS
+        @cell_type.stairs?
       end
 
       # Get all neighboring cells (north, south, east, west)
       # @return [Array<Cell>] An array of neighboring cells
       def neighbors
         [north, south, east, west].compact
+      end
+
+      # Set the cell type from a tile character
+      # @param tile_character [String] The character to set
+      def tile=(tile_character)
+        @cell_type = @type_factory.get_by_character(tile_character)
+      end
+
+      # Get the tile character for this cell
+      # @return [String] The tile character
+      def tile
+        @cell_type.tile_character
       end
 
       # Calculate distances from this cell to all other cells in the maze

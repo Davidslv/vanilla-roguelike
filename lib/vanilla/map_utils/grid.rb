@@ -1,10 +1,17 @@
 require_relative 'cell'
+require_relative 'cell_type_factory'
 
 module Vanilla
   module MapUtils
     class Grid
       attr_reader :rows, :columns
       attr_accessor :distances
+
+      # Get the shared cell type factory for all grids
+      # @return [CellTypeFactory] The shared factory instance
+      def self.cell_type_factory
+        @cell_type_factory ||= CellTypeFactory.new
+      end
 
       def initialize(rows:, columns:)
         raise ArgumentError, "Rows must be greater than 0" if rows <= 0
@@ -41,9 +48,9 @@ module Vanilla
 
       def contents_of(cell)
         if cell.player?
-          Support::TileType::PLAYER
-        elsif Support::TileType.values.include?(cell.tile)
-          cell.tile
+          cell.cell_type.to_s
+        elsif cell.cell_type && cell.cell_type.tile_character != Vanilla::Support::TileType::EMPTY
+          cell.cell_type.to_s
         elsif distances && distances[cell]
           distances[cell].to_s(36)
         else
@@ -80,7 +87,7 @@ module Vanilla
       def prepare_grid
         Array.new(rows) do |row|
           Array.new(columns) do |column|
-            Cell.new(row: row, column: column)
+            Cell.new(row: row, column: column, type_factory: self.class.cell_type_factory)
           end
         end
       end
