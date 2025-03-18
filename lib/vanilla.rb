@@ -40,7 +40,10 @@ module Vanilla
   # movement
   require_relative 'vanilla/movement'
 
-  # unit
+  # components (entity component system)
+  require_relative 'vanilla/components'
+
+  # unit
   require_relative 'vanilla/unit'
 
   # characters
