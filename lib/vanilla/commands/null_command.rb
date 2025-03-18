@@ -5,6 +5,8 @@ module Vanilla
     class NullCommand < Command
       def execute
         # Do nothing
+        # NullCommand is not considered a successful execution
+        @executed = false
         true
       end
     end

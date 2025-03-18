@@ -1,11 +1,12 @@
 module Vanilla
   class Level
-    attr_reader :grid, :player
+    attr_reader :grid, :player, :difficulty
 
-    def initialize(seed: nil, rows: 10, columns: 10)
+    def initialize(seed: nil, rows: 10, columns: 10, difficulty: 1)
       logger = Vanilla::Logger.instance
 
-      logger.info("Creating new level with rows: #{rows}, columns: #{columns}, seed: #{seed || 'random'}")
+      @difficulty = difficulty
+      logger.info("Creating new level with rows: #{rows}, columns: #{columns}, seed: #{seed || 'random'}, difficulty: #{difficulty}")
       @grid = Vanilla::Map.create(rows: rows, columns: columns, algorithm: Vanilla::Algorithms::AVAILABLE.sample, seed: seed)
       logger.debug("Grid created with algorithm: #{@grid.algorithm.name}")
 
@@ -30,14 +31,21 @@ module Vanilla
       logger.info("Stairs placed at position [#{stairs_row}, #{stairs_column}]")
     end
 
-    def self.random
+    def self.random(difficulty: 1)
       logger = Vanilla::Logger.instance
 
-      rows = rand(4..10)
-      columns = rand(4..10)
+      # Scale level size based on difficulty
+      base_size = 5
+      size_scale = [difficulty * 0.7, 2.5].min  # Cap scaling at 2.5x
 
-      logger.info("Generating random level with rows: #{rows}, columns: #{columns}")
-      new(rows: rows, columns: columns)
+      min_size = [base_size, 4].max
+      max_size = [(base_size + difficulty), 15].min
+
+      rows = rand(min_size..max_size)
+      columns = rand(min_size..max_size)
+
+      logger.info("Generating random level with rows: #{rows}, columns: #{columns}, difficulty: #{difficulty}")
+      new(rows: rows, columns: columns, difficulty: difficulty)
     end
 
     private

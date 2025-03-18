@@ -11,6 +11,9 @@ module Vanilla
   # components, applying transformations, calculations, or other processing
   # to those entities.
   module Systems
+    # Load system classes
+    require_relative 'systems/movement_system'
+    require_relative 'systems/monster_system'
   end
 end
 

@@ -4,6 +4,7 @@ module Vanilla
   module Commands
     class ExitCommand < Command
       def initialize
+        super()
         @logger = Vanilla::Logger.instance
       end
 
