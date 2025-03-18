@@ -78,6 +78,32 @@ RSpec.describe Vanilla::Characters::Player do
       expect(player.inventory).not_to include(item)
     end
   end
+
+  describe '#to_entity' do
+    let(:legacy_player) do
+      allow(logger).to receive(:warn)
+      player = described_class.new(name: 'hero', row: row, column: column)
+      player.level = 3
+      player.experience = 150
+      item = double('Item')
+      player.add_to_inventory(item)
+      player.found_stairs = true
+      player
+    end
+
+    it 'converts to an Entity-based Player' do
+      entity_player = legacy_player.to_entity
+
+      expect(entity_player).to be_a(Vanilla::Entities::Player)
+      expect(entity_player.name).to eq('hero')
+      expect(entity_player.row).to eq(row)
+      expect(entity_player.column).to eq(column)
+      expect(entity_player.level).to eq(3)
+      expect(entity_player.experience).to eq(150)
+      expect(entity_player.inventory.size).to eq(1)
+      expect(entity_player.found_stairs).to be true
+    end
+  end
 end
 
 

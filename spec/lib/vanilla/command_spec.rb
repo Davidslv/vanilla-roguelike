@@ -8,12 +8,18 @@ RSpec.describe Vanilla::Command do
     allow(Vanilla::Logger).to receive(:instance).and_return(logger)
     allow(logger).to receive(:info)
     allow(logger).to receive(:debug)
+    allow(logger).to receive(:warn)
   end
 
   describe '.process' do
     context 'with a legacy unit' do
       # Note: Unit class is deprecated, this test is for backward compatibility
       let(:unit) { instance_double('Vanilla::Unit', row: 5, column: 5, tile: '@') }
+
+      before do
+        allow(unit).to receive(:respond_to?).with(:has_component?).and_return(false)
+        expect(logger).to receive(:warn).with("DEPRECATED: Using legacy Unit object in Command. Please use Entity with components.")
+      end
 
       it 'processes up movement' do
         expect(logger).to receive(:info).with("Player attempting to move UP")

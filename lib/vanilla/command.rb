@@ -4,6 +4,11 @@ module Vanilla
       @key = key
       @grid, @unit = grid, unit
       @logger = Vanilla::Logger.instance
+
+      # Log deprecation warning if using legacy Unit
+      if !unit.respond_to?(:has_component?) || !unit.has_component?(:position)
+        @logger.warn("DEPRECATED: Using legacy Unit object in Command. Please use Entity with components.")
+      end
     end
 
     def self.process(key:, grid:, unit:)
