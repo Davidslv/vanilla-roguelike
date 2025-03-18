@@ -177,3 +177,11 @@ $ yard server
 ### License
 
 Vanilla is under the MIT License.
+
+## Features
+
+- **Procedural Maze Generation**: Creates unique playable maps for each level
+- **Entity-Component-System (ECS)**: Modern architecture for game entities
+- **Command Pattern**: For handling user input
+- **Event System**: Decoupled communication between systems with persistent event logging
+- **Monster AI**: Creatures that hunt the player through the maze
