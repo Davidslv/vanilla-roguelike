@@ -19,8 +19,7 @@ module Vanilla
   }.freeze
 
   # Systems
-  require_relative 'vanilla/systems/movement_system'
-  require_relative 'vanilla/systems/monster_system'
+  require_relative 'vanilla/systems'
 
   # game
   require_relative 'vanilla/input_handler'
@@ -34,6 +33,9 @@ module Vanilla
 
   # output
   require_relative 'vanilla/output/terminal'
+
+  # renderers
+  require_relative 'vanilla/renderers'
 
   # algorithms
   require_relative 'vanilla/algorithms'
@@ -81,6 +83,9 @@ module Vanilla
 
       # Input handler translates raw keyboard input into game commands
       @input_handler = InputHandler.new(@logger, @event_manager)
+
+      # Initialize render system
+      @render_system = Systems::RenderSystemFactory.create
     end
 
     # Start the game by initializing the first level and entering the game loop
@@ -131,7 +136,8 @@ module Vanilla
       @logger.info("Spawned initial monsters")
 
       # Initial render of the level
-      Vanilla::Draw.map(level.grid)
+      all_entities = [level.player] + monster_system.monsters
+      @render_system.render(all_entities, level.grid)
 
       # Store the monster system with the level for later access
       level.instance_variable_set(:@monster_system, monster_system)
@@ -164,7 +170,8 @@ module Vanilla
         handle_collisions(level, monster_system)
 
         # 4. RENDER - update the display to reflect the new state
-        Vanilla::Draw.map(level.grid)
+        all_entities = [level.player] + monster_system.monsters
+        @render_system.render(all_entities, level.grid)
 
         # 5. LEVEL TRANSITION - check if player advances to next level
         level = handle_level_transition(level) if level.player.found_stairs?

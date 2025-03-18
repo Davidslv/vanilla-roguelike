@@ -9,6 +9,7 @@ module Vanilla
     # * MovementComponent - For movement capabilities
     # * TileComponent - For visual representation
     # * StairsComponent - For tracking stairs discovery
+    # * RenderComponent - For visual rendering in the new system
     #
     # The entity maintains backward compatibility with the old Unit-based system
     # by delegating methods to the appropriate components.
@@ -42,6 +43,12 @@ module Vanilla
         add_component(Components::MovementComponent.new)
         add_component(Components::TileComponent.new(tile: Support::TileType::PLAYER))
         add_component(Components::StairsComponent.new)
+
+        # Add new RenderComponent
+        add_component(Components::RenderComponent.new(
+          character: Support::TileType::PLAYER,
+          layer: 10  # Player is usually drawn on top
+        ))
       end
 
       # Gain experience points
