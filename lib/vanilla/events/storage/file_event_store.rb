@@ -7,7 +7,7 @@ module Vanilla
       # Implementation of event storage using files on disk
       # Events are stored in JSONL (JSON Lines) format, one event per line
       class FileEventStore < EventStore
-        attr_reader :current_session
+        attr_reader :current_session, :storage_path
 
         # Initialize a new file-based event store
         # @param directory [String] The directory to store event files in
@@ -16,6 +16,7 @@ module Vanilla
           require 'fileutils'
 
           @directory = directory
+          @storage_path = directory
           FileUtils.mkdir_p(@directory) unless Dir.exist?(@directory)
           @current_session = session_id || Time.now.strftime("%Y%m%d_%H%M%S")
           @current_file = nil
