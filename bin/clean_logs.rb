@@ -9,4 +9,4 @@ puts "Cleaning up coverage..."
 system("rm -rf coverage")
 
 puts "Cleaning up logs..."
-system("rm logs/*.log")
+system("rm logs/test/*.log")
