@@ -130,14 +130,17 @@ module Vanilla
           @subscribers[event_type].each do |subscriber|
             mode = @processing_modes.dig(event_type, subscriber) || :immediate
 
+            # Use original event if available (for EventManager compatibility)
+            event_to_deliver = event.respond_to?(:original_event) ? event.original_event : event
+
             case mode
             when :immediate
               # Deliver immediately
-              subscriber.handle_event(event)
+              subscriber.handle_event(event_to_deliver)
               delivery_count += 1
             when :deferred, :scheduled
               # Queue for later processing
-              @event_queues[event_type] << { subscriber: subscriber, event: event }
+              @event_queues[event_type] << { subscriber: subscriber, event: event_to_deliver }
               delivery_count += 1
             end
           end
@@ -163,6 +166,9 @@ module Vanilla
             events.each_with_index do |event_data, index|
               subscriber = event_data[:subscriber]
               event = event_data[:event]
+
+              # Event is already the original event from the publish method,
+              # so no need to check for original_event here
 
               mode = @processing_modes.dig(event_type, subscriber) || :immediate
 
@@ -285,6 +291,8 @@ module Vanilla
             events.each do |event_data|
               subscriber = event_data[:subscriber]
               event = event_data[:event]
+
+              # Event is already the original event from the publish method
 
               begin
                 subscriber.handle_event(event)

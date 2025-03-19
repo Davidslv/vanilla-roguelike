@@ -147,6 +147,12 @@ module Vanilla
           "FiberEvent(#{@type})"
         end
 
+        # Store the original event for the subscribers
+        def fiber_event.original_event
+          @original_event
+        end
+        fiber_event.instance_variable_set(:@original_event, event)
+
         fiber_event
       end
     end
