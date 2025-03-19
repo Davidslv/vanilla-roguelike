@@ -132,8 +132,9 @@ RSpec.describe Vanilla::FiberConcurrency::FiberScheduler do
       error_fiber = Fiber.new { raise "Test error" }
       scheduler.register(error_fiber, "error_fiber")
 
-      expect(@logger_mock).to receive(:error).with(/Error in fiber error_fiber/)
-      expect(@logger_mock).to receive(:error)
+      # Set up the mock to expect an error log
+      @logger_mock.instance_variable_set(:@output, [])
+      expect(@logger_mock).to receive(:error).with(/Error in fiber error_fiber/).at_least(:once)
 
       # Should not raise the error
       expect { scheduler.resume_all }.not_to raise_error

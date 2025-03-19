@@ -1,6 +1,6 @@
-require 'singleton'
 require 'fiber'
-require_relative 'fiber_scheduler'
+require 'thread'
+require 'singleton'
 
 module Vanilla
   module FiberConcurrency
@@ -12,298 +12,375 @@ module Vanilla
       # Processing modes for event subscribers
       PROCESSING_MODES = [:immediate, :deferred, :scheduled].freeze
 
-      # Initialize a new fiber event bus
-      # @param logger [Logger] Optional logger for debugging
-      def initialize(logger = nil)
+      # Initialize the event bus
+      # @param scheduler [FiberScheduler] the fiber scheduler
+      # @param logger [FiberLogger] the logger
+      def initialize
+        @scheduler = FiberScheduler.instance
+        @logger = FiberLogger.instance
+
+        @logger&.info("FiberEventBus initialized")
+
+        # Initialize instance variables
         @subscribers = Hash.new { |h, k| h[k] = [] }
         @processing_modes = {}
+        @batch_intervals = Hash.new(0.5)
+        @last_batch = {}
         @event_queues = Hash.new { |h, k| h[k] = [] }
         @fibers = {}
-        @batch_intervals = Hash.new(0.5)
-        @last_batch_time = {}
-        @logger = logger
+        @mutex = Mutex.new
         @running = true
-
-        # Log initialization but don't force logger initialization during startup
-        logger&.info("FiberEventBus initialized")
-      end
-
-      # Get the logger, lazy-loaded if not provided in constructor
-      def logger
-        @logger ||= begin
-          # Get the logger, but check for circular dependency
-          if Vanilla.const_defined?(:FiberConcurrency) &&
-             Vanilla::FiberConcurrency.const_defined?(:FiberLogger) &&
-             !Vanilla::FiberConcurrency::FiberLogger.instance.equal?(self)
-            Vanilla::FiberConcurrency::FiberLogger.instance
-          else
-            # Fallback to a simple logger if there's a circular dependency
-            logger = Object.new
-            def logger.method_missing(method, *args)
-              puts "[FiberEventBus] #{method}: #{args.join(' ')}" if [:debug, :info, :warn, :error, :fatal].include?(method)
-            end
-            logger
-          end
-        end
-      end
-
-      # Get the scheduler, lazy-loaded to avoid circular dependency
-      def scheduler
-        @scheduler ||= begin
-          # Get the scheduler, but check for circular dependency
-          if Vanilla.const_defined?(:FiberConcurrency) &&
-             Vanilla::FiberConcurrency.const_defined?(:FiberScheduler) &&
-             !Vanilla::FiberConcurrency::FiberScheduler.instance.equal?(self)
-            Vanilla::FiberConcurrency::FiberScheduler.instance
-          else
-            nil # Will be initialized later once dependency cycle is broken
-          end
-        end
       end
 
       # Subscribe to events of a specific type
-      # @param subscriber [Object] The object to subscribe to events
-      # @param event_type [String, Symbol, Array<String, Symbol>] The event type(s) to subscribe to
-      # @param mode [Symbol] The processing mode, one of: :immediate, :deferred, :scheduled
-      # @param batch_interval [Float] For scheduled mode, how often to process events (in seconds)
-      # @return [void]
-      def subscribe(subscriber, event_type, mode = :immediate, batch_interval = 0.5)
+      # @param subscriber [Object] the object that will handle the events
+      # @param event_type [Symbol, String, Array] the type of event to subscribe to
+      # @param processing_mode [Symbol] how events should be processed (:immediate, :deferred, :scheduled)
+      # @param batch_interval [Numeric] interval in seconds for scheduled processing
+      # @return [Object] the subscriber object
+      def subscribe(subscriber, event_type, processing_mode = :immediate, batch_interval = nil)
+        # Validate the subscriber implements handle_event
         unless subscriber.respond_to?(:handle_event)
           raise ArgumentError, "Subscriber must implement handle_event method"
         end
 
-        unless PROCESSING_MODES.include?(mode)
-          raise ArgumentError, "Invalid processing mode, must be one of: #{PROCESSING_MODES.join(', ')}"
+        # Validate the processing mode
+        unless PROCESSING_MODES.include?(processing_mode)
+          raise ArgumentError, "Invalid processing mode: #{processing_mode}"
         end
 
-        # Convert to array if it's not already
-        event_types = event_type.is_a?(Array) ? event_type : [event_type]
+        # Convert event types to symbols
+        event_types = Array(event_type).map { |type| type.is_a?(String) ? type.to_sym : type }
 
-        event_types.each do |type|
-          type = type.to_sym if type.is_a?(String)
+        @mutex.synchronize do
+          event_types.each do |type|
+            # Initialize hash entries if they don't exist
+            @processing_modes[type] ||= {}
+            @last_batch[type] ||= {}
 
-          @subscribers[type] ||= []
-          @subscribers[type] << subscriber
+            # Add the subscriber if not already subscribed
+            @subscribers[type] << subscriber unless @subscribers[type].include?(subscriber)
 
-          # Use the set_processing_mode method
-          set_processing_mode(type, subscriber, mode, batch_interval)
+            # Set the processing mode for this subscriber
+            @processing_modes[type][subscriber] = processing_mode
 
-          logger.info("Subscribed #{subscriber.class} to #{type} with mode: #{mode}")
+            # Set up fiber processing for non-immediate modes
+            if processing_mode != :immediate
+              @last_batch[type][subscriber] = Time.now
+
+              # Set up fiber processing
+              setup_fiber_processing(type, batch_interval || 0.5)
+            end
+
+            @logger&.info("Subscribed #{subscriber.class} to #{type} with mode #{processing_mode}")
+          end
         end
 
-        nil
+        subscriber
       end
 
       # Unsubscribe from events of a specific type
-      # @param subscriber [Object] The subscriber to unsubscribe
-      # @param event_type [String, Symbol, Array<String, Symbol>] The event type(s) to unsubscribe from
-      # @return [void]
-      def unsubscribe(subscriber, event_type)
-        # Convert to array if it's not already
-        event_types = event_type.is_a?(Array) ? event_type : [event_type]
+      # @param subscriber [Object] the subscriber to unsubscribe
+      # @param event_type [Symbol, String, Array] the event type(s) to unsubscribe from
+      # @return [Boolean] true if the subscriber was unsubscribed
+      def unsubscribe(subscriber, event_type = nil)
+        event_types = if event_type.nil?
+                        @subscribers.keys
+                      elsif event_type.is_a?(Array)
+                        event_type.map { |t| t.is_a?(String) ? t.to_sym : t.to_sym }
+                      else
+                        [event_type.is_a?(String) ? event_type.to_sym : event_type.to_sym]
+                      end
 
-        event_types.each do |type|
-          type = type.to_sym if type.is_a?(String)
+        @mutex.synchronize do
+          event_types.each do |type|
+            next unless @subscribers[type]&.include?(subscriber)
 
-          @subscribers[type].delete(subscriber)
-          @processing_modes[type]&.delete(subscriber)
+            @subscribers[type].delete(subscriber)
+            @processing_modes[type]&.delete(subscriber)
+            @last_batch[type]&.delete(subscriber)
 
-          logger.info("Unsubscribed #{subscriber.class} from #{type}")
-        end
-
-        nil
-      end
-
-      # Publish an event to all subscribers
-      # @param event [Object] The event to publish, must respond to type method
-      # @return [void]
-      def publish(event)
-        return if event.nil?
-
-        begin
-          type = event.type
-        rescue NoMethodError
-          raise ArgumentError, "Event must respond to type method"
-        end
-
-        type = type.to_sym if type.is_a?(String)
-        return if type.nil?
-
-        subscribers = @subscribers[type] || []
-        return if subscribers.empty?
-
-        logger.debug("Publishing event: #{type}")
-
-        subscribers.each do |subscriber|
-          processing_mode = @processing_modes[type][subscriber]
-
-          case processing_mode
-          when :immediate
-            begin
-              subscriber.handle_event(event)
-            rescue => e
-              logger.error("Error in subscriber #{subscriber.class} handling #{type}: #{e.message}")
-              logger.error(e.backtrace.join("\n"))
-            end
-          when :deferred, :scheduled
-            @event_queues[type] << event
+            @logger&.info("Unsubscribed #{subscriber} from #{type}")
           end
         end
-      end
-
-      # Process events - should be called periodically from the game loop
-      # @return [void]
-      def tick
-        return unless @running
-
-        # Process all event types with pending events
-        @event_queues.each do |event_type, events|
-          next if events.empty?
-
-          processing_mode = @processing_modes[event_type]
-          next if processing_mode.nil?
-
-          if processing_mode == :scheduled
-            # Only process if the batch interval has elapsed
-            batch_interval = @batch_intervals[event_type]
-            last_time = @last_batch_time[event_type] || Time.now - batch_interval
-            next if Time.now - last_time < batch_interval
-          end
-
-          # Process all events for this type
-          process_events(event_type)
-        end
-
-        # Process all pending fibers
-        resumed = scheduler&.resume_all || 0
-
-        # Process any events that need to be handled during this tick
-        process_events
-
-        resumed
-      end
-
-      # Set the processing mode for a specific event type
-      # @param event_type [Symbol, String] The event type
-      # @param subscriber [Object] The subscriber object
-      # @param mode [Symbol] The new processing mode
-      # @param batch_interval [Float] For scheduled mode, how often to process events (in seconds)
-      # @return [void]
-      def set_processing_mode(event_type, subscriber, mode, batch_interval = 0.5)
-        event_type = event_type.to_sym if event_type.is_a?(String)
-
-        unless PROCESSING_MODES.include?(mode)
-          raise ArgumentError, "Invalid processing mode, must be one of: #{PROCESSING_MODES.join(', ')}"
-        end
-
-        @processing_modes[event_type] ||= {}
-        old_mode = @processing_modes[event_type][subscriber]
-        @processing_modes[event_type][subscriber] = mode
-
-        # If we're switching from immediate to non-immediate, set up the fiber processing
-        if old_mode == :immediate && mode != :immediate
-          setup_fiber_processing(event_type, batch_interval)
-        end
-
-        logger.info("Changed processing mode for #{event_type} from #{old_mode || 'none'} to #{mode}")
-      end
-
-      # Shutdown the event bus
-      # @return [void]
-      def shutdown
-        return unless @running
-
-        logger.info("Event bus shutting down")
-        @running = false
-
-        # Process any remaining events before shutting down
-        process_all_events
-
-        # Clean up the scheduler
-        scheduler&.shutdown
-
-        # Clean up resources
-        @fibers.clear
-        @event_queues.clear
 
         true
       end
 
-      # Process all events across all event types
-      # @return [Integer] Number of events processed
-      def process_all_events
-        count = 0
+      # Publish an event to all subscribers
+      # @param event [Object] the event to publish
+      # @return [Integer] number of subscribers that received the event
+      def publish(event)
+        return 0 if event.nil?
 
-        @event_queues.each_key do |event_type|
-          next if @event_queues[event_type].empty?
-
-          count += process_events(event_type)
+        # Validate event type
+        unless event.respond_to?(:type)
+          raise ArgumentError, "Event must respond to type method"
         end
 
-        count
-      end
+        event_type = event.type.is_a?(String) ? event.type.to_sym : event.type.to_sym
+        delivery_count = 0
 
-      # Process events for a specific type
-      # @param event_type [Symbol] The event type to process
-      # @return [Integer] Number of events processed
-      def process_events(event_type = nil)
-        # If called without arguments, delegate to process_all_events
-        return process_all_events if event_type.nil?
+        @mutex.synchronize do
+          # Skip if no subscribers for this event type
+          return 0 unless @subscribers.key?(event_type) && !@subscribers[event_type].empty?
 
-        subscribers = @subscribers[event_type] || []
-        return 0 if subscribers.empty?
+          @logger&.debug("Publishing event: #{event_type}")
 
-        queue = @event_queues[event_type]
-        return 0 if queue.empty?
+          @subscribers[event_type].each do |subscriber|
+            mode = @processing_modes.dig(event_type, subscriber) || :immediate
 
-        events_to_process = queue.clone
-        queue.clear
-
-        processed = 0
-        events_to_process.each do |event|
-          subscribers.each do |subscriber|
-            begin
+            case mode
+            when :immediate
+              # Deliver immediately
               subscriber.handle_event(event)
-              processed += 1
-            rescue => e
-              logger.error("Error in subscriber #{subscriber.class} handling #{event_type}: #{e.message}")
-              logger.error(e.backtrace.join("\n"))
+              delivery_count += 1
+            when :deferred, :scheduled
+              # Queue for later processing
+              @event_queues[event_type] << { subscriber: subscriber, event: event }
+              delivery_count += 1
             end
           end
         end
 
-        # Ensure scheduler gets a chance to resume other fibers
-        scheduler.resume_all if processed > 0
+        delivery_count
+      end
 
-        processed
+      # Process queued events for scheduled subscribers
+      # @param current_time [Time] the current time, defaults to Time.now
+      # @return [Integer] number of events processed
+      def tick(current_time = Time.now)
+        total_processed = 0
+
+        @mutex.synchronize do
+          # Process each event type
+          @event_queues.each do |event_type, events|
+            next if events.empty?
+
+            processed_indices = []
+
+            # Process each queued event
+            events.each_with_index do |event_data, index|
+              subscriber = event_data[:subscriber]
+              event = event_data[:event]
+
+              mode = @processing_modes.dig(event_type, subscriber) || :immediate
+
+              # Skip immediate mode events (shouldn't be in queue)
+              next if mode == :immediate
+
+              # For scheduled mode, check if it's time to process
+              if mode == :scheduled
+                batch_interval = @batch_intervals[event_type]
+                last_batch_time = @last_batch.dig(event_type, subscriber) || 0
+
+                # Skip if not enough time has passed
+                # Use to_f to convert Time to float
+                current_time_float = current_time.to_f
+                next if current_time_float - last_batch_time < batch_interval
+
+                # Update last batch time
+                @last_batch[event_type] ||= {}
+                @last_batch[event_type][subscriber] = current_time_float
+              end
+
+              # Process the event
+              begin
+                subscriber.handle_event(event)
+                total_processed += 1
+                processed_indices << index
+              rescue => e
+                @logger&.error("Error in subscriber #{subscriber}: #{e.message}")
+              end
+            end
+
+            # Remove processed events (in reverse order to avoid index issues)
+            processed_indices.reverse.each do |index|
+              events.delete_at(index)
+            end
+          end
+        end
+
+        # Ensure the scheduler resumes all fibers
+        @scheduler.resume_all if total_processed > 0
+
+        @logger&.debug("Processed #{total_processed} queued events") if total_processed > 0
+
+        total_processed
+      end
+
+      # Set the processing mode for a subscriber's events
+      # @param event_type [Symbol, String] the event type to set mode for
+      # @param subscriber [Object] the subscriber to set mode for
+      # @param mode [Symbol] the processing mode (:immediate, :deferred, :scheduled)
+      # @param batch_interval [Float] the interval in seconds between scheduled batches
+      # @return [Symbol] the new processing mode
+      def set_processing_mode(event_type, subscriber, mode, batch_interval = nil)
+        event_type = event_type.to_sym if event_type.is_a?(String)
+
+        # Validate mode
+        unless [:immediate, :deferred, :scheduled].include?(mode)
+          raise ArgumentError, "Invalid processing mode: #{mode}, must be one of :immediate, :deferred, :scheduled"
+        end
+
+        # Ensure the subscriber is already subscribed
+        unless @subscribers[event_type]&.include?(subscriber)
+          raise ArgumentError, "Subscriber is not subscribed to #{event_type}"
+        end
+
+        # Get the previous mode
+        prev_mode = @processing_modes.dig(event_type, subscriber) || :immediate
+
+        @mutex.synchronize do
+          # Initialize data structures if needed
+          @processing_modes[event_type] ||= {}
+
+          # Set the new mode
+          @processing_modes[event_type][subscriber] = mode
+
+          # Set batch interval if provided
+          if batch_interval
+            # Use the provided interval
+            if @batch_intervals.is_a?(Hash) && !@batch_intervals.default.nil?
+              # It's a default hash, update the value for this key
+              @batch_intervals[event_type] = batch_interval
+            else
+              # Initialize as a regular hash if needed
+              @batch_intervals ||= {}
+              @batch_intervals[event_type] = batch_interval
+            end
+          end
+
+          # Set up fiber processing for non-immediate modes
+          # Only if changing from immediate to non-immediate
+          if prev_mode == :immediate && mode != :immediate
+            setup_fiber_processing(event_type, batch_interval || 0.5)
+          end
+
+          # Initialize last batch time for scheduled mode
+          if mode == :scheduled
+            @last_batch[event_type] ||= {}
+            @last_batch[event_type][subscriber] = Time.now.to_f
+          end
+        end
+
+        @logger&.info("Changed processing mode for #{event_type} to #{mode} for #{subscriber.class}")
+
+        mode
+      end
+
+      # Shutdown the event bus and process any remaining events
+      # @return [Boolean] true if the shutdown was successful
+      def shutdown
+        @logger&.info("FiberEventBus shutting down")
+        @running = false
+
+        # Process any remaining events
+        @mutex.synchronize do
+          # For each event type with queued events
+          @event_queues.each do |event_type, events|
+            next if events.empty?
+
+            # Process each event
+            events.each do |event_data|
+              subscriber = event_data[:subscriber]
+              event = event_data[:event]
+
+              begin
+                subscriber.handle_event(event)
+              rescue => e
+                @logger&.error("Error processing event during shutdown: #{e.message}")
+              end
+            end
+
+            # Clear the queue
+            events.clear
+          end
+        end
+
+        true
+      end
+
+      # Process all events for all event types
+      # @return [Integer] number of events processed
+      def process_all_events
+        processed_count = 0
+
+        @subscribers.keys.each do |type|
+          processed_count += process_events_for_type(type)
+        end
+
+        processed_count
+      end
+
+      # Set up fiber processing for a specific event type and interval
+      # @param event_type [Symbol] the event type
+      # @param interval [Float] processing interval in seconds
+      # @return [void]
+      def setup_fiber_processing(event_type, interval = nil)
+        return if @fibers[event_type]
+
+        @fibers[event_type] = true
+        @logger&.debug("Set up fiber processing for #{event_type} with interval #{interval || 'default'}")
       end
 
       private
 
-      # Set up fiber for processing events in non-immediate mode
-      # @param event_type [Symbol] The event type to set up processing for
-      # @param batch_interval [Float] For scheduled mode, how often to process events (in seconds)
-      # @return [void]
-      def setup_fiber_processing(event_type, batch_interval = 0.5)
-        # Skip if we're shutting down or the fiber already exists and is alive
-        return unless @running
+      # Process events for a specific event type
+      # @param event_type [Symbol] the event type to process
+      # @return [Integer] number of events processed
+      def process_events_for_type(event_type)
+        processed_count = 0
 
-        if @fibers[event_type].nil? || !@fibers[event_type].alive?
-          @fibers[event_type] = Fiber.new do
-            while @running
-              # Process events for this type
-              process_events(event_type)
+        return 0 unless @subscribers[event_type]
 
-              # Yield control back to the scheduler
-              Fiber.yield
+        # Process deferred events
+        @subscribers[event_type].each do |subscriber|
+          mode = @processing_modes[event_type][subscriber]
+          next if mode == :immediate
+
+          case mode
+          when :deferred
+            # Process all queued events for this subscriber
+            queue = @event_queues[event_type][subscriber] || []
+            next if queue.empty?
+
+            begin
+              queue.each do |event|
+                subscriber.handle_event(event)
+                processed_count += 1
+              end
+              @event_queues[event_type][subscriber] = []
+            rescue => e
+              @logger&.error("Error processing events for #{subscriber}: #{e.message}")
+            end
+
+          when :scheduled
+            # Process scheduled events if interval has elapsed
+            interval = @batch_intervals[event_type][subscriber] || 1.0
+            last_time = @last_batch[event_type][subscriber] || Time.now
+            now = Time.now
+
+            if now - last_time >= interval
+              queue = @event_queues[event_type][subscriber] || []
+              next if queue.empty?
+
+              begin
+                queue.each do |event|
+                  subscriber.handle_event(event)
+                  processed_count += 1
+                end
+                @event_queues[event_type][subscriber] = []
+              rescue => e
+                @logger&.error("Error processing events for #{subscriber}: #{e.message}")
+              end
+
+              @last_batch[event_type][subscriber] = now
             end
           end
-
-          # Register with scheduler
-          scheduler&.register(@fibers[event_type], "event_fiber_#{event_type}")
-          @batch_intervals[event_type] = batch_interval
-          @last_batch_time[event_type] = Time.now
         end
+
+        processed_count
       end
     end
   end
