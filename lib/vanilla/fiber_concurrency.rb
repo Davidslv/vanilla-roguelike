@@ -10,31 +10,55 @@ module Vanilla
   # multitasking instead of threads, resulting in lower memory usage and
   # avoiding threading issues while still allowing for non-blocking I/O.
   module FiberConcurrency
-    # Initialize the fiber concurrency system
-    # This sets up the event bus and logger
-    # @return [void]
-    def self.initialize
-      # Create singleton instances
-      fiber_event_bus = FiberEventBus.instance
-      fiber_logger = FiberLogger.instance
+    class << self
+      # Initialize the fiber concurrency system
+      # This sets up the scheduler, logger, and event bus
+      def initialize
+        return if @initialized
 
-      # Log initialization
-      fiber_logger.info("Fiber concurrency system initialized")
-    end
+        # Get singletons
+        @scheduler = Vanilla::FiberConcurrency::FiberScheduler.instance
+        @logger = Vanilla::FiberConcurrency::FiberLogger.instance
+        @event_bus = Vanilla::FiberConcurrency::FiberEventBus.instance
 
-    # Tick the fiber scheduler to process events
-    # Call this method once per game loop
-    # @return [Integer] Number of fibers that were resumed
-    def self.tick
-      FiberEventBus.instance.tick
-    end
+        @initialized = true
+      end
 
-    # Shutdown the fiber concurrency system
-    # @param wait [Boolean] Whether to wait for fibers to complete
-    # @return [void]
-    def self.shutdown(wait = true)
-      FiberEventBus.instance.shutdown(wait)
-      FiberLogger.instance.close
+      # Process all queued fibers
+      # This should be called once per game loop
+      def tick
+        return unless @initialized
+        @scheduler.resume_all
+      end
+
+      # Shutdown the fiber concurrency system
+      # This waits for all fibers to complete and closes the logger
+      def shutdown
+        return unless @initialized
+        @scheduler.shutdown
+        @logger.close
+        @initialized = false
+      end
+
+      # Get the logger instance
+      def logger
+        @logger
+      end
+
+      # Get the event bus instance
+      def event_bus
+        @event_bus
+      end
+
+      # Get the scheduler instance
+      def scheduler
+        @scheduler
+      end
+
+      # Check if the system is initialized
+      def initialized?
+        @initialized
+      end
     end
   end
 end

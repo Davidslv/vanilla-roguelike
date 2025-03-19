@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'vanilla/fiber_concurrency/fiber_event_bus'
 require 'vanilla/fiber_concurrency/fiber_logger'
-require 'vanilla/fiber_concurrency/fiber_scheduler'
+require 'fiber'
 
 RSpec.describe Vanilla::FiberConcurrency::FiberEventBus do
   # Create a test event bus instance with mocked dependencies
@@ -218,7 +218,7 @@ RSpec.describe Vanilla::FiberConcurrency::FiberEventBus do
       event_bus.publish(event)
 
       queue = event_bus.instance_variable_get(:@event_queues)[:test_event]
-      expect(queue).to include(event)
+      expect(queue.first[:event]).to eq(event)
       expect(subscriber.received_events).to be_empty
     end
 
@@ -227,7 +227,7 @@ RSpec.describe Vanilla::FiberConcurrency::FiberEventBus do
       event_bus.publish(event)
 
       queue = event_bus.instance_variable_get(:@event_queues)[:test_event]
-      expect(queue).to include(event)
+      expect(queue.first[:event]).to eq(event)
       expect(subscriber.received_events).to be_empty
     end
 
@@ -265,7 +265,9 @@ RSpec.describe Vanilla::FiberConcurrency::FiberEventBus do
       event_bus.publish(event)
 
       # Set last batch time to far in the past
-      event_bus.instance_variable_get(:@last_batch_time)[:test_event] = Time.now - 100
+      last_batch = event_bus.instance_variable_get(:@last_batch)
+      last_batch[:test_event] ||= {}
+      last_batch[:test_event][subscriber] = Time.now.to_f - 100
 
       event_bus.tick
       expect(subscriber.received_events).to include(event)
