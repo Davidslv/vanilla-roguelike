@@ -12,7 +12,7 @@ Navigate your character (`@`) through the maze to find the stairs (`%`) that lea
 
 ### Prerequisites
 
-- Ruby (version specified in `.ruby-version`, currently 3.3.5)
+- Ruby (version specified in `.ruby-version`, currently 3.4.1)
 - [rbenv](https://github.com/rbenv/rbenv) (recommended for Ruby version management)
 - [Homebrew](https://brew.sh/) (for macOS users)
 
@@ -50,15 +50,6 @@ The simplest way to play the game is to use the executable:
 
 ```bash
 ./bin/vanilla.rb
-```
-
-### Interactive Mode (for Development)
-
-For a more interactive experience during development:
-
-```bash
-pry -r ./play.rb
-pry(main)> Vanilla.run
 ```
 
 ## Game Controls
@@ -172,24 +163,6 @@ ruby scripts/visualize_events.rb
 ```
 
 This will display the available sessions and allow you to select one to visualize.
-
-## Documentation
-
-Vanilla uses [YARD](https://rubydoc.info/gems/yard) for documentation.
-
-To generate documentation:
-
-```bash
-yard doc
-```
-
-To view documentation in a web browser:
-
-```bash
-yard server
-```
-
-Then open http://localhost:8808/ in your browser.
 
 ## Project Structure
 
