@@ -1,17 +1,16 @@
 require 'fileutils'
 require 'singleton'
 require_relative 'fiber_event_bus'
-require 'fiber'
-require 'thread'
 
 module Vanilla
   module FiberConcurrency
-    # A fiber-based logger that doesn't block the main thread
-    # This logger uses a Fiber to write to files asynchronously
+    # Asynchronous logger implementation using Ruby fibers
+    # This logger improves performance by writing log messages in a fiber
+    # that doesn't block the main game loop
     class FiberLogger
       include Singleton
 
-      # Available log levels with their priority
+      # Define log levels and their corresponding priorities
       LOG_LEVELS = {
         debug: 0,
         info: 1,
@@ -20,270 +19,224 @@ module Vanilla
         fatal: 4
       }.freeze
 
-      # Create a new fiber logger
-      # @param scheduler [FiberScheduler] The scheduler to use (defaults to FiberScheduler.instance)
-      # @param log_level [Symbol] Minimum level to log (default: :info)
-      # @param log_dir [String] Directory to store logs (default: logs/env)
-      # @return [FiberLogger] A new logger instance
-      def initialize(scheduler = FiberScheduler.instance)
-        @scheduler = scheduler
-        @level = :info
-        @log_env = ENV["RACK_ENV"] || "development"
-        @log_dir = File.join(Dir.pwd, "logs", @log_env)
+      # Get the current log level
+      # @return [Symbol] The current log level
+      attr_reader :level
 
-        FileUtils.mkdir_p(@log_dir) unless Dir.exist?(@log_dir)
-
-        # Generate a unique log file name with timestamp
-        timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
-        @log_file = File.join(@log_dir, "vanilla_#{timestamp}.log")
-
-        # Initialize message queue and mutex
+      # Initialize a new fiber logger
+      # @param level [Symbol] The minimum log level (debug, info, warn, error, fatal)
+      # @param log_dir [String] The directory to store log files
+      def initialize(level = nil, log_dir = nil)
+        @level = (level || ENV['VANILLA_LOG_LEVEL'] || :info).to_sym
         @message_queue = []
-        @queue_mutex = Mutex.new
-        @running = true
-
-        # Initialize the log file
-        begin
-          @file = File.open(@log_file, "a")
-          @file.puts "=== Vanilla Game Log Started at #{Time.now} ==="
-          @file.puts "=== Environment: #{@log_env} ==="
-          @file.flush
-        rescue => e
-          # If we can't open the log file, we'll log to standard error
-          STDERR.puts "Error opening log file: #{e.message}"
-          @file = nil
-        end
-
-        # Setup batch processing
         @max_batch_size = 10
         @flush_interval = 0.5
         @last_flush_time = Time.now
 
-        # Register a fiber for processing log messages
-        setup_logging_fiber if @scheduler
-      end
+        # Set up log file
+        log_dir ||= ENV['VANILLA_LOG_DIR'] || File.join(Dir.pwd, 'logs')
+        setup_log_file(log_dir)
 
-      # Change the log level
-      # @param level [Symbol] New log level
-      # @return [Symbol] The new log level
-      def level=(level)
-        level = level.to_sym if level.is_a?(String)
-
-        if LOG_LEVELS.key?(level)
-          @level = level
-        end
-      end
-
-      # Get the current log level
-      # @return [Symbol] Current log level
-      def level
-        @level
+        # Set up logging fiber if not in test mode
+        setup_logging_fiber unless $TESTING
       end
 
       # Log a debug message
-      # @param message [String] Message to log
+      # @param message [String] The message to log
       # @return [void]
       def debug(message)
         enqueue_message(:debug, message, Time.now)
       end
 
       # Log an info message
-      # @param message [String] Message to log
+      # @param message [String] The message to log
       # @return [void]
       def info(message)
         enqueue_message(:info, message, Time.now)
       end
 
       # Log a warning message
-      # @param message [String] Message to log
+      # @param message [String] The message to log
       # @return [void]
       def warn(message)
         enqueue_message(:warn, message, Time.now)
       end
 
       # Log an error message
-      # @param message [String] Message to log
+      # @param message [String] The message to log
       # @return [void]
       def error(message)
         enqueue_message(:error, message, Time.now, true)
       end
 
       # Log a fatal message
-      # @param message [String] Message to log
+      # @param message [String] The message to log
       # @return [void]
       def fatal(message)
         enqueue_message(:fatal, message, Time.now, true)
       end
 
-      # Close the log file
-      # @return [void]
-      def close
-        return unless @running
-
-        # Process any remaining messages
-        process_message_queue(true) if @file
-
-        @running = false
-
-        # Close the file if open
-        if @file
-          # Write ending header
-          @file.write("===== Log Closed at #{Time.now} =====\n")
-          @file.flush
-          @file.close
-          @file = nil
-        end
-      end
-
-      # Handle an event from the event bus
-      # @param event [Object] the event to handle
+      # Handle an event (for event bus integration)
+      # @param event [Object, Hash] The event to log
       # @return [void]
       def handle_event(event)
-        # Extract type - handle both hash-style and object-style events
-        event_type = if event.is_a?(Hash)
-                      event[:type]
-                    elsif event.respond_to?(:type)
-                      event.type
-                    end
+        # Support both object style events and hash style events
+        event_type = event.respond_to?(:type) ? event.type : event[:type]
+        return unless event_type.to_s == 'log'
 
-        # Return unless this is a log event
-        return unless event_type && (event_type.to_s == "log" || event_type.to_sym == :log)
-
-        # Extract level - handle both hash-style and object-style events
-        level = if event.is_a?(Hash)
-                  event[:level]
-                elsif event.respond_to?(:level)
-                  event.level
-                end || :info # Default to info if level is nil
-
-        # Extract message - handle both hash-style and object-style events
-        message = nil
-        if event.is_a?(Hash)
-          message = event[:message] || (event[:data] && event[:data].to_s) || event.inspect
+        # Extract data from either object or hash
+        if event.respond_to?(:data)
+          data = event.data
         else
-          message = if event.respond_to?(:message) && event.message
-                      event.message
-                    elsif event.respond_to?(:data) && event.data
-                      event.data.to_s
-                    else
-                      event.inspect
-                    end
+          data = event
         end
 
-        # Log the message
+        level = data[:level] || :info
+        message = data[:message] || data.inspect
         enqueue_message(level.to_sym, message, Time.now)
+      end
+
+      # Close the log file and clean up resources
+      # @return [void]
+      def close
+        return unless @file
+
+        # Flush any remaining messages
+        process_messages(true)
+
+        # Write end marker
+        @file.write("===== Log Closed at #{Time.now} =====\n")
+        @file.close
+        @file = nil
       end
 
       # Flush log messages to disk
       # @return [void]
       def flush
-        return unless @file && @running
-        process_message_queue(true)
+        process_messages(true) if @file
       end
 
       # Check if the log file is open
-      # @return [Boolean] true if the file is open
+      # @return [Boolean] Whether the log file is open
       def open?
-        !@file.nil? && !@file.closed?
+        !@file.nil?
       end
 
       private
 
-      # Add a message to the queue for processing
-      # @param level [Symbol] Log level
-      # @param message [String] Message to log
-      # @param timestamp [Time] Timestamp (default: current time)
+      # Enqueue a message to be written to the log
+      # @param level [Symbol] The log level
+      # @param message [String] The message to log
+      # @param timestamp [Time] The timestamp of the message
       # @param immediate_flush [Boolean] Whether to flush immediately
       # @return [void]
-      def enqueue_message(level, message, timestamp = Time.now, immediate_flush = false)
-        # Skip if below minimum log level
-        level_value = LOG_LEVELS[level.to_sym] || 0
-        min_level_value = LOG_LEVELS[@level] || 0
-        return if level_value < min_level_value
+      def enqueue_message(level, message, timestamp, immediate_flush = false)
+        # Skip if message is below current log level
+        return if LOG_LEVELS[level] < LOG_LEVELS[@level]
 
-        log_entry = {
+        # Create message data
+        message_data = {
           level: level,
           message: message,
           timestamp: timestamp
         }
 
-        # Set immediate flush for error and fatal messages
-        log_entry[:immediate_flush] = true if [:error, :fatal].include?(level)
+        # Add immediate_flush flag only if it's true
+        message_data[:immediate_flush] = true if immediate_flush
 
-        @queue_mutex.synchronize do
-          @message_queue << log_entry
-        end
+        # Add to queue
+        @message_queue << message_data
 
-        # Process immediately for high-priority messages
-        process_message_queue(immediate_flush) if immediate_flush || [:error, :fatal].include?(level)
+        # Process immediately if needed
+        process_messages(true) if immediate_flush && @file
       end
 
-      # Process messages in the queue
-      # @param force_flush [Boolean] whether to force flushing the file
-      # @return [Integer] number of messages processed
-      def process_message_queue(force_flush = false)
-        return 0 unless @file && @running
+      # Process messages from the queue
+      # @param force_flush [Boolean] Whether to force a flush
+      # @return [void]
+      def process_messages(force_flush = false)
+        return unless @file
 
-        processed_count = 0
-        needs_flush = force_flush
+        # Calculate how many messages to process
+        message_count = [@message_queue.size, @max_batch_size].min
+        return if message_count == 0
 
-        messages_to_process = []
+        flush_needed = force_flush
 
-        @queue_mutex.synchronize do
-          # Process up to max_batch_size messages
-          batch_size = [@message_queue.size, @max_batch_size].min
-          return 0 if batch_size == 0
-
-          # Take exactly batch_size messages from the queue
-          messages_to_process = @message_queue.slice!(0, batch_size)
-        end
-
-        # Process each message
-        messages_to_process.each do |message|
+        # Process batch of messages
+        message_count.times do
+          message = @message_queue.shift
           write_log(message[:level], message[:message], message[:timestamp])
-
-          # Determine if we need to flush based on message properties
-          needs_flush ||= message[:immediate_flush] if message.key?(:immediate_flush)
-          processed_count += 1
+          flush_needed ||= message[:immediate_flush]
         end
 
-        # Check if we need to flush due to time interval
-        time_since_flush = Time.now - @last_flush_time
-        needs_flush ||= (time_since_flush >= @flush_interval)
-
-        # Flush the file if needed
-        if processed_count > 0 && needs_flush && @file
+        # Flush if necessary
+        if flush_needed || (Time.now - @last_flush_time >= @flush_interval)
           @file.flush
           @last_flush_time = Time.now
         end
-
-        processed_count
       end
 
-      # Write a log message to the file
-      # @param level [Symbol] log level
-      # @param message [String] log message
-      # @param timestamp [Time] timestamp
+      # Write a message to the log file
+      # @param level [Symbol] The log level
+      # @param message [String] The message
+      # @param timestamp [Time] The timestamp
       # @return [void]
       def write_log(level, message, timestamp)
         return unless @file
 
-        formatted_time = timestamp.strftime("%Y-%m-%d %H:%M:%S")
-        formatted_level = level.to_s.upcase
-        @file.write("[#{formatted_time} #{formatted_level}] #{message}\n")
+        formatted_time = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        @file.write("[#{formatted_time} #{level.to_s.upcase}] #{message}\n")
       end
 
-      # Setup a fiber for processing log messages
+      # Set up the log file
+      # @param log_dir [String] The directory to store logs
+      # @return [void]
+      def setup_log_file(log_dir)
+        # Create log directory if it doesn't exist
+        FileUtils.mkdir_p(log_dir) unless File.directory?(log_dir)
+
+        # Create log file
+        timestamp = Time.now.strftime('%Y%m%d_%H%M%S')
+        log_file = File.join(log_dir, "vanilla_#{timestamp}.log")
+        @file = File.open(log_file, 'w')
+
+        # Write header
+        @file.write("===== Vanilla Log Started at #{Time.now} =====\n")
+        @file.write("Log level: #{@level}\n")
+        @file.flush
+      end
+
+      # Set up the fiber for asynchronous logging
       # @return [void]
       def setup_logging_fiber
-        fiber = Fiber.new do
-          while @running
-            process_message_queue
+        # Avoid circular dependency by lazily getting the scheduler
+        # rather than directly calling instance method during initialization
+        @logging_fiber = Fiber.new do
+          # Only get the scheduler once the fiber is running
+          scheduler = nil
+
+          begin
+            scheduler = Vanilla::FiberConcurrency::FiberScheduler.instance
+            scheduler.register(@logging_fiber, "logging_fiber") if scheduler
+          rescue
+            # If we can't get the scheduler, we'll just run without it
+            # This might happen during startup due to circular dependencies
+            puts "[FiberLogger] Warning: Could not register with scheduler, will run in standalone mode"
+          end
+
+          while @file
+            # Process messages
+            process_messages
+
+            # Yield control back to the scheduler
             Fiber.yield
           end
         end
 
-        @scheduler.register(fiber, "fiber_logger")
+        # Start the fiber but don't register it with the scheduler yet
+        # to avoid circular dependency during initialization
+        @logging_fiber.resume
       end
     end
   end
