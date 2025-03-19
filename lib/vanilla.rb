@@ -1,63 +1,86 @@
-require 'singleton'
-require 'io/console'
-require 'securerandom'
-
-# Set fixed seed for reproducible games
-# Comment out to get new random worlds each time
-$seed = 12345
-
-# Core module definitions
-require_relative 'vanilla/logger'
-require_relative 'vanilla/support/tile_type'
-require_relative 'vanilla/level'
-require_relative 'vanilla/map'
-require_relative 'vanilla/input_handler'
-
-# Component system
-require_relative 'vanilla/components'
-
-# Entity system
-require_relative 'vanilla/entities'
-
-# Systems
-require_relative 'vanilla/systems'
-
-# Renderers
-require_relative 'vanilla/renderers'
-
-# Map utils
-require_relative 'vanilla/map_utils'
-
-# Algorithms
-require_relative 'vanilla/algorithms'
-
-# Events
-require_relative 'vanilla/events'
-
-# Fiber Concurrency
-require_relative 'vanilla/fiber_concurrency'
+require 'pry'
 
 module Vanilla
-  # Main game class that initializes and runs the game
-  class Game
-    # Initialize a new game instance
-    # This sets up all required systems and components
-    # @return [void]
-    def initialize
-      # Initialize the FiberConcurrency system
-      Vanilla::FiberConcurrency.initialize
+  # required to use STDIN.getch
+  # in order to avoid pressing enter to submit input to the game
+  require 'io/console'
 
-      # Use the FiberLogger instead of the regular logger
-      @logger = Vanilla::FiberConcurrency.logger
+  # Keyboard arrow keys are compose of 3 characters
+  #
+  # UP    -> \e[A
+  # DOWN  -> \e[B
+  # RIGHT -> \e[C
+  # LEFT  -> \e[D
+  KEYBOARD_ARROWS = {
+    A: :KEY_UP,
+    B: :KEY_DOWN,
+    C: :KEY_RIGHT,
+    D: :KEY_LEFT
+  }.freeze
+
+  # Systems
+  require_relative 'vanilla/systems'
+
+  # game
+  require_relative 'vanilla/input_handler'
+  require_relative 'vanilla/logger'
+  require_relative 'vanilla/level'
+
+  # map
+  require_relative 'vanilla/map_utils'
+  require_relative 'vanilla/map'
+
+  # renderers
+  require_relative 'vanilla/renderers'
+
+  # algorithms
+  require_relative 'vanilla/algorithms'
+
+  # support
+  require_relative 'vanilla/support/tile_type'
+
+  # components (entity component system)
+  require_relative 'vanilla/components'
+
+  # entities
+  require_relative 'vanilla/entities'
+  require_relative 'vanilla/entities/player'
+
+  # event system
+  require_relative 'vanilla/events'
+
+  # Have a seed for the random number generator
+  # This is used to generate the same map for the same seed
+  # This is useful for testing
+  # This is a global variable so that it can be accessed by the map generator
+  # and the game loop
+  $seed = nil
+
+  # Game class implements the core game loop pattern and orchestrates the game's
+  # main components. It manages the game lifecycle from initialization to cleanup.
+  #
+  # The Game Loop pattern provides a way to:
+  # 1. Process player input
+  # 2. Update game state
+  # 3. Render the updated state
+  # 4. Repeat until the game ends
+  #
+  # This implementation uses a turn-based approach appropriate for roguelike games,
+  # where updates happen in discrete steps rather than in real-time.
+  class Game
+    # Initialize a new game instance with all required systems
+    # @return [Game] a new Game instance
+    def initialize
+      @logger = Vanilla::Logger.instance
       @logger.info("Starting Vanilla game")
 
-      # Create event manager for the game to handle events
+      # Initialize event system with file storage for debugging and analytics
       @event_manager = Events::EventManager.new(@logger)
 
-      # Initialize the render system which handles drawing to the terminal
-      @render_system = Vanilla::Systems::RenderSystemFactory.create
+      # Initialize render system
+      @render_system = Systems::RenderSystemFactory.create
 
-      # Create input handler to process player commands
+      # Input handler translates raw keyboard input into game commands
       @input_handler = InputHandler.new(@logger, @event_manager, @render_system)
     end
 
@@ -83,10 +106,6 @@ module Vanilla
     def cleanup
       @event_manager.publish_event(Events::Types::GAME_ENDED)
       @event_manager.close
-
-      # Shutdown the fiber concurrency system
-      Vanilla::FiberConcurrency.shutdown
-
       @logger.info("Player exiting game")
     end
 
@@ -108,17 +127,21 @@ module Vanilla
         logger: @logger
       )
 
-      # Add monsters to the level
-      monster_system.spawn_monsters(level.difficulty)
+      # Spawn monsters appropriate for this difficulty level
+      monster_system.spawn_monsters(difficulty)
       @logger.info("Spawned initial monsters")
 
-      # Store the monster system with the level for later reference
+      # Initial render of the level
+      all_entities = level.all_entities + monster_system.monsters
+      @render_system.render(all_entities, level.grid)
+
+      # Store the monster system with the level for later access
       level.instance_variable_set(:@monster_system, monster_system)
 
       level
     end
 
-    # Main game loop that handles input, updates, and rendering
+    # The main game loop that implements the Game Loop pattern
     # This loop continues until the player exits or the game ends
     # @param level [Level] the current game level
     # @return [void]
@@ -151,9 +174,6 @@ module Vanilla
 
         # 6. END FRAME - mark the end of this turn
         @event_manager.publish_event(Events::Types::TURN_ENDED)
-
-        # 7. PROCESS FIBER EVENTS - allow fiber-based tasks to run
-        Vanilla::FiberConcurrency.tick
       end
     end
 
@@ -164,35 +184,33 @@ module Vanilla
       # Get raw keyboard input
       key = STDIN.getch
 
-      # Use the input handler to create the appropriate command
-      command = @input_handler.handle_input(key, level.player, level.grid)
+      # Handle multi-character input sequences (arrow keys)
+      second_key = STDIN.getch if key == "\e"
+      key = STDIN.getch if second_key == "["
+      key = KEYBOARD_ARROWS[key.intern] || key
 
-      # Execute the command and return it
-      command.execute
-      command
+      # Process input through the input handler
+      @input_handler.handle_input(key, level.player, level.grid)
     end
 
-    # Handle collisions between the player and monsters
-    # This includes combat and other interactions
+    # Handle collisions between player and game entities
     # @param level [Level] the current game level
-    # @param monster_system [MonsterSystem] the monster system for this level
+    # @param monster_system [MonsterSystem] the monster management system
     # @return [void]
     def handle_collisions(level, monster_system)
       if monster_system.player_collision?
+        player_pos = level.player.get_component(:position)
         @logger.info("Player encountered a monster!")
 
-        # Get the monster at the player's position
-        monster = monster_system.monster_at(level.player.coordinates)
-
-        # Have the monster attack the player (implement combat later)
-        # monster.attack(level.player)
+        # TODO: Handle combat mechanics
+        # In the future, this will handle combat mechanics
+        # For now, it just logs the encounter
       end
     end
 
-    # Handle level transitions when the player finds stairs
-    # This creates a new level with increased difficulty
-    # @param current_level [Level] the current game level
-    # @return [Level] the new game level
+    # Handle transition to a new level when player finds stairs
+    # @param current_level [Level] the current level being completed
+    # @return [Level] the new level
     def handle_level_transition(current_level)
       # Calculate new difficulty
       current_difficulty = current_level.difficulty
@@ -200,21 +218,28 @@ module Vanilla
 
       @logger.info("Player found stairs, advancing to level #{next_difficulty}")
 
-      # Initialize the new level
+      # Publish level change event
+      @event_manager.publish_event(
+        Events::Types::LEVEL_CHANGED,
+        current_level,
+        { old_level: current_difficulty, new_level: next_difficulty }
+      )
+
+      # Initialize the next level with increased difficulty
       initialize_level(difficulty: next_difficulty)
     end
   end
 
-  # Run a new game
-  # This is the entry point for the entire application
+  # Entry point for starting the game
+  # Creates a new Game instance and manages its lifecycle
   # @return [void]
   def self.run
     game = Game.new
-    game.start
-    game.cleanup
-  rescue => e
-    puts "An error occurred: #{e.message}"
-    puts e.backtrace
-    exit(1)
+    begin
+      game.start
+    ensure
+      game.cleanup
+    end
   end
+
 end

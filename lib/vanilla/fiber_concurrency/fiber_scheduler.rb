@@ -1,158 +1,127 @@
-# frozen_string_literal: true
-
-require 'singleton'
-
 module Vanilla
   module FiberConcurrency
-    # The FiberScheduler class is responsible for managing fibers in the system.
-    # It provides methods for registering, unregistering, and resuming fibers.
-    #
-    # The scheduler maintains a registry of active fibers, which can be resumed
-    # in batches. This allows for efficient non-blocking operations.
+    # FiberScheduler is responsible for managing and resuming fibers.
+    # It provides cooperative concurrency without the overhead of threads.
     class FiberScheduler
-      include Singleton
-
-      # List of fibers managed by the scheduler
-      attr_reader :fibers
-
-      # Initialize the scheduler
-      # @param logger [Logger] optional logger
-      def initialize
-        @fibers = []
-        @fiber_lock = Mutex.new
-        @logger = nil
-        @active = true  # Start in active state
+      # Singleton access
+      class << self
+        def instance
+          @instance ||= new
+        end
       end
 
-      # Set the logger for the scheduler
-      # @param logger [Logger] the logger to use
-      # @return [void]
-      def logger=(logger)
+      private_class_method :new
+
+      # Initialize a new fiber scheduler
+      # @param logger [Logger] Optional logger for debugging
+      def initialize(logger = nil)
+        @fibers = []
+        @active = true
         @logger = logger
       end
 
-      # Register a fiber with the scheduler
-      # @param fiber [Fiber] the fiber to register
-      # @param name [String] a descriptive name for the fiber (for debugging)
-      # @param data [Hash] additional data associated with the fiber
-      # @return [Fiber] the registered fiber
-      def register(fiber, name = "unnamed_fiber", data = {})
-        unless fiber.is_a?(Fiber)
-          raise ArgumentError, "Expected a Fiber, got #{fiber.class}"
-        end
-
-        return fiber unless fiber.alive?
-
-        @fiber_lock.synchronize do
-          # Only add if it's not already there
-          unless @fibers.any? { |f| f[:fiber] == fiber }
-            @fibers << { fiber: fiber, name: name, data: data }
-            @logger&.debug("Registered fiber: #{name}")
+      # Get the logger, lazy-loaded if not provided in constructor
+      def logger
+        @logger ||= begin
+          # Avoid circular dependency by checking if FiberLogger is already defined
+          if Vanilla.const_defined?(:FiberConcurrency) &&
+             Vanilla::FiberConcurrency.const_defined?(:FiberLogger) &&
+             !Vanilla::FiberConcurrency::FiberLogger.instance.equal?(self)
+            Vanilla::FiberConcurrency::FiberLogger.instance
+          else
+            # Fallback to a simple logger that just outputs to STDOUT if there's a circular dependency
+            logger = Object.new
+            def logger.method_missing(method, *args)
+              puts "[FiberScheduler] #{method}: #{args.join(' ')}" if [:debug, :info, :warn, :error, :fatal].include?(method)
+            end
+            logger
           end
         end
+      end
 
+      # Register a fiber with the scheduler
+      # @param fiber [Fiber] The fiber to register
+      # @param name [String, Symbol] Optional name for the fiber (for debugging)
+      # @return [Fiber] The registered fiber
+      def register(fiber, name = nil)
+        unless fiber.is_a?(Fiber)
+          raise ArgumentError, "Expected a Fiber object, got #{fiber.class}"
+        end
+
+        @fibers << { fiber: fiber, name: name || "fiber_#{@fibers.size}" }
+        logger.debug("Registered fiber: #{name || 'unnamed'}")
         fiber
       end
 
       # Unregister a fiber from the scheduler
-      # @param fiber [Fiber] the fiber to unregister
-      # @return [Boolean] true if fiber was removed, false otherwise
+      # @param fiber [Fiber] The fiber to unregister
+      # @return [Boolean] Whether the fiber was found and removed
       def unregister(fiber)
-        removed = false
-
-        @fiber_lock.synchronize do
-          fiber_data = @fibers.find { |f| f[:fiber] == fiber }
-
-          if fiber_data
-            @fibers.delete(fiber_data)
-            @logger&.debug("Unregistered fiber: #{fiber_data[:name]}")
-            removed = true
-          end
-        end
-
+        size_before = @fibers.size
+        @fibers.reject! { |f| f[:fiber] == fiber }
+        removed = size_before > @fibers.size
+        logger.debug("Unregistered fiber: #{removed ? 'success' : 'not found'}")
         removed
       end
 
-      # Resume all registered fibers
-      # @return [Integer] number of resumed fibers
+      # Resume all registered fibers that are alive
+      # @return [Integer] Number of fibers that were resumed
       def resume_all
-        resumed_count = 0
-        dead_fibers = []
-
-        @fiber_lock.synchronize do
-          @fibers.each do |fiber_data|
-            fiber = fiber_data[:fiber]
-            name = fiber_data[:name]
-
+        count = 0
+        @fibers.each do |f|
+          if f[:fiber].alive?
             begin
-              # Check if the fiber is still alive
-              if fiber.alive?
-                # Resume the fiber and count it
-                fiber.resume
-                resumed_count += 1
-              else
-                # Mark for removal
-                dead_fibers << fiber_data
-                @logger&.debug("Fiber #{name} is dead, removing from scheduler")
-              end
+              f[:fiber].resume
+              count += 1
             rescue => e
-              # Log the error but don't stop processing
-              error_message = "Error in fiber #{name}: #{e.message}"
-              @logger&.error(error_message)
-              @logger&.debug(e.backtrace.join("\n")) if @logger&.respond_to?(:debug)
+              logger.error("Error in fiber #{f[:name]}: #{e.message}")
+              logger.error(e.backtrace.join("\n"))
             end
+          else
+            logger.debug("Fiber #{f[:name]} is dead, will be removed")
           end
-
-          # Remove any dead fibers
-          dead_fibers.each { |f| @fibers.delete(f) }
         end
 
-        resumed_count
+        # Clean up dead fibers
+        @fibers.reject! { |f| !f[:fiber].alive? }
+
+        count
       end
 
-      # Shutdown the scheduler by waiting for all fibers to complete
-      # @param timeout [Integer] maximum time to wait in seconds
-      # @return [Boolean] whether all fibers completed within the timeout
-      def shutdown(timeout = 5)
-        @logger&.info("Fiber scheduler shutting down")
+      # Shutdown the scheduler and clean up resources
+      # @param wait [Boolean] Whether to wait for fibers to complete
+      # @param max_attempts [Integer] Maximum number of resume_all attempts when waiting
+      # @return [void]
+      def shutdown(wait = true, max_attempts = 10)
         @active = false
+        logger.info("Fiber scheduler shutting down, waiting for fibers: #{wait}")
 
-        start_time = Time.now
-
-        while !@fibers.empty? && (Time.now - start_time) < timeout
-          resume_all
-          sleep 0.01 # Small sleep to prevent CPU spinning
-        end
-
-        remaining = @fibers.count
-
-        if remaining > 0
-          @logger&.warn("Scheduler shutdown with #{remaining} fibers still active")
-          @fibers.each do |f|
-            @logger&.debug(" - #{f[:name]}")
+        if wait && !@fibers.empty?
+          # Give fibers a chance to clean up, but with a maximum number of attempts
+          attempts = 0
+          while @fibers.any? { |f| f[:fiber].alive? } && attempts < max_attempts
+            resume_all
+            attempts += 1
           end
-          false
-        else
-          @logger&.info("Scheduler shutdown complete, all fibers terminated")
-          @fibers.clear
-          true
         end
+
+        @fibers.clear
       end
 
       # Check if the scheduler is active
-      # @return [Boolean] true if the scheduler is active
+      # @return [Boolean] Whether the scheduler is active
       def active?
         @active
       end
 
-      # Get the current count of active fibers
-      # @return [Integer] the number of active fibers
+      # Get the number of registered fibers
+      # @return [Integer] Number of registered fibers
       def fiber_count
-        @fibers.count
+        @fibers.size
       end
 
-      # Get the names of all active fibers
-      # @return [Array<String>] names of active fibers
+      # Get names of all registered fibers
+      # @return [Array<String>] Names of registered fibers
       def fiber_names
         @fibers.map { |f| f[:name] }
       end
