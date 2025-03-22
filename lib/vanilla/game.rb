@@ -57,12 +57,12 @@ module Vanilla
 
     # Process a single game turn
     def process_turn
-      begin
-        # Calculate delta time
-        current_time = Time.now
-        delta_time = current_time - @last_update_time
-        @last_update_time = current_time
+      # Calculate delta time
+      current_time = Time.now
+      delta_time = current_time - @last_update_time
+      @last_update_time = current_time
 
+      begin
         # Process input and update world
         @world.update(delta_time)
 
@@ -77,11 +77,16 @@ module Vanilla
         # Limit frame rate
         sleep_time = [0, (1.0 / 30) - delta_time].max
         sleep(sleep_time) if sleep_time > 0
-      rescue Interrupt
-        # Handle Ctrl+C gracefully within a turn
-        puts "\nGame turn interrupted. Press 'q' to exit or any other key to continue."
+      rescue StandardError => e
+        # Log the actual error
+        puts "\nERROR in game turn: #{e.class}: #{e.message}"
+        puts e.backtrace[0..5].join("\n")
+        @logger.error("Game error: #{e.class}: #{e.message}")
+        @logger.error(e.backtrace.join("\n"))
+
+        # Don't exit immediately, give us a chance to see the error
+        puts "Press Enter to continue or 'q' to quit..."
         @running = false if gets.chomp.downcase == 'q'
-        @last_update_time = Time.now  # Reset time counter
       end
     end
 
