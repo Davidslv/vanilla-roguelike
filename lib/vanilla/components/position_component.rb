@@ -74,7 +74,7 @@ module Vanilla
       # @param hash [Hash] serialized component data
       # @return [PositionComponent] deserialized component
       def self.from_hash(hash)
-        new(row: hash[:row], column: hash[:column])
+        new(row: hash[:row] || 0, column: hash[:column] || 0)
       end
     end
 
