@@ -1,56 +1,104 @@
 module Vanilla
   # Factory for creating game entities
-  module EntityFactory
+  class EntityFactory
     # Create a player entity
     # @param world [World] The world to add the entity to
-    # @param row [Integer] The starting row position
-    # @param column [Integer] The starting column position
+    # @param row [Integer] The row position
+    # @param column [Integer] The column position
     # @param name [String] The player's name
-    # @return [Entity] The created player entity
-    def self.create_player(world, row, column, name = "Hero")
-      entity = Components::Entity.new
-      entity.add_component(Components::PositionComponent.new(row: row, column: column))
-      entity.add_component(Components::RenderComponent.new(character: '@', color: :white))
-      entity.add_component(Components::InputComponent.new)
-      entity.add_component(Components::InventoryComponent.new)
-      entity.add_component(Components::MovementComponent.new(1))
-      entity.add_tag(:player)
-      entity.name = name
+    # @return [Components::Entity] The created player entity
+    def self.create_player(world, row, column, name)
+      # Validate parameters
+      if !world || row.nil? || column.nil?
+        Vanilla::Logger.instance.error("Invalid parameters for create_player: world=#{world}, row=#{row}, column=#{column}")
+        return nil
+      end
 
+      entity = Components::Entity.new
+      entity.name = name || "Player"
+
+      # Add required components
+      entity.add_component(Components::PositionComponent.new(row: row, column: column))
+      entity.add_component(Components::MovementComponent.new)
+      entity.add_component(Components::RenderComponent.new(
+        character: Vanilla::Support::TileType::PLAYER,
+        color: :cyan,
+        layer: 10
+      ))
+      entity.add_component(Components::StairsComponent.new(found_stairs: false))
+
+      # Add identity tags
+      entity.add_tag(:player)
+
+      # Add to world and verify
       world.add_entity(entity)
+
+      # Log creation
+      Vanilla::Logger.instance.info("Player entity created and added to world: #{entity.id}")
+
       entity
     end
 
     # Create a monster entity
     # @param world [World] The world to add the entity to
-    # @param row [Integer] The starting row position
-    # @param column [Integer] The starting column position
-    # @param type [Symbol] The monster type (:goblin, :troll, etc.)
-    # @return [Entity] The created monster entity
-    def self.create_monster(world, row, column, type = :goblin)
-      entity = Components::Entity.new
-      entity.add_component(Components::PositionComponent.new(row: row, column: column))
-
-      # Configure based on monster type
-      case type
-      when :goblin
-        entity.add_component(Components::RenderComponent.new(character: 'g', color: :green))
-        entity.add_component(Components::MovementComponent.new(1))
-        entity.name = "Goblin"
-      when :troll
-        entity.add_component(Components::RenderComponent.new(character: 'T', color: :red))
-        entity.add_component(Components::MovementComponent.new(0.5))
-        entity.name = "Troll"
-      else
-        entity.add_component(Components::RenderComponent.new(character: 'm', color: :yellow))
-        entity.add_component(Components::MovementComponent.new(1))
-        entity.name = "Unknown Monster"
+    # @param row [Integer] The row position
+    # @param column [Integer] The column position
+    # @param type [Symbol] The monster type
+    # @return [Components::Entity] The created monster entity
+    def self.create_monster(world, row, column, type = :orc)
+      # Validate parameters
+      if !world || row.nil? || column.nil?
+        Vanilla::Logger.instance.error("Invalid parameters for create_monster: world=#{world}, row=#{row}, column=#{column}")
+        return nil
       end
 
+      entity = Components::Entity.new
+
+      # Add required components
+      entity.add_component(Components::PositionComponent.new(row: row, column: column))
+      entity.add_component(Components::MovementComponent.new)
+
+      # Configure monster type-specific properties
+      case type
+      when :orc
+        entity.name = "Orc"
+        entity.add_component(Components::RenderComponent.new(
+          character: Vanilla::Support::TileType::MONSTER,
+          color: :green,
+          layer: 5
+        ))
+        health = 10 + rand(10)
+        damage = 2 + rand(3)
+      when :troll
+        entity.name = "Troll"
+        entity.add_component(Components::RenderComponent.new(
+          character: Vanilla::Support::TileType::MONSTER,
+          color: :red,
+          layer: 5
+        ))
+        health = 20 + rand(15)
+        damage = 4 + rand(5)
+      else
+        entity.name = "Unknown Monster"
+        entity.add_component(Components::RenderComponent.new(
+          character: Vanilla::Support::TileType::MONSTER,
+          color: :magenta,
+          layer: 5
+        ))
+        health = 5 + rand(5)
+        damage = 1 + rand(2)
+      end
+
+      # Add identity tags
       entity.add_tag(:monster)
       entity.add_tag(type)
 
+      # Add to world and verify
       world.add_entity(entity)
+
+      # Log creation
+      Vanilla::Logger.instance.info("Monster (#{type}) created and added to world: #{entity.id}")
+
       entity
     end
 
@@ -98,25 +146,44 @@ module Vanilla
     # @param world [World] The world to add the entity to
     # @param row [Integer] The row position
     # @param column [Integer] The column position
-    # @param up [Boolean] Whether these are stairs going up
-    # @return [Entity] The created stairs entity
+    # @param up [Boolean] Whether the stairs go up or down
+    # @return [Components::Entity] The created stairs entity
     def self.create_stairs(world, row, column, up = false)
+      # Validate parameters
+      if !world || row.nil? || column.nil?
+        Vanilla::Logger.instance.error("Invalid parameters for create_stairs: world=#{world}, row=#{row}, column=#{column}")
+        return nil
+      end
+
       entity = Components::Entity.new
       entity.add_component(Components::PositionComponent.new(row: row, column: column))
 
       if up
-        entity.add_component(Components::RenderComponent.new(character: '<', color: :magenta))
-        entity.add_component(Components::StairsComponent.new(:up))
+        # Use a valid character from TileType for stairs up
+        entity.add_component(Components::RenderComponent.new(
+          character: Support::TileType::STAIRS,
+          color: :cyan
+        ))
+        entity.add_component(Components::StairsComponent.new(found_stairs: false))
         entity.name = "Stairs Up"
       else
-        entity.add_component(Components::RenderComponent.new(character: '>', color: :magenta))
-        entity.add_component(Components::StairsComponent.new(:down))
+        # Use a valid character from TileType for stairs down
+        entity.add_component(Components::RenderComponent.new(
+          character: Support::TileType::STAIRS,
+          color: :magenta
+        ))
+        entity.add_component(Components::StairsComponent.new(found_stairs: false))
         entity.name = "Stairs Down"
       end
 
       entity.add_tag(:stairs)
 
+      # Add to world and verify
       world.add_entity(entity)
+
+      # Log creation
+      Vanilla::Logger.instance.info("Stairs entity created and added to world: #{entity.id}")
+
       entity
     end
   end

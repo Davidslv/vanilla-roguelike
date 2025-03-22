@@ -63,20 +63,43 @@ module Vanilla
       @last_update_time = current_time
 
       begin
+        # Add debug output to see what's happening
+        puts "Processing turn, press 'q' to quit" if @running && @world.entities.values.size > 0
+
+        # Directly check for 'q' keypress first
+        if STDIN.ready? && STDIN.getch.downcase == 'q'
+          puts "Q key pressed, exiting..."
+          @running = false
+          return
+        end
+
         # Process input and update world
         @world.update(delta_time)
+
+        # Force refresh display every few frames
+        @render_system.update(delta_time) if @render_system
 
         # Update grid with entities for compatibility
         if @world.current_level
           @world.current_level.update_grid_with_entities(@world.entities.values)
         end
 
-        # Check for exit condition
-        @running = false if @world.keyboard.key_pressed?(:q)
+        # Explicit check for exit condition
+        if @world.keyboard && @world.keyboard.key_pressed?(:q)
+          puts "Quit key detected, exiting game..."
+          @running = false
+        end
 
-        # Limit frame rate
-        sleep_time = [0, (1.0 / 30) - delta_time].max
+        # Ensure the whole UI is refreshed
+        STDOUT.flush
+
+        # Limit frame rate but don't sleep too long
+        sleep_time = [0, (1.0 / 10) - delta_time].max
         sleep(sleep_time) if sleep_time > 0
+      rescue Interrupt
+        # Handle Ctrl+C properly
+        puts "\nGame interrupted with Ctrl+C. Exiting..."
+        @running = false
       rescue StandardError => e
         # Log the actual error
         puts "\nERROR in game turn: #{e.class}: #{e.message}"
@@ -148,20 +171,43 @@ module Vanilla
       @world.add_system(Vanilla::Systems::MovementSystem.new(@world), 2)
       @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
 
-      # Rendering systems
-      @world.add_system(Vanilla::Systems::RenderSystem.new(@world), 9)
-      @world.add_system(Vanilla::Systems::MessageSystem.new(@world), 10)
+      # Create the render system explicitly rather than through factory
+      # to ensure it's properly configured
+      @render_system = Vanilla::Systems::RenderSystem.new(@world)
+      @world.add_system(@render_system, 9)
+
+      # Message system with a higher priority (rendered last)
+      @message_system = Vanilla::Systems::MessageSystem.new(@world)
+      @world.add_system(@message_system, 10)
+
+      # Make these accessible to other parts of the game
+      Vanilla::ServiceRegistry.register(:render_system, @render_system)
+      Vanilla::ServiceRegistry.register(:message_system, @message_system)
 
       @logger.debug("Systems registered with the world")
     end
 
     # Initialize the first level
     def initialize_level
+      @logger.info("Creating level with difficulty: #{@difficulty}")
+
+      # Create a level using the generator
       level_generator = Vanilla::LevelGenerator.new
       starting_level = level_generator.generate(@difficulty)
+
+      # Set the level in the world
+      @logger.info("Setting level in world")
       @world.set_level(starting_level)
 
-      # Create player entity
+      # Verify level was set successfully
+      if !@world.current_level || !@world.current_level.grid
+        @logger.error("Failed to set level in world - level or grid is nil")
+        @running = false
+        return
+      end
+
+      # Create the player entity at the entrance position
+      @logger.info("Creating player at [#{starting_level.entrance_row}, #{starting_level.entrance_column}]")
       player = Vanilla::EntityFactory.create_player(
         @world,
         starting_level.entrance_row,
@@ -169,20 +215,44 @@ module Vanilla
         "Hero"
       )
 
-      # Create stairs entity
-      Vanilla::EntityFactory.create_stairs(
+      # Verify player was created
+      if !player || !@world.find_entity_by_tag(:player)
+        @logger.error("Failed to create or add player entity to world")
+        @running = false
+        return
+      end
+
+      # Create stairs entity at the exit position
+      @logger.info("Creating stairs at [#{starting_level.exit_row}, #{starting_level.exit_column}]")
+      stairs = Vanilla::EntityFactory.create_stairs(
         @world,
         starting_level.exit_row,
         starting_level.exit_column
       )
 
-      # Add some monsters based on difficulty
+      # Verify stairs were created
+      if !stairs || !@world.find_entity_by_tag(:stairs)
+        @logger.error("Failed to create or add stairs entity to world")
+        @running = false
+        return
+      end
+
+      # Add monsters based on difficulty
+      @logger.info("Spawning monsters for difficulty #{@difficulty}")
       spawn_monsters
 
-      # Update grid with initial entities
+      # Update grid with all entities
+      @logger.info("Updating grid with #{@world.entities.size} entities")
       @world.current_level.update_grid_with_entities(@world.entities.values)
 
-      @logger.info("Initial level created with difficulty #{@difficulty}")
+      # Final validation
+      if @world.entities.empty?
+        @logger.error("No entities were created during initialization")
+        @running = false
+        return
+      end
+
+      @logger.info("Level initialization complete with #{@world.entities.size} entities")
     end
 
     # Spawn monsters based on current difficulty

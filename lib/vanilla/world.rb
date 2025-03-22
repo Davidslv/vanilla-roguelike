@@ -18,9 +18,19 @@ module Vanilla
 
     # Add an entity to the world
     # @param entity [Entity] The entity to add
-    # @return [Entity] The added entity
+    # @return [Entity, nil] The added entity, or nil if the entity is invalid
     def add_entity(entity)
+      return nil unless entity && entity.id
+
+      # Add to entities collection
       @entities[entity.id] = entity
+
+      # Log entity addition
+      Vanilla::Logger.instance.debug("Entity added to world: id=#{entity.id}, tags=#{entity.respond_to?(:tags) ? entity.tags.inspect : 'none'}")
+
+      # Emit entity_added event for systems to respond to
+      emit_event(:entity_added, { entity_id: entity.id })
+
       entity
     end
 
@@ -28,7 +38,21 @@ module Vanilla
     # @param entity_id [String] The ID of the entity to remove
     # @return [Entity, nil] The removed entity or nil if not found
     def remove_entity(entity_id)
+      return nil unless entity_id && @entities[entity_id]
+
+      # Get the entity before removing it
+      entity = @entities[entity_id]
+
+      # Remove from collection
       @entities.delete(entity_id)
+
+      # Log entity removal
+      Vanilla::Logger.instance.debug("Entity removed from world: id=#{entity_id}")
+
+      # Emit entity_removed event for systems to respond to
+      emit_event(:entity_removed, { entity_id: entity_id })
+
+      entity
     end
 
     # Get an entity by ID

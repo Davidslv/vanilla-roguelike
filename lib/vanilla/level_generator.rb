@@ -8,8 +8,17 @@ module Vanilla
       # Create level with appropriate size for difficulty
       level = Level.random(difficulty: difficulty)
 
-      # Populate level with entities based on difficulty
-      # This is done by the World class which will use the EntityFactory
+      # The World is responsible for adding entities to the level
+      # but we need to ensure the level has proper entrance/exit coordinates
+      # and is fully initialized before it's returned
+
+      # Validate level before returning
+      unless level && level.grid
+        raise "Failed to create a valid level with grid"
+      end
+
+      # Log level creation
+      Vanilla::Logger.instance.info("Level generated: #{level.grid.rows}x#{level.grid.columns}, entrance: [#{level.entrance_row}, #{level.entrance_column}], exit: [#{level.exit_row}, #{level.exit_column}]")
 
       level
     end
