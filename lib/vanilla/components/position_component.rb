@@ -8,6 +8,12 @@ module Vanilla
       # @return [Integer] column in the grid
       attr_reader :column
 
+      # @param row [Integer] the row to set
+      attr_writer :row
+
+      # @param column [Integer] the column to set
+      attr_writer :column
+
       # Initialize a new position component
       # @param row [Integer] the row position
       # @param column [Integer] the column position
