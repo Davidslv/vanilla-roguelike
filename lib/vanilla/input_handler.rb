@@ -1,6 +1,7 @@
 require_relative 'commands/move_command'
 require_relative 'commands/exit_command'
 require_relative 'commands/null_command'
+require_relative 'commands/no_op_command'
 
 module Vanilla
   class InputHandler

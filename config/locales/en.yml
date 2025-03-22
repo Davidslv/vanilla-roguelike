@@ -1,0 +1,74 @@
+en:
+  game:
+    welcome: "Welcome to Vanilla, brave adventurer! Your journey begins..."
+    goodbye: "Farewell, adventurer. The dungeon claims another soul."
+    startup_hint: "You find yourself on dungeon level %{difficulty}. Be cautious!"
+
+  combat:
+    player_hit: "You strike the %{enemy} for %{damage} damage!"
+    player_miss: "You swing at the %{enemy} but miss!"
+    enemy_hit: "The %{enemy} hits you for %{damage} damage!"
+    enemy_miss: "The %{enemy} lunges at you but misses!"
+    player_kill: "You slay the %{enemy}!"
+    enemy_flee: "The %{enemy} flees in terror!"
+
+  exploration:
+    move_blocked: "A wall blocks your path."
+    enter_room: "You enter a %{room_type} room."
+    move: "You move %{direction}."
+    room_types:
+      dusty: "dusty"
+      dark: "dark"
+      echoing: "echoing"
+      treasure: "treasure-filled"
+    find_stairs: "You discover stairs leading deeper into the dungeon."
+    secret_found: "You uncover a hidden compartment!"
+    trap_triggered: "You step on a trap! %{effect}"
+
+  items:
+    pickup: "You pick up a %{item}."
+    equip: "You equip the %{item}."
+    unequip: "You unequip the %{item}."
+    use_success: "You use the %{item}. %{effect}"
+    use_fail: "The %{item} has no effect here."
+    inventory_full: "Your inventory is full!"
+    cursed: "The %{item} is cursed and binds to you!"
+    unidentified: "You can't tell what this %{item} does yet."
+
+  status:
+    poisoned: "You feel poison coursing through your veins!"
+    healed: "Your wounds mend as you regain %{amount} health."
+    stunned: "You're stunned and lose your next turn!"
+    starving: "Your stomach growls. You need food soon."
+    rested: "You feel refreshed and ready to continue."
+
+  death:
+    player_dies: "You have fallen to the %{enemy}. Your adventure ends here."
+    generic_death: "The dungeon claims your life."
+    starvation: "You collapse from hunger, too weak to go on."
+    trap_death: "A deadly trap ends your journey."
+    stats_summary: "You reached floor %{floor}, slew %{kills} foes, and collected %{items} items."
+
+  environment:
+    door_locked: "The door is locked. You need a key."
+    door_unlocked: "You unlock the door with the %{key}."
+    wall_destroyed: "You smash through the wall, creating a new path!"
+    hazard: "The %{hazard} damages you for %{damage}!"
+
+  progression:
+    level_up: "You feel stronger! Level %{level} reached."
+    xp_gain: "You gain %{amount} experience from the %{enemy}."
+    new_ability: "You unlock a new ability: %{ability}!"
+
+  ui:
+    health: "Health: %{current}/%{max}"
+    inventory_label: "Inventory:"
+    empty_slot: "Empty"
+    prompt_move: "Where will you go? (Use arrow keys or WASD)"
+    no_action: "Nothing to do here."
+    level_change_hint: "You've descended to a new level! Press 'q' to quit, or use movement keys to explore."
+
+  events:
+    low_health: "Your strength wanes... only %{health} health remains!"
+    boss_appears: "A monstrous %{boss} emerges from the shadows!"
+    achievement: "Achievement Unlocked: %{name}!"

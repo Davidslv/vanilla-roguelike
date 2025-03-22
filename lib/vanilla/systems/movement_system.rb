@@ -66,6 +66,26 @@ module Vanilla
         # Handle special attributes
         handle_special_cell_attributes(entity, target_cell)
 
+        # Check if we're on stairs and update the stairs component
+        if target_cell.stairs? && entity.has_component?(:stairs) && !entity.get_component(:stairs).found_stairs
+          entity.get_component(:stairs).found_stairs = true
+
+          # Log a message about finding stairs
+          # Use the MessageSystem service if available
+          message_system = Vanilla::Messages::MessageSystem.instance
+
+          if message_system
+            # Log message using the facade
+            message_system.log_message("exploration.find_stairs",
+                                    category: :exploration,
+                                    importance: :success)
+          else
+            @logger.info("Player found stairs")
+          end
+
+          return false # Don't move further, stay on the stairs
+        end
+
         # Update position
         update_position(position, direction_symbol, movement.speed)
 
@@ -171,6 +191,19 @@ module Vanilla
       # @param new_position [Array<Integer>] The new position [row, col]
       def log_movement(entity, direction, old_position, new_position)
         @logger.info("Entity moved #{direction} from #{old_position} to #{new_position}")
+
+        # If this is a player entity, add a message to the message system
+        if entity.is_a?(Vanilla::Entities::Player)
+          # Get the message system using the service locator pattern
+          message_system = Vanilla::Messages::MessageSystem.instance
+
+          if message_system
+            # Translate direction for user-friendly message
+            message_system.log_message("exploration.move",
+                                    category: :movement,
+                                    metadata: { direction: direction })
+          end
+        end
       end
     end
   end

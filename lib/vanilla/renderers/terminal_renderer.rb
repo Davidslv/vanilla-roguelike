@@ -5,11 +5,20 @@ module Vanilla
         @buffer = nil
         @grid = nil
         @header = ""
+        @message_buffer = {} # Separate buffer for messages below the grid
+        @color_buffer = {}   # Store colors for characters outside the grid
       end
 
       def clear
         # Clear internal buffer
         @buffer = nil
+        @message_buffer = {}
+        @color_buffer = {}
+        system("clear")
+      end
+
+      def clear_screen
+        # Clear the terminal
         system("clear")
       end
 
@@ -35,22 +44,62 @@ module Vanilla
       end
 
       def draw_character(row, column, character, color = nil)
-        return unless @buffer && row >= 0 && row < @buffer.size &&
-                     column >= 0 && column < @buffer.first.size
+        # Debug logging only for unusual positions, and only basic info
+        if $DEBUG && row > @grid&.rows && character != '-' && character != '|' && ![' ', '#'].include?(character)
+          puts "DEBUG: Drawing '#{character}' outside grid at [#{row},#{column}]"
+        end
 
-        @buffer[row][column] = character
-        # Color is stored for future implementation
+        # For characters within the grid bounds, use the grid buffer
+        if @buffer && row >= 0 && row < @buffer.size && column >= 0 && column < @buffer.first.size
+          @buffer[row][column] = character
+          return
+        end
+
+        # For characters outside grid bounds (like message panel), use message buffer
+        @message_buffer[[row, column]] = character
+        @color_buffer[[row, column]] = color if color
+      end
+
+      # Get ANSI color code for the given color symbol
+      # @param color_sym [Symbol] The color symbol
+      # @return [String] The ANSI color code
+      def color_code(color_sym)
+        case color_sym
+        when :red
+          "\e[31m"
+        when :green
+          "\e[32m"
+        when :yellow
+          "\e[33m"
+        when :blue
+          "\e[34m"
+        when :magenta
+          "\e[35m"
+        when :cyan
+          "\e[36m"
+        when :white
+          "\e[37m"
+        else
+          ""  # No color
+        end
+      end
+
+      # Reset ANSI color codes
+      # @return [String] The ANSI reset code
+      def reset_color
+        "\e[0m"
       end
 
       def present
-        return unless @buffer && @grid
+        return unless @grid
+        return unless @buffer
 
         # Print header
         puts @header
         puts "-" * 35
         puts "\n"
 
-        # Render based on the same logic as the original Terminal class
+        # Render grid
         output = "+" + "---+" * @grid.columns + "\n"
 
         @grid.rows.times do |row_idx|
@@ -62,7 +111,7 @@ module Vanilla
             next unless cell
 
             # Use our buffer content instead of grid.contents_of
-            body = @buffer[row_idx][col_idx]
+            body = @buffer ? @buffer[row_idx][col_idx] : ' '
             body = " #{body} " if body.size == 1
             body = " #{body}" if body.size == 2
 
@@ -81,7 +130,78 @@ module Vanilla
           output << bottom << "\n"
         end
 
+        # Print grid
         puts output
+
+        # Add a very obvious separator for the message area
+        puts "\n=== MESSAGES ===\n"
+
+        # DIRECT MESSAGE ACCESS - use the MessageSystem facade
+        # This follows proper Service Locator pattern
+        message_system = Vanilla::Messages::MessageSystem.instance
+        if message_system
+          messages = message_system.get_recent_messages(10)
+
+          if messages && !messages.empty?
+            # Direct rendering of messages - bypassing the buffer
+            puts "Latest messages:"
+            puts "-" * 40
+
+            messages.each do |msg|
+              text = if msg.is_a?(Vanilla::Messages::Message)
+                  "#{msg.importance.to_s.upcase}: #{msg.translated_text}"
+                else
+                  "#{msg[:importance].to_s.upcase}: #{msg[:text]}"
+                end
+
+              # Format by importance
+              formatted = case (msg.is_a?(Vanilla::Messages::Message) ? msg.importance : msg[:importance])
+                         when :critical, :danger then "!! #{text}"
+                         when :warning then "* #{text}"
+                         when :success then "+ #{text}"
+                         else "> #{text}"
+                         end
+
+              puts formatted
+            end
+          else
+            puts "No messages available yet. Play the game to see messages here."
+          end
+        # Fallback to message buffer rendering
+        elsif !@message_buffer.empty?
+          # Use existing message buffer rendering code
+          if $DEBUG
+            msg_pos = @message_buffer.keys.map(&:first).uniq.sort
+            puts "DEBUG: Rendering #{@message_buffer.size} message chars at rows #{msg_pos.first}-#{msg_pos.last}"
+          end
+
+          # We'll take a different approach - collect all characters by row/col
+          message_area = {}
+
+          @message_buffer.each do |pos, char|
+            row, col = pos
+            message_area[row] ||= {}
+            message_area[row][col] = char
+          end
+
+          # Sort rows and render each one
+          message_area.keys.sort.each do |row|
+            # Get the max column for this row
+            max_col = message_area[row].keys.max || 0
+
+            # Create a line with the characters
+            line = ""
+            (0..max_col).each do |col|
+              line << (message_area[row][col] || " ")
+            end
+
+            # Print the line - make sure lines aren't empty
+            puts line unless line.strip.empty?
+          end
+        else
+          # If no messages, show a default
+          puts "No messages yet. Play the game to see messages here."
+        end
       end
     end
   end
