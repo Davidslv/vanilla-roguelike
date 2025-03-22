@@ -1,107 +1,53 @@
 require 'spec_helper'
 
 RSpec.describe Vanilla::Systems::System do
-  let(:world) { Vanilla::World.new }
-
-  # Test implementation of System for testing
-  class TestSystem < Vanilla::Systems::System
-    attr_reader :update_called, :event_handled, :last_event
-
-    def initialize(world)
-      super
-      @update_called = false
-      @event_handled = false
-      @last_event = nil
-    end
-
-    def update(delta_time)
-      @update_called = true
-    end
-
-    def handle_event(event_type, data)
-      @event_handled = true
-      @last_event = { type: event_type, data: data }
-    end
-  end
+  let(:world) { instance_double("Vanilla::World") }
+  let(:system) { Vanilla::Systems::System.new(world) }
 
   describe '#initialize' do
-    it 'stores the world reference' do
-      system = TestSystem.new(world)
+    it 'sets the world reference' do
       expect(system.world).to eq(world)
     end
   end
 
   describe '#update' do
-    it 'requires subclasses to implement update' do
-      system = described_class.new(world)
-      expect { system.update(0.1) }.to raise_error(NotImplementedError)
-    end
-
-    it 'can be overridden by subclasses' do
-      system = TestSystem.new(world)
-      system.update(0.1)
-      expect(system.update_called).to be true
+    it 'has an update method that can be overridden' do
+      expect { system.update(0.1) }.not_to raise_error
     end
   end
 
   describe '#handle_event' do
-    it 'has a default implementation' do
-      system = described_class.new(world)
-      # Should not raise error
-      system.handle_event(:test_event, { data: 'value' })
-    end
-
-    it 'can be overridden by subclasses' do
-      system = TestSystem.new(world)
-      system.handle_event(:test_event, { data: 'value' })
-      expect(system.event_handled).to be true
-      expect(system.last_event[:type]).to eq(:test_event)
-      expect(system.last_event[:data]).to eq({ data: 'value' })
+    it 'has a handle_event method that can be overridden' do
+      expect { system.handle_event(:test, {}) }.not_to raise_error
     end
   end
 
   describe '#entities_with' do
-    it 'queries entities from the world' do
-      # Create test entities with different components
-      entity1 = Vanilla::Components::Entity.new
-      entity1.add_component(Vanilla::Components::PositionComponent.new(row: 1, column: 1))
-      world.add_entity(entity1)
+    it 'delegates to world.query_entities' do
+      component_types = [:position, :render]
 
-      entity2 = Vanilla::Components::Entity.new
-      entity2.add_component(Vanilla::Components::PositionComponent.new(row: 2, column: 2))
-      entity2.add_component(Vanilla::Components::RenderComponent.new(character: '@'))
-      world.add_entity(entity2)
-
-      system = TestSystem.new(world)
-
-      # Query for entities with position components
-      position_entities = system.entities_with(:position)
-      expect(position_entities).to contain_exactly(entity1, entity2)
-
-      # Query for entities with position and render components
-      render_entities = system.entities_with(:position, :render)
-      expect(render_entities).to contain_exactly(entity2)
+      expect(world).to receive(:query_entities).with(component_types)
+      system.entities_with(*component_types)
     end
   end
 
   describe '#emit_event' do
-    it 'delegates to the world' do
-      system = TestSystem.new(world)
+    it 'delegates to world.emit_event' do
+      event_type = :entity_moved
+      event_data = { entity_id: 'test-id' }
 
-      # Create a spy system to catch events
-      spy_system = TestSystem.new(world)
-      world.subscribe(:test_event, spy_system)
+      expect(world).to receive(:emit_event).with(event_type, event_data)
+      system.emit_event(event_type, event_data)
+    end
+  end
 
-      # Emit event
-      system.emit_event(:test_event, { value: 42 })
+  describe '#queue_command' do
+    it 'delegates to world.queue_command' do
+      command_type = :add_entity
+      command_params = { entity: 'test-entity' }
 
-      # Update world to process events
-      world.update(0.1)
-
-      # Check if the spy system received the event
-      expect(spy_system.event_handled).to be true
-      expect(spy_system.last_event[:type]).to eq(:test_event)
-      expect(spy_system.last_event[:data]).to eq({ value: 42 })
+      expect(world).to receive(:queue_command).with(command_type, command_params)
+      system.queue_command(command_type, command_params)
     end
   end
 end

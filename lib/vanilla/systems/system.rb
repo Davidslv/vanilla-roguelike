@@ -1,52 +1,48 @@
 module Vanilla
   module Systems
-    # Base class for all ECS systems
-    #
-    # This class provides the foundation for all systems in the ECS architecture.
-    # Systems operate on entities with specific combinations of components,
-    # implementing game behavior while keeping it separate from data.
-    #
-    # Systems should:
-    # 1. Query entities with the components they need
-    # 2. Process those entities according to their specific logic
-    # 3. Communicate with other systems via events, not direct calls
-    # 4. Not store entity state directly
+    # Base class for all systems in the ECS architecture.
+    # Systems contain the behavior and logic of the game.
     class System
-      # @return [Vanilla::World] The world this system operates on
       attr_reader :world
 
       # Initialize a new system
-      # @param world [Vanilla::World] The world this system operates on
+      # @param world [World] The world this system belongs to
       def initialize(world)
         @world = world
       end
 
-      # Update method called each frame
-      # @param delta_time [Float] Time in seconds since the last update
+      # Update method called once per frame
+      # @param delta_time [Float] Time since last update
       def update(delta_time)
         # Override in subclasses
-        raise NotImplementedError, "#{self.class.name}#update must be implemented"
       end
 
-      # Handle an event from the event system
+      # Handle an event from the world
       # @param event_type [Symbol] The type of event
-      # @param data [Hash] Event data
+      # @param data [Hash] The event data
       def handle_event(event_type, data)
-        # Override in subclasses that need to react to events
+        # Override in subclasses
       end
 
       # Helper method to find entities with specific components
-      # @param component_types [Array<Symbol>] Types of components to query for
-      # @return [Array<Entity>] Entities that have all the specified components
+      # @param component_types [Array<Symbol>] Component types to query for
+      # @return [Array<Entity>] Entities with all the specified component types
       def entities_with(*component_types)
         @world.query_entities(component_types)
       end
 
       # Helper method to emit an event
-      # @param event_type [Symbol] The type of event to emit
-      # @param data [Hash] Event data to include
+      # @param event_type [Symbol] The type of event
+      # @param data [Hash] The event data
       def emit_event(event_type, data = {})
         @world.emit_event(event_type, data)
+      end
+
+      # Helper method to queue a command
+      # @param command_type [Symbol] The type of command
+      # @param params [Hash] The command parameters
+      def queue_command(command_type, params = {})
+        @world.queue_command(command_type, params)
       end
     end
   end

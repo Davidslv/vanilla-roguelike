@@ -1,169 +1,176 @@
 require 'spec_helper'
 
 RSpec.describe Vanilla::World do
-  describe 'initialization' do
-    it 'creates an empty world' do
-      world = described_class.new
+  let(:world) { Vanilla::World.new }
+  let(:entity) { Vanilla::Components::Entity.new }
+  let(:system) { instance_double("Vanilla::Systems::System", update: nil) }
+
+  describe '#initialize' do
+    it 'initializes with empty entities and systems' do
       expect(world.entities).to be_empty
       expect(world.systems).to be_empty
     end
+
+    it 'initializes with keyboard and display handlers' do
+      expect(world.keyboard).to be_a(Vanilla::KeyboardHandler)
+      expect(world.display).to be_a(Vanilla::DisplayHandler)
+    end
   end
 
-  describe 'entity management' do
-    let(:world) { described_class.new }
-    let(:entity) { Vanilla::Components::Entity.new }
-
-    it 'can add entities' do
+  describe '#add_entity' do
+    it 'adds an entity to the world' do
       world.add_entity(entity)
-      expect(world.entities[entity.id]).to eq(entity)
+      expect(world.entities).to include(entity.id => entity)
     end
 
-    it 'can remove entities' do
+    it 'returns the added entity' do
+      expect(world.add_entity(entity)).to eq(entity)
+    end
+  end
+
+  describe '#remove_entity' do
+    it 'removes an entity from the world' do
       world.add_entity(entity)
       world.remove_entity(entity.id)
-      expect(world.entities).to be_empty
+      expect(world.entities).not_to include(entity.id => entity)
     end
+  end
 
-    it 'can get entities by ID' do
+  describe '#get_entity' do
+    it 'returns an entity by id' do
       world.add_entity(entity)
-      retrieved = world.get_entity(entity.id)
-      expect(retrieved).to eq(entity)
+      expect(world.get_entity(entity.id)).to eq(entity)
     end
 
-    it 'returns nil for unknown entity IDs' do
-      expect(world.get_entity('nonexistent')).to be_nil
-    end
-  end
-
-  describe 'entity querying' do
-    let(:world) { described_class.new }
-    let(:player) do
-      player = Vanilla::Components::Entity.new
-      player.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 10))
-      player.add_component(Vanilla::Components::RenderComponent.new(character: '@'))
-      player.add_tag(:player)
-      world.add_entity(player)
-      player
-    end
-    let(:monster) do
-      monster = Vanilla::Components::Entity.new
-      monster.add_component(Vanilla::Components::PositionComponent.new(row: 7, column: 12))
-      monster.add_component(Vanilla::Components::RenderComponent.new(character: 'M'))
-      monster.add_tag(:monster)
-      world.add_entity(monster)
-      monster
-    end
-    let(:stairs) do
-      stairs = Vanilla::Components::Entity.new
-      stairs.add_component(Vanilla::Components::PositionComponent.new(row: 15, column: 20))
-      stairs.add_tag(:stairs)
-      world.add_entity(stairs)
-      stairs
-    end
-
-    before do
-      # Create entities
-      player
-      monster
-      stairs
-    end
-
-    it 'can query entities by component types' do
-      # Entities with both position and render components
-      result = world.query_entities([:position, :render])
-      expect(result).to contain_exactly(player, monster)
-
-      # Entities with only position component
-      result = world.query_entities([:position])
-      expect(result).to contain_exactly(player, monster, stairs)
-    end
-
-    it 'returns all entities when querying with empty component types' do
-      result = world.query_entities([])
-      expect(result).to contain_exactly(player, monster, stairs)
-    end
-
-    it 'can find entities by tag' do
-      result = world.find_entities_by_tag(:player)
-      expect(result).to contain_exactly(player)
-    end
-
-    it 'can find the first entity with a tag' do
-      result = world.find_entity_by_tag(:player)
-      expect(result).to eq(player)
-    end
-
-    it 'returns empty array when no entities match a tag' do
-      result = world.find_entities_by_tag(:nonexistent)
-      expect(result).to be_empty
-    end
-
-    it 'returns nil when no entity matches a tag' do
-      result = world.find_entity_by_tag(:nonexistent)
-      expect(result).to be_nil
+    it 'returns nil if entity not found' do
+      expect(world.get_entity('nonexistent-id')).to be_nil
     end
   end
 
-  describe 'system management' do
-    let(:world) { described_class.new }
-    let(:system1) { double('System1', update: nil) }
-    let(:system2) { double('System2', update: nil) }
-
-    it 'can add systems with priorities' do
-      world.add_system(system1, 2)
-      world.add_system(system2, 1)
-
-      # Systems should be sorted by priority
-      expect(world.systems).to eq([[system2, 1], [system1, 2]])
-    end
-
-    it 'updates systems in priority order' do
-      world.add_system(system1, 2)
-      world.add_system(system2, 1)
-
-      expect(system2).to receive(:update).with(0.1).ordered
-      expect(system1).to receive(:update).with(0.1).ordered
-
-      world.update(0.1)
-    end
-  end
-
-  describe 'serialization' do
-    let(:world) { described_class.new }
-    let(:entity) do
-      entity = Vanilla::Components::Entity.new
-      entity.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 10))
+  describe '#find_entity_by_tag' do
+    it 'returns the first entity with the specified tag' do
       entity.add_tag(:player)
       world.add_entity(entity)
-      entity
+      expect(world.find_entity_by_tag(:player)).to eq(entity)
     end
+
+    it 'returns nil if no entities have the specified tag' do
+      expect(world.find_entity_by_tag(:nonexistent)).to be_nil
+    end
+  end
+
+  describe '#query_entities' do
+    let(:position_component) { instance_double("Vanilla::Components::PositionComponent") }
+    let(:render_component) { instance_double("Vanilla::Components::RenderComponent") }
 
     before do
-      # Ensure entity is created
-      entity
+      allow(entity).to receive(:has_component?).with(:position).and_return(true)
+      allow(entity).to receive(:has_component?).with(:render).and_return(true)
+      allow(entity).to receive(:has_component?).with(:input).and_return(false)
+      world.add_entity(entity)
     end
 
-    it 'can be converted to hash' do
-      hash = world.to_hash
-      expect(hash[:entities]).to be_an(Array)
-      expect(hash[:entities].size).to eq(1)
-      expect(hash[:entities].first[:id]).to eq(entity.id)
+    it 'returns all entities with no component types specified' do
+      expect(world.query_entities([])).to eq([entity])
     end
 
-    it 'can be created from hash' do
-      hash = world.to_hash
-      recreated = described_class.from_hash(hash)
+    it 'returns entities with specified component types' do
+      expect(world.query_entities([:position, :render])).to eq([entity])
+    end
 
-      # Check entity was restored
-      expect(recreated.entities.size).to eq(1)
+    it 'returns empty array if no entities match the criteria' do
+      expect(world.query_entities([:position, :input])).to be_empty
+    end
+  end
 
-      # Get the recreated entity
-      recreated_entity = recreated.entities.values.first
+  describe '#add_system' do
+    it 'adds a system to the world' do
+      world.add_system(system)
+      expect(world.systems.map(&:first)).to include(system)
+    end
 
-      # Check entity properties match
-      expect(recreated_entity.id).to eq(entity.id)
-      expect(recreated_entity.has_component?(:position)).to be true
-      expect(recreated_entity.has_tag?(:player)).to be true
+    it 'assigns the specified priority' do
+      world.add_system(system, 5)
+      expect(world.systems).to include([system, 5])
+    end
+
+    it 'sorts systems by priority' do
+      system1 = instance_double("Vanilla::Systems::System", update: nil)
+      system2 = instance_double("Vanilla::Systems::System", update: nil)
+
+      world.add_system(system1, 2)
+      world.add_system(system2, 1)
+
+      expect(world.systems.map(&:first)).to eq([system2, system1])
+    end
+  end
+
+  describe '#update' do
+    it 'updates all systems' do
+      world.add_system(system)
+      world.update(0.1)
+      expect(system).to have_received(:update).with(0.1)
+    end
+  end
+
+  describe '#emit_event and #subscribe' do
+    let(:subscriber) { double("Subscriber", handle_event: nil) }
+    let(:event_type) { :test_event }
+    let(:event_data) { { test: 'data' } }
+
+    it 'notifies subscribers of events' do
+      world.subscribe(event_type, subscriber)
+      world.emit_event(event_type, event_data)
+      world.update(0.1) # Process events
+
+      expect(subscriber).to have_received(:handle_event).with(event_type, event_data)
+    end
+
+    it 'does not notify unsubscribed systems' do
+      other_subscriber = double("OtherSubscriber", handle_event: nil)
+
+      world.subscribe(event_type, subscriber)
+      world.emit_event(event_type, event_data)
+      world.update(0.1) # Process events
+
+      expect(other_subscriber).not_to have_received(:handle_event)
+    end
+
+    it 'does not notify subscribers of different events' do
+      world.subscribe(:other_event, subscriber)
+      world.emit_event(event_type, event_data)
+      world.update(0.1) # Process events
+
+      expect(subscriber).not_to have_received(:handle_event)
+    end
+  end
+
+  describe '#queue_command' do
+    it 'processes commands in the update loop' do
+      entity_to_add = Vanilla::Components::Entity.new
+
+      world.queue_command(:add_entity, { entity: entity_to_add })
+      expect(world.entities).not_to include(entity_to_add.id => entity_to_add)
+
+      world.update(0.1) # Process commands
+      expect(world.entities).to include(entity_to_add.id => entity_to_add)
+    end
+
+    it 'handles remove_entity commands' do
+      world.add_entity(entity)
+      world.queue_command(:remove_entity, { entity_id: entity.id })
+
+      world.update(0.1) # Process commands
+      expect(world.entities).not_to include(entity.id => entity)
+    end
+  end
+
+  describe '#set_level' do
+    let(:level) { instance_double("Vanilla::Level") }
+
+    it 'sets the current level' do
+      world.set_level(level)
+      expect(world.current_level).to eq(level)
     end
   end
 end

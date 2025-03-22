@@ -1,213 +1,134 @@
+require_relative 'system'
+
 module Vanilla
   module Systems
-    # System for managing game messages and notifications
-    #
-    # This system handles logging game events as messages for the player,
-    # prioritizing them and formatting them appropriately.
-    #
-    # It follows the ECS pattern by:
-    # 1. Subscribing to various game events
-    # 2. Not storing entity state directly
-    # 3. Using events for communication
+    # System for managing and displaying game messages
     class MessageSystem < System
-      # Maximum number of messages to keep in history
       MAX_MESSAGES = 100
 
-      # Initialize a new message system
-      # @param world [Vanilla::World] The world this system operates on
+      # Initialize the message system
+      # @param world [World] The world this system belongs to
       def initialize(world)
         super
-        @messages = []
-        @logger = Vanilla::Logger.instance
+        @message_queue = []
 
         # Subscribe to relevant events
-        world.subscribe(:entity_moved, self)
-        world.subscribe(:entities_collided, self)
-        world.subscribe(:stairs_found, self)
-        world.subscribe(:level_changed, self)
+        @world.subscribe(:entity_moved, self)
+        @world.subscribe(:entities_collided, self)
+        @world.subscribe(:level_transition_requested, self)
+        @world.subscribe(:level_transitioned, self)
+        @world.subscribe(:item_picked_up, self)
+        @world.subscribe(:damage_dealt, self)
+        @world.subscribe(:entity_died, self)
       end
 
-      # Update method called each frame
-      # @param delta_time [Float] Time in seconds since the last update
+      # Update method called once per frame
+      # @param delta_time [Float] Time since last update
       def update(delta_time)
         # Process any queued messages
-        # For now, this is a no-op since processing happens in handle_event
+        process_message_queue
       end
 
-      # Handle events
+      # Handle events from the world
       # @param event_type [Symbol] The type of event
-      # @param data [Hash] Event data
+      # @param data [Hash] The event data
       def handle_event(event_type, data)
         case event_type
         when :entity_moved
-          handle_movement_message(data)
+          entity = @world.get_entity(data[:entity_id])
+          if entity&.has_tag?(:player)
+            add_message("movement.player_moved", importance: :low)
+          end
+
         when :entities_collided
-          handle_collision_message(data)
-        when :stairs_found
-          handle_stairs_message(data)
-        when :level_changed
-          handle_level_change_message(data)
-        end
-      end
+          # Handle collision messages based on entity types
+          entity = @world.get_entity(data[:entity_id])
+          other = @world.get_entity(data[:other_entity_id])
 
-      # Add a message to the message queue
-      # @param key [String] The message key/identifier
-      # @param metadata [Hash] Additional data for the message
-      # @param importance [Symbol] Message importance (:low, :normal, :high, :critical)
-      # @param category [Symbol] Message category
-      def add_message(key, metadata = {}, importance: :normal, category: :general)
-        message = {
-          key: key,
-          metadata: metadata,
-          importance: importance,
-          category: category,
-          timestamp: Time.now
-        }
+          # Player collisions
+          if entity&.has_tag?(:player) && other&.has_tag?(:item)
+            add_message("collision.player_item", importance: :normal)
+          elsif entity&.has_tag?(:player) && other&.has_tag?(:monster)
+            add_message("collision.player_monster", importance: :high)
+          elsif entity&.has_tag?(:player) && other&.has_tag?(:stairs)
+            add_message("collision.player_stairs", importance: :normal)
+          end
 
-        @messages << message
-        trim_message_queue
+        when :level_transition_requested
+          add_message("level.stairs_found", importance: :normal)
 
-        # Log to actual logger for debugging
-        @logger.info("#{importance.to_s.upcase}: #{format_message(key, metadata)}")
+        when :level_transitioned
+          difficulty = data[:difficulty]
+          add_message("level.descended", { level: difficulty }, importance: :high)
 
-        # Emit message event for UI to respond to
-        emit_event(:message_added, {
-          message: message,
-          formatted_text: format_message(key, metadata)
-        })
-      end
+        when :item_picked_up
+          item_name = data[:item_name] || "item"
+          add_message("item.picked_up", { item: item_name }, importance: :normal)
 
-      # Get all messages
-      # @return [Array<Hash>] The message queue
-      def get_messages
-        @messages
-      end
+        when :damage_dealt
+          attacker = @world.get_entity(data[:attacker_id])
+          target = @world.get_entity(data[:target_id])
+          damage = data[:damage]
 
-      # Get messages by category
-      # @param category [Symbol] The category to filter by
-      # @return [Array<Hash>] Messages in the specified category
-      def get_messages_by_category(category)
-        @messages.select { |m| m[:category] == category }
-      end
+          if attacker&.has_tag?(:player)
+            add_message("combat.player_hit", { target: target&.name || "enemy", damage: damage }, importance: :normal)
+          elsif target&.has_tag?(:player)
+            add_message("combat.player_damaged", { attacker: attacker&.name || "enemy", damage: damage }, importance: :high)
+          end
 
-      # Clear all messages
-      def clear_messages
-        @messages.clear
-      end
+        when :entity_died
+          entity = @world.get_entity(data[:entity_id])
+          killer = @world.get_entity(data[:killer_id])
 
-      private
-
-      # Handle movement messages
-      # @param data [Hash] Movement event data
-      def handle_movement_message(data)
-        entity_id = data[:entity_id]
-        entity = @world.get_entity(entity_id)
-        return unless entity
-
-        # Only log player movements
-        return unless entity.has_tag?(:player)
-
-        # Get direction as text
-        direction = data[:direction]
-        direction_text = direction_to_text(direction)
-
-        add_message("movement.player_moved", { direction: direction_text },
-                    importance: :low, category: :movement)
-      end
-
-      # Handle collision messages
-      # @param data [Hash] Collision event data
-      def handle_collision_message(data)
-        entity_id = data[:entity_id]
-        other_entity_id = data[:other_entity_id]
-
-        entity = @world.get_entity(entity_id)
-        other_entity = @world.get_entity(other_entity_id)
-
-        return unless entity && other_entity
-
-        # We only care about player collisions for now
-        if entity.has_tag?(:player) || other_entity.has_tag?(:player)
-          player = entity.has_tag?(:player) ? entity : other_entity
-          other = entity.has_tag?(:player) ? other_entity : entity
-
-          # Different message depending on what was collided with
-          if other.has_tag?(:monster)
-            monster_type = other.get_data(:monster_type) || "monster"
-            add_message("collision.with_monster", { monster_type: monster_type },
-                        importance: :normal, category: :combat)
-          elsif other.has_tag?(:item)
-            item_name = other.get_data(:name) || "item"
-            add_message("collision.with_item", { item_name: item_name },
-                        importance: :normal, category: :item)
+          if entity&.has_tag?(:monster)
+            add_message("combat.monster_died", { monster: entity.name || "monster" }, importance: :normal)
+          elsif entity&.has_tag?(:player)
+            add_message("combat.player_died", importance: :critical)
           end
         end
       end
 
-      # Handle stairs messages
-      # @param data [Hash] Stairs event data
-      def handle_stairs_message(data)
-        entity_id = data[:entity_id]
-        entity = @world.get_entity(entity_id)
-        return unless entity
+      # Add a message to the queue
+      # @param key [String] The message key/text
+      # @param metadata [Hash] Additional message data
+      # @param importance [Symbol] Message importance (:low, :normal, :high, :critical)
+      def add_message(key, metadata = {}, importance: :normal)
+        message = {
+          key: key,
+          metadata: metadata,
+          importance: importance,
+          timestamp: Time.now
+        }
 
-        # Only care about player finding stairs
-        return unless entity.has_tag?(:player)
-
-        add_message("exploration.stairs_found", {},
-                    importance: :high, category: :exploration)
+        @message_queue << message
+        trim_message_queue if @message_queue.size > MAX_MESSAGES
       end
 
-      # Handle level change messages
-      # @param data [Hash] Level change event data
-      def handle_level_change_message(data)
-        level = data[:level] || "unknown"
+      private
 
-        add_message("level.changed", { level: level },
-                    importance: :high, category: :exploration)
+      # Process and display messages in the queue
+      def process_message_queue
+        # Implementation depends on the display system
+        # This would typically render messages to a message log area
       end
 
-      # Convert a direction symbol to human-readable text
-      # @param direction [Symbol] The direction
-      # @return [String] Human-readable direction text
-      def direction_to_text(direction)
-        case direction
-        when :north then "north"
-        when :south then "south"
-        when :east then "east"
-        when :west then "west"
-        else direction.to_s
-        end
-      end
-
-      # Format a message for display
-      # @param key [String] The message key
-      # @param metadata [Hash] Message metadata
-      # @return [String] Formatted message
-      def format_message(key, metadata)
-        # In a real implementation, this would use a proper
-        # localization system with message templates
-        case key
-        when "movement.player_moved"
-          "You move #{metadata[:direction]}."
-        when "collision.with_monster"
-          "You encounter a #{metadata[:monster_type]}!"
-        when "collision.with_item"
-          "You see a #{metadata[:item_name]}."
-        when "exploration.stairs_found"
-          "You found stairs leading down!"
-        when "level.changed"
-          "You descend to level #{metadata[:level]}."
-        else
-          "#{key}: #{metadata.inspect}"
-        end
-      end
-
-      # Keep the message queue at a reasonable size
+      # Keep message queue at a reasonable size
       def trim_message_queue
-        if @messages.size > MAX_MESSAGES
-          # Remove oldest messages when queue gets too large
-          @messages = @messages.last(MAX_MESSAGES)
+        # Keep the most recent messages, prioritizing by importance
+        @message_queue.sort_by! { |msg| [msg[:timestamp], importance_value(msg[:importance])] }
+        @message_queue = @message_queue.last(MAX_MESSAGES)
+      end
+
+      # Convert importance symbol to numeric value for sorting
+      # @param importance [Symbol] The importance level
+      # @return [Integer] Numeric importance value
+      def importance_value(importance)
+        case importance
+        when :critical then 3
+        when :high then 2
+        when :normal then 1
+        when :low then 0
+        else 0
         end
       end
     end

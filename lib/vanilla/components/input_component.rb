@@ -1,80 +1,72 @@
+require_relative 'component'
+
 module Vanilla
   module Components
-    # Component for storing input state for an entity
-    #
-    # This component is a pure data container that stores the current input state
-    # for an entity, including movement direction and action triggers.
+    # Component for storing input state
+    # This component stores pending input actions for an entity
     class InputComponent < Component
-      # @return [Symbol, nil] The movement direction (:north, :south, :east, :west, nil)
-      attr_reader :move_direction
-
-      # @return [Boolean] Whether an action was triggered
-      attr_reader :action_triggered
-
-      # @return [Symbol, nil] The type of action triggered
-      attr_reader :action_type
+      attr_reader :move_direction, :action_triggered
 
       # Initialize a new input component
       def initialize
-        super()
         @move_direction = nil
         @action_triggered = false
-        @action_type = nil
-      end
-
-      # @return [Symbol] The component type
-      def type
-        :input
+        @action_params = {}
       end
 
       # Set the movement direction
-      # @param direction [Symbol, nil] The movement direction
-      def move_direction=(direction)
+      # @param direction [Symbol] The direction to move (:north, :south, :east, :west)
+      def set_move_direction(direction)
         @move_direction = direction
       end
 
-      # Set the action triggered flag
+      # Set the action trigger
       # @param triggered [Boolean] Whether an action was triggered
-      def action_triggered=(triggered)
+      # @param params [Hash] Optional parameters for the action
+      def set_action_triggered(triggered, params = {})
         @action_triggered = triggered
+        @action_params = params if triggered
       end
 
-      # Set the action type
-      # @param type [Symbol, nil] The type of action triggered
-      def action_type=(type)
-        @action_type = type
+      # Get the action parameters
+      # @return [Hash] The action parameters
+      def action_params
+        @action_params
       end
 
-      # Clear all input, typically done after processing
+      # Clear all input
       def clear
         @move_direction = nil
         @action_triggered = false
-        @action_type = nil
+        @action_params = {}
       end
 
-      # Get additional data for serialization
-      # @return [Hash] additional data to include in serialization
-      def data
+      # Convert to hash for serialization
+      # @return [Hash] Serialized representation
+      def to_hash
         {
+          type: self.class.component_type,
           move_direction: @move_direction,
           action_triggered: @action_triggered,
-          action_type: @action_type
+          action_params: @action_params
         }
       end
 
       # Create from hash for deserialization
-      # @param hash [Hash] The hash data to create from
-      # @return [InputComponent] The created component
+      # @param hash [Hash] Serialized representation
+      # @return [InputComponent] The new component
       def self.from_hash(hash)
         component = new
-        component.move_direction = hash[:move_direction]
-        component.action_triggered = hash[:action_triggered] || false
-        component.action_type = hash[:action_type]
+        component.set_move_direction(hash[:move_direction])
+        component.set_action_triggered(hash[:action_triggered], hash[:action_params] || {})
         component
       end
-    end
 
-    # Register this component
-    Component.register(InputComponent)
+      # Get the component type
+      # @return [Symbol] The component type
+      def self.component_type
+        :input
+      end
+    end
   end
 end

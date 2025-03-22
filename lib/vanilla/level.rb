@@ -1,6 +1,67 @@
 module Vanilla
+  # Represents a game level
   class Level
-    attr_reader :grid, :player, :difficulty, :stairs
+    attr_reader :grid, :difficulty, :entrance_row, :entrance_column, :exit_row, :exit_column
+
+    # Initialize a new level
+    # @param seed [Integer, nil] Random seed for level generation
+    # @param rows [Integer] Number of rows in the level
+    # @param columns [Integer] Number of columns in the level
+    # @param difficulty [Integer] The level difficulty
+    def initialize(seed: nil, rows: 10, columns: 10, difficulty: 1)
+      logger = Vanilla::Logger.instance
+
+      @difficulty = difficulty
+      @entrance_row = 0
+      @entrance_column = 0
+      @exit_row = 0
+      @exit_column = 0
+
+      logger.info("Creating new level with rows: #{rows}, columns: #{columns}, seed: #{seed || 'random'}, difficulty: #{difficulty}")
+      @grid = Vanilla::Map.create(rows: rows, columns: columns, algorithm: Vanilla::Algorithms::AVAILABLE.sample, seed: seed)
+      logger.debug("Grid created with algorithm: #{@grid.algorithm.name}")
+
+      start = start_position(grid: grid)
+      logger.debug("Start position selected: [#{start.row}, #{start.column}]")
+
+      positions = longest_path(grid: grid, start: start)
+      logger.debug("Path positions calculated - Start: #{positions[:start].inspect}, Goal: #{positions[:goal].inspect}")
+
+      player_position, stairs_position = positions[:start], positions[:goal]
+
+      # Store entrance/exit for entity creation
+      @entrance_row = player_position[0]
+      @entrance_column = player_position[1]
+      @exit_row = stairs_position[0]
+      @exit_column = stairs_position[1]
+
+      logger.info("Entrance set at position [#{@entrance_row}, #{@entrance_column}]")
+      logger.info("Exit set at position [#{@exit_row}, #{@exit_column}]")
+    end
+
+    # Set the entrance position
+    # @param row [Integer] The entrance row
+    # @param column [Integer] The entrance column
+    def set_entrance(row, column)
+      @entrance_row = row
+      @entrance_column = column
+    end
+
+    # Set the exit position
+    # @param row [Integer] The exit row
+    # @param column [Integer] The exit column
+    def set_exit(row, column)
+      @exit_row = row
+      @exit_column = column
+    end
+
+    # Set the level grid
+    # @param grid [Grid] The grid for this level
+    def set_grid(grid)
+      @grid = grid
+    end
+
+    attr_reader :player, :stairs
 
     def initialize(seed: nil, rows: 10, columns: 10, difficulty: 1)
       logger = Vanilla::Logger.instance
@@ -109,7 +170,7 @@ module Vanilla
 
     # Updates grid cells with entity information for backwards compatibility
     # with code that still uses the grid's tile properties directly
-    def update_grid_with_entities
+    def update_grid_with_entities(entities)
       # First, reset all grid cells to their default state
       # This prevents "ghost" entities remaining on the grid
       @grid.rows.times do |row|
@@ -122,35 +183,24 @@ module Vanilla
         end
       end
 
-      # Update player position on grid
-      if @player
-        pos = @player.get_component(:position)
-        render_component = @player.get_component(:render)
-        cell = @grid[pos.row, pos.column]
-        cell.tile = render_component.character if cell
-      end
+      # Update entities on grid
+      entities.each do |entity|
+        next unless entity.has_component?(:position) && entity.has_component?(:render)
 
-      # Update stairs position on grid
-      if @stairs
-        pos = @stairs.get_component(:position)
-        render_component = @stairs.get_component(:render)
-        cell = @grid[pos.row, pos.column]
-        if cell
-          # Use character from render component if available, otherwise fallback to STAIRS
-          cell.tile = render_component ? render_component.character : Vanilla::Support::TileType::STAIRS
-        end
-      end
+        pos = entity.get_component(:position)
+        render_component = entity.get_component(:render)
 
-      # Update monster positions on grid
-      monster_system = Vanilla::ServiceRegistry.get(:game)&.monster_system
-      if monster_system && monster_system.respond_to?(:monsters)
-        monster_system.monsters.each do |monster|
-          if monster.has_component?(:position) && monster.has_component?(:render)
-            pos = monster.get_component(:position)
-            render_component = monster.get_component(:render)
-            cell = @grid[pos.row, pos.column]
-            cell.tile = render_component.character if cell
-          end
+        # Skip if position is out of bounds
+        next if pos.row < 0 || pos.row >= @grid.rows || pos.column < 0 || pos.column >= @grid.columns
+
+        cell = @grid[pos.row, pos.column]
+        next unless cell # Skip if no cell at this position
+
+        # Handle special case for stairs
+        if entity.has_tag?(:stairs)
+          cell.tile = render_component.char || Vanilla::Support::TileType::STAIRS
+        else
+          cell.tile = render_component.char
         end
       end
     end
