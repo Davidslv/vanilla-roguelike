@@ -208,6 +208,10 @@ module Vanilla
           # Try to find stairs in the grid using each_cell method
           cell_count = 0
           stairs_cell = nil
+
+          # Output progress if display_rendering is enabled
+          puts "Searching for stairs..." if @display_rendering
+
           level_grid.each_cell do |cell|
             cell_count += 1
 
@@ -249,16 +253,29 @@ module Vanilla
           @results[:debug] << "Stairs at: [#{stairs_x}, #{stairs_y}]" if stairs_found
           @results[:debug] << "Stairs cell: #{stairs_cell.inspect}" if stairs_cell
 
+          # Display clear message to user when stairs are found or not found
+          if @display_rendering
+            if stairs_found
+              puts "✓ Stairs found at position [#{stairs_y}, #{stairs_x}]"
+            else
+              puts "✗ No stairs found in this level!"
+              # Short-circuit and return false if no stairs were found
+              return false
+            end
+          end
+
           if stairs_found
             # Calculate path to stairs (simplified version - just move in that direction)
             player_x, player_y = player_position
             @results[:debug] << "Player at: [#{player_x}, #{player_y}]"
+            puts "Player at: [#{player_y}, #{player_x}], moving toward stairs..." if @display_rendering
 
             # Try to move toward stairs with a maximum number of attempts
             # to avoid infinite loops in case of obstacles
             while player_x != stairs_x && attempts < max_attempts
               direction = player_x < stairs_x ? :right : :left
               @results[:debug] << "Moving #{direction} to get to stairs X (attempt #{attempts+1})"
+              puts "Moving #{direction} to reach stairs (X coordinate, attempt #{attempts+1})" if @display_rendering
               simulate_movement(direction)
 
               # Get updated position
@@ -268,6 +285,7 @@ module Vanilla
               if new_x == player_x && new_y == player_y
                 attempts += 1  # Count as a failed attempt
                 @results[:debug] << "Blocked while trying to reach stairs X"
+                puts "Blocked while trying to reach stairs X coordinate" if @display_rendering
               end
 
               player_x, player_y = new_x, new_y
@@ -277,6 +295,7 @@ module Vanilla
             while player_y != stairs_y && attempts < max_attempts
               direction = player_y < stairs_y ? :down : :up
               @results[:debug] << "Moving #{direction} to get to stairs Y (attempt #{attempts+1})"
+              puts "Moving #{direction} to reach stairs (Y coordinate, attempt #{attempts+1})" if @display_rendering
               simulate_movement(direction)
 
               # Get updated position
@@ -286,6 +305,7 @@ module Vanilla
               if new_x == player_x && new_y == player_y
                 attempts += 1  # Count as a failed attempt
                 @results[:debug] << "Blocked while trying to reach stairs Y"
+                puts "Blocked while trying to reach stairs Y coordinate" if @display_rendering
               end
 
               player_x, player_y = new_x, new_y
@@ -295,6 +315,8 @@ module Vanilla
             # Only try to use stairs if we reached them
             if player_x == stairs_x && player_y == stairs_y
               @results[:debug] << "At stairs position, attempting to use stairs"
+              puts "At stairs position, attempting to use them..." if @display_rendering
+
               # Use the stairs - patch STDIN and use our one_turn method
               STDIN.define_singleton_method(:getch) { '>' }
               @game.one_turn(@level)
@@ -304,11 +326,14 @@ module Vanilla
                 @results[:levels_completed] += 1
                 success = true
                 @results[:debug] << "Successfully moved to a new level"
+                puts "✓ Successfully transitioned to a new level!" if @display_rendering
               else
                 @results[:debug] << "Failed to move to a new level"
+                puts "✗ Failed to transition to a new level" if @display_rendering
               end
             else
               @results[:debug] << "Could not reach stairs position"
+              puts "✗ Could not reach stairs position after #{attempts} attempts" if @display_rendering
             end
           else
             @results[:debug] << "No stairs found in this level"
