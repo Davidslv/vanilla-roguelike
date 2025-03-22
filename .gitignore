@@ -10,3 +10,5 @@ coverage
 event_logs/**/*.jsonl
 event_logs/*.jsonl
 event_visualizations/**/*.html
+test_results/**/*.log
+test_results/
