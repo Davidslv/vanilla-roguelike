@@ -23,6 +23,33 @@ module Vanilla
           layer: 2  # Above floor, below monsters
         ))
       end
+
+      # Position delegation methods
+      def row
+        position_component = get_component(:position)
+        position_component&.row
+      end
+
+      def column
+        position_component = get_component(:position)
+        position_component&.column
+      end
+
+      def coordinates
+        position_component = get_component(:position)
+        position_component&.coordinates
+      end
+
+      def move_to(new_row, new_column)
+        position_component = get_component(:position)
+        position_component&.move_to(new_row, new_column)
+      end
+
+      # Rendering delegation methods
+      def tile
+        render_component = get_component(:render)
+        render_component&.character || Support::TileType::STAIRS
+      end
     end
   end
 end

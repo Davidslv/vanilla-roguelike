@@ -90,6 +90,18 @@ module Vanilla
       level
     end
 
+    # Set the current level
+    # @param new_level [Level] The new level to set
+    def current_level=(new_level)
+      old_level = @world.current_level
+      @world.set_level(new_level)
+
+      # Log the level transition message if we have a message system
+      if @message_system && @message_system.respond_to?(:log_message)
+        @message_system.log_message("You descended to level #{new_level.difficulty}.")
+      end
+    end
+
     # Transition to the next level with increased difficulty
     def next_level
       @difficulty += 1
