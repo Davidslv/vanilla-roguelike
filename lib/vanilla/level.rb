@@ -54,6 +54,24 @@ module Vanilla
       [@player, @stairs]
     end
 
+    # Check if the player is at the stairs position
+    # @return [Boolean] true if player is at stairs position
+    def player_at_stairs?
+      return false unless @player && @stairs
+
+      player_pos = @player.get_component(:position)
+      stairs_pos = @stairs.get_component(:position)
+
+      at_stairs = player_pos.row == stairs_pos.row && player_pos.column == stairs_pos.column
+
+      if at_stairs
+        logger = Vanilla::Logger.instance
+        logger.info("Entity found stairs at [#{stairs_pos.row}, #{stairs_pos.column}]")
+      end
+
+      at_stairs
+    end
+
     private
 
     # Updates grid cells with entity information for backwards compatibility
