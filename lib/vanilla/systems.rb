@@ -1,3 +1,15 @@
+require_relative 'systems/system'
+require_relative 'systems/input_system'
+require_relative 'systems/movement_system'
+require_relative 'systems/collision_system'
+require_relative 'systems/render_system'
+require_relative 'systems/render_system_factory'
+require_relative 'systems/monster_system'
+require_relative 'systems/inventory_system'
+require_relative 'systems/inventory_render_system'
+require_relative 'systems/item_interaction_system'
+require_relative 'systems/message_system'
+
 module Vanilla
   # Systems module contains the logic for processing entities and components
   # in the Entity-Component-System architecture.

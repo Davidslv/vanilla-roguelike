@@ -21,9 +21,13 @@ module Vanilla
         layer: 10 # Player is drawn on top
       ))
       entity.add_component(Components::StairsComponent.new)
+      entity.add_component(Components::InputComponent.new)
 
       # Add tag to identify as player
       add_tag(entity, :player)
+
+      # Store name in entity data
+      add_data(entity, :name, name)
 
       # Add entity to world
       world.add_entity(entity) if world.respond_to?(:add_entity)

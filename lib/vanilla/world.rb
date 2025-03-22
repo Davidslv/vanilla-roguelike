@@ -11,6 +11,8 @@ module Vanilla
     def initialize
       @entities = {}
       @systems = []
+      @event_subscribers = Hash.new { |h, k| h[k] = [] }
+      @event_queue = Queue.new
     end
 
     # Add an entity to the world
@@ -71,11 +73,36 @@ module Vanilla
     end
 
     # Update all systems
-    # @param delta_time [Float] Time since last update
+    # @param delta_time [Float] Time in seconds since the last update
     def update(delta_time)
+      # Update all systems
       @systems.each do |system, _|
         system.update(delta_time)
       end
+
+      # Process events after systems have updated
+      process_events
+    end
+
+    # Queue an event to be processed
+    # @param event_type [Symbol] The type of event
+    # @param data [Hash] Event data
+    def emit_event(event_type, data = {})
+      @event_queue << [event_type, data]
+    end
+
+    # Subscribe a system to an event type
+    # @param event_type [Symbol] The type of event to subscribe to
+    # @param subscriber [Object] The system that will handle the event
+    def subscribe(event_type, subscriber)
+      @event_subscribers[event_type] << subscriber
+    end
+
+    # Unsubscribe a system from an event type
+    # @param event_type [Symbol] The type of event to unsubscribe from
+    # @param subscriber [Object] The system to unsubscribe
+    def unsubscribe(event_type, subscriber)
+      @event_subscribers[event_type].delete(subscriber)
     end
 
     # Convert the world to a hash representation
@@ -98,6 +125,18 @@ module Vanilla
       end
 
       world
+    end
+
+    private
+
+    # Process all events in the queue
+    def process_events
+      until @event_queue.empty?
+        event_type, data = @event_queue.pop
+        @event_subscribers[event_type].each do |subscriber|
+          subscriber.handle_event(event_type, data)
+        end
+      end
     end
   end
 end

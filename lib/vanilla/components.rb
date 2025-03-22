@@ -13,6 +13,7 @@ require_relative 'components/consumable_component'
 require_relative 'components/currency_component'
 require_relative 'components/durability_component'
 require_relative 'components/effect_component'
+require_relative 'components/input_component'
 
 # Load entity factory and world
 require_relative 'entity_factory'
