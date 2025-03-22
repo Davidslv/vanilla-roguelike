@@ -6,7 +6,7 @@ module GameStateHelper
   def capture_game_state(game)
     {
       player: capture_player_state(game.player),
-      level: capture_level_state(game.current_level),
+      level: capture_level_state(game.level),
       systems: capture_systems_state(game)
     }
   end
