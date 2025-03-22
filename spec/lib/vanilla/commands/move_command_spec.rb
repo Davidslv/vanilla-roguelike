@@ -32,15 +32,22 @@ RSpec.describe Vanilla::Commands::MoveCommand do
         command = described_class.new(entity, :up, grid, render_system)
         position_component = entity.get_component(:position)
 
+        # Mock ServiceRegistry for game access
+        game = double('Game')
+        level = double('Level')
+        allow(Vanilla::ServiceRegistry).to receive(:get).with(:game).and_return(game)
+        allow(game).to receive(:level).and_return(level)
+        allow(level).to receive(:update_grid_with_entities)
+        allow(level).to receive(:all_entities).and_return([entity])
+
         # Mock the movement to change position
         expect(movement_system).to receive(:move).with(entity, :up) do
           position_component.row = 4  # Simulate movement up
           true  # Return success
         end
 
-        # Expect old position to be cleared
-        expect(grid).to receive(:[]).with(5, 5).and_return(cell)
-        expect(cell).to receive(:tile=).with(Vanilla::Support::TileType::EMPTY)
+        # Expect level's grid update to be called
+        expect(level).to receive(:update_grid_with_entities)
 
         # Expect render system to be called
         expect(render_system).to receive(:render).with([entity], grid)

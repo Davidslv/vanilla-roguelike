@@ -83,7 +83,7 @@ module Vanilla
             @logger.info("Player found stairs")
           end
 
-          return false # Don't move further, stay on the stairs
+          # Continue movement - don't return early
         end
 
         # Update position
@@ -155,11 +155,18 @@ module Vanilla
       # @param entity [Vanilla::Components::Entity] The entity moving
       # @param target_cell [Vanilla::MapUtils::Cell] The target cell
       def handle_special_cell_attributes(entity, target_cell)
+        # Enhanced debugging for stairs
+        @logger.debug("Checking if cell has special attributes: [#{target_cell.row}, #{target_cell.column}]")
+        @logger.debug("Cell is stairs? #{target_cell.stairs?}")
+        @logger.debug("Entity has stairs component? #{entity.has_component?(:stairs)}")
+
         # Check for stairs
         if entity.has_component?(:stairs) && target_cell.stairs?
           stairs_component = entity.get_component(:stairs)
+          old_value = stairs_component.found_stairs
           stairs_component.found_stairs = true
-          @logger.info("Entity found stairs at [#{target_cell.row}, #{target_cell.column}]")
+          @logger.info("STAIRS FOUND: Entity found stairs at [#{target_cell.row}, #{target_cell.column}]")
+          @logger.info("STAIRS FOUND: Changed found_stairs from #{old_value} to #{stairs_component.found_stairs}")
         end
 
         # Additional special cell attributes can be handled here

@@ -9,7 +9,8 @@ module Vanilla
         PLAYER  = '@'.freeze,
         MONSTER = 'M'.freeze,
         STAIRS  = '%'.freeze,
-        VERTICAL_WALL = '|'.freeze
+        VERTICAL_WALL = '|'.freeze,
+        GOLD    = '$'.freeze
       ].freeze
 
       def self.values
@@ -29,7 +30,7 @@ module Vanilla
       def self.walkable?(tile)
         return false unless valid?(tile)
 
-        [EMPTY, FLOOR, DOOR, STAIRS].include?(tile)
+        [EMPTY, FLOOR, DOOR, STAIRS, GOLD].include?(tile)
       end
 
       # Check if the tile is a wall type (blocks movement)
