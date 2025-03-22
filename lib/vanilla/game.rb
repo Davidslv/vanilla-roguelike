@@ -20,13 +20,11 @@ module Vanilla
       # Create the ECS world
       @world = Vanilla::World.new
 
-      unless test_mode
-        # Register systems in priority order
-        register_systems
+      # Register systems in priority order
+      register_systems
 
-        # Create initial level
-        initialize_level
-      end
+      # Create initial level
+      initialize_level
 
       # Register the game in the service registry for compatibility
       # But first, clear any existing registration to prevent leaks
@@ -44,27 +42,35 @@ module Vanilla
 
       # Main game loop
       while @running
-        # Calculate delta time
-        current_time = Time.now
-        delta_time = current_time - @last_update_time
-        @last_update_time = current_time
-
-        # Process input and update world
-        @world.update(delta_time)
-
-        # Update grid with entities for compatibility
-        @world.current_level.update_grid_with_entities(@world.entities.values)
-
-        # Check for exit condition
-        @running = false if @world.keyboard.key_pressed?(:q)
-
-        # Limit frame rate
-        sleep_time = [0, (1.0 / 30) - delta_time].max
-        sleep(sleep_time) if sleep_time > 0
+        # Process a single turn
+        process_turn
       end
 
       # Clean up resources
       cleanup
+    end
+
+    # Process a single game turn
+    def process_turn
+      # Calculate delta time
+      current_time = Time.now
+      delta_time = current_time - @last_update_time
+      @last_update_time = current_time
+
+      # Process input and update world
+      @world.update(delta_time)
+
+      # Update grid with entities for compatibility
+      if @world.current_level
+        @world.current_level.update_grid_with_entities(@world.entities.values)
+      end
+
+      # Check for exit condition
+      @running = false if @world.keyboard.key_pressed?(:q)
+
+      # Limit frame rate
+      sleep_time = [0, (1.0 / 30) - delta_time].max
+      sleep(sleep_time) if sleep_time > 0
     end
 
     # Clean up and exit the game

@@ -249,20 +249,21 @@ module Vanilla
     end
 
     # Start the main game loop
-    def start
-      @running = true
-      @current_turn = 0
-      @player = @world.find_entity_by_tag(:player)
+    # NOTE: This method is replaced by the implementation in lib/vanilla/game.rb
+    # def start
+    #   @running = true
+    #   @current_turn = 0
+    #   @player = @world.find_entity_by_tag(:player)
 
-      # Game loop
-      while @running && !@game_over
-        # Process a single turn
-        process_turn
+    #   # Game loop
+    #   while @running && !@game_over
+    #     # Process a single turn
+    #     process_turn
 
-        # Sleep to limit frame rate for turn-based games
-        sleep(0.05)
-      end
-    end
+    #     # Sleep to limit frame rate for turn-based games
+    #     sleep(0.05)
+    #   end
+    # end
 
     # Return the player entity
     def player
