@@ -11,7 +11,8 @@ options = {
   seed: Random.new_seed,
   verbose: false,
   delay: 0.5,
-  output_file: nil  # Default to console output
+  output_file: nil,  # Default to console output
+  test_type: :movement  # Default test type
 }
 
 OptionParser.new do |opts|
@@ -37,6 +38,10 @@ OptionParser.new do |opts|
     options[:output_file] = file
   end
 
+  opts.on("--test-stairs", "Test stairs functionality") do
+    options[:test_type] = :stairs
+  end
+
   opts.on("-h", "--help", "Show this help") do
     puts opts
     exit
@@ -51,7 +56,7 @@ if options[:output_file]
   puts "Running test non-interactively"
 end
 
-puts "Running movement test with seed: #{options[:seed]}"
+puts "Running #{options[:test_type]} test with seed: #{options[:seed]}"
 
 # Create game simulator with non-interactive mode
 puts "Creating game simulator..."
@@ -60,69 +65,95 @@ simulator = Vanilla::Simulation::GameSimulator.new(
   capture_output: true  # Always capture output for non-interactive testing
 )
 
-# Define a simple test action
-test_action = lambda do |sim|
-  # Forcibly set the display_rendering to false to avoid interactive rendering
-  sim.instance_variable_set(:@display_rendering, false) if sim.instance_variable_defined?(:@display_rendering)
+# Define test actions based on the selected test type
+case options[:test_type]
+when :movement
+  # Define the movement test action
+  test_action = lambda do |sim|
+    # Forcibly set the display_rendering to false to avoid interactive rendering
+    sim.instance_variable_set(:@display_rendering, false) if sim.instance_variable_defined?(:@display_rendering)
 
-  puts "Setting up game..."
-  sim.setup_game
+    puts "Setting up game..."
+    sim.setup_game
 
-  # Verify initial player rendering
-  puts "Checking initial player rendering..."
-  initial_render = sim.verify_player_rendering
-  puts "Initial player rendering correct: #{initial_render}"
+    # Verify initial player rendering
+    puts "Checking initial player rendering..."
+    initial_render = sim.verify_player_rendering
+    puts "Initial player rendering correct: #{initial_render}"
 
-  # Capture initial screen
-  puts "Capturing initial screen..."
-  sim.capture_screen
+    # Capture initial screen
+    puts "Capturing initial screen..."
+    sim.capture_screen
 
-  puts "Testing movement in all directions..."
+    puts "Testing movement in all directions..."
 
-  # Get the level and grid for debugging
-  level = sim.instance_variable_get(:@level)
-  grid = level.grid if level
+    # Get the level and grid for debugging
+    level = sim.instance_variable_get(:@level)
+    grid = level.grid if level
 
-  # Print debug info about the grid
-  puts "DEBUG: Grid object: #{grid.class} #{grid.object_id}" if grid
+    # Print debug info about the grid
+    puts "DEBUG: Grid object: #{grid.class} #{grid.object_id}" if grid
 
-  # Check if direction symbols are being affected
-  test_directions = [:up, :right, :down, :left]
-  puts "DEBUG: Directions before loop:"
-  test_directions.each do |d|
-    puts "  - #{d.inspect} is a #{d.class} with object_id #{d.object_id}"
-  end
-
-  # Now test each direction
-  # IMPORTANT: Each direction must be passed as a Symbol (:up, :right, :down, :left)
-  # Do NOT pass the grid object as a direction, or you'll encounter:
-  # NoMethodError: undefined method 'to_sym' for #<Vanilla::MapUtils::Grid:...>
-  test_directions.each do |direction|
-    puts "Moving #{direction}..."
-    sleep options[:delay]
-
-    begin
-      # Print debug info right before passing to simulate_movement
-      puts "DEBUG: About to pass direction: #{direction.inspect} (#{direction.class}, #{direction.object_id})"
-
-      # Call simulate_movement with the direction symbol - this gets translated to
-      # cardinal directions (:north, :south, :east, :west) inside the simulator
-      results = sim.simulate_movement(direction, 1)
-
-      if results && results.first
-        success = results.first[:moved]
-        puts "Movement #{direction}: #{success ? 'Success' : 'Failed'}"
-      else
-        puts "Movement #{direction}: No results returned"
-      end
-    rescue => e
-      puts "Error moving #{direction}: #{e.message}"
-      puts "Backtrace:"
-      puts e.backtrace.first(10) # Show up to 10 lines of backtrace
+    # Check if direction symbols are being affected
+    test_directions = [:up, :right, :down, :left]
+    puts "DEBUG: Directions before loop:"
+    test_directions.each do |d|
+      puts "  - #{d.inspect} is a #{d.class} with object_id #{d.object_id}"
     end
+
+    # Now test each direction
+    # IMPORTANT: Each direction must be passed as a Symbol (:up, :right, :down, :left)
+    # Do NOT pass the grid object as a direction, or you'll encounter:
+    # NoMethodError: undefined method 'to_sym' for #<Vanilla::MapUtils::Grid:...>
+    test_directions.each do |direction|
+      puts "Moving #{direction}..."
+      sleep options[:delay]
+
+      begin
+        # Print debug info right before passing to simulate_movement
+        puts "DEBUG: About to pass direction: #{direction.inspect} (#{direction.class}, #{direction.object_id})"
+
+        # Call simulate_movement with the direction symbol - this gets translated to
+        # cardinal directions (:north, :south, :east, :west) inside the simulator
+        results = sim.simulate_movement(direction, 1)
+
+        if results && results.first
+          success = results.first[:moved]
+          puts "Movement #{direction}: #{success ? 'Success' : 'Failed'}"
+        else
+          puts "Movement #{direction}: No results returned"
+        end
+      rescue => e
+        puts "Error moving #{direction}: #{e.message}"
+        puts "Backtrace:"
+        puts e.backtrace.first(10) # Show up to 10 lines of backtrace
+      end
+    end
+
+    puts "Test completed successfully!"
   end
 
-  puts "Test completed successfully!"
+when :stairs
+  # Define the stairs test action
+  test_action = lambda do |sim|
+    # Forcibly set the display_rendering to false to avoid interactive rendering
+    sim.instance_variable_set(:@display_rendering, false) if sim.instance_variable_defined?(:@display_rendering)
+
+    puts "Setting up game for stairs test..."
+    sim.setup_game
+
+    # Verify initial player rendering
+    puts "Checking initial player rendering..."
+    initial_render = sim.verify_player_rendering
+    puts "Initial player rendering correct: #{initial_render}"
+
+    # Attempt to create and use stairs
+    puts "Testing stairs functionality..."
+    success = sim.guaranteed_level_transition
+    puts "Stairs test: #{success ? 'Success' : 'Failed'}"
+
+    puts "Test completed."
+  end
 end
 
 # Run the test
@@ -134,6 +165,11 @@ puts "\nTest Summary:"
 puts "Actions completed: #{results[:actions_completed]}"
 puts "Movement attempts: #{results[:movement_attempts] || 0}"
 puts "Successful movements: #{results[:successful_movements] || 0}"
+
+# Print stairs-specific results if applicable
+if options[:test_type] == :stairs
+  puts "Levels completed: #{results[:levels_completed] || 0}"
+end
 
 # Display errors if any
 if results[:errors] && !results[:errors].empty?
@@ -152,4 +188,5 @@ if options[:output_file] && $stdout != STDOUT && $stdout != original_stdout
   puts "Test completed. Results written to #{options[:output_file]}"
 end
 
-exit 0
+# Exit with appropriate status code
+exit(results[:errors] && !results[:errors].empty? ? 1 : 0)
