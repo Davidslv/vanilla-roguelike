@@ -36,7 +36,7 @@ module Vanilla
           type: @type,
           source: @source.to_s,
           timestamp: @timestamp.iso8601(3),
-          data: @data
+          data: safe_serialize(@data)
         }
       end
 
@@ -59,6 +59,30 @@ module Vanilla
           data[:id],
           data[:timestamp]
         )
+      end
+
+      private
+
+      # Safely serialize data by handling non-serializable objects
+      # @param value [Object] The value to serialize
+      # @return [Object] A serializable version of the value
+      def safe_serialize(value)
+        case value
+        when Hash
+          value.each_with_object({}) do |(k, v), h|
+            h[k] = safe_serialize(v)
+          end
+        when Array
+          value.map { |v| safe_serialize(v) }
+        when Numeric, String, true, false, nil
+          value
+        else
+          # For complex objects, convert to string representation
+          value.to_s
+        end
+      rescue => e
+        # If any error occurs during serialization, return a safe fallback
+        "#<#{value.class} - non-serializable>"
       end
     end
   end
