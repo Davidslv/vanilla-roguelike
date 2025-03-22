@@ -25,8 +25,11 @@ module Vanilla
       def render(renderer, selection_mode = false)
         return unless renderer.respond_to?(:draw_character)
 
-        # Debug output to verify rendering is being called
-        puts "DEBUG: Rendering message panel with #{@message_log.messages.size} messages" if $DEBUG
+        # Debug output with concise message
+        if $DEBUG
+          msg_types = @message_log.messages.take(5).map(&:category).tally
+          puts "DEBUG: Drawing message panel with #{@message_log.messages.size} msgs (#{msg_types})"
+        end
 
         # Draw a separator line above the message panel
         draw_separator_line(renderer)
@@ -129,15 +132,15 @@ module Vanilla
       # @param message [Hash] The message hash to render
       # @param y_pos [Integer] The y position to render at
       def render_hash_message(renderer, message, y_pos)
-        # Draw message text
-        text = message[:text].to_s
-        text = text.length > @width ? text[0...(@width-3)] + "..." : text
+        # Get formatted message text with prefix
+        text = format_hash_message(message, @width)
 
         # Get color based on importance and category
         color = get_color_for_hash_message(message)
 
+        # Draw each character
         text.each_char.with_index do |char, char_idx|
-          renderer.draw_character(y_pos, @x + char_idx + 1, char, color)
+          renderer.draw_character(y_pos, @x + char_idx, char, color)
         end
       end
 
@@ -179,37 +182,65 @@ module Vanilla
       # @return [String] The formatted message text
       def format_message_object(message, max_width)
         text = message.translated_text.to_s
+
+        # Add a prefix based on message category/importance
+        prefix = case message.importance
+                 when :critical then "!! "
+                 when :warning then "* "
+                 when :success then "+ "
+                 else "> "
+                 end
+
+        # Add prefix and ensure message fits in panel
+        prefixed_text = prefix + text
+
         # Truncate to fit panel width
-        text.length > max_width ? text[0...(max_width-3)] + "..." : text
+        prefixed_text.length > max_width ? prefixed_text[0...(max_width-3)] + "..." : prefixed_text
       end
 
-      # Format a message for display, handling truncation
-      # @param message [Message] The message to format
+      # Format a hash-based message
+      # @param message [Hash] The message to format
       # @param max_width [Integer] Maximum width for the message text
       # @return [String] The formatted message text
-      def format_message(message, max_width)
-        if message.is_a?(Message)
-          format_message_object(message, max_width)
-        else
-          text = message[:text].to_s
-          # Truncate to fit panel width
-          text.length > max_width ? text[0...(max_width-3)] + "..." : text
-        end
+      def format_hash_message(message, max_width)
+        text = message[:text].to_s
+
+        # Add a prefix based on message category/importance
+        prefix = case message[:importance]
+                 when :critical, :danger then "!! "
+                 when :warning then "* "
+                 when :success then "+ "
+                 else "> "
+                 end
+
+        # Add prefix and ensure message fits in panel
+        prefixed_text = prefix + text
+
+        # Truncate to fit panel width
+        prefixed_text.length > max_width ? prefixed_text[0...(max_width-3)] + "..." : prefixed_text
       end
 
       # Draw a separator line at the top of the message panel
       # @param renderer [Vanilla::Renderers::Renderer] The renderer to use
       def draw_separator_line(renderer)
-        (width + 2).times do |i|
-          renderer.draw_character(@y, @x + i, "-")
+        # Draw a clearly visible separator using special characters
+        renderer.draw_character(@y, @x, "+")
+
+        # Draw a very visible line with alternating characters
+        width.times do |i|
+          char = (i % 2 == 0) ? "=" : "-"
+          renderer.draw_character(@y, @x + i + 1, char)
         end
+
+        renderer.draw_character(@y, @x + width + 1, "+")
       end
 
       # Draw a message count indicator
       # @param renderer [Vanilla::Renderers::Renderer] The renderer to use
       # @param visible_count [Integer] The number of visible messages
       def draw_message_count(renderer, visible_count)
-        count_text = "[#{visible_count}/#{@message_log.messages.size}]"
+        # Make count more obvious with brackets and stars
+        count_text = "**[#{visible_count}/#{@message_log.messages.size}]**"
         count_text.each_char.with_index do |char, i|
           renderer.draw_character(@y, @x + width - count_text.length + i, char)
         end

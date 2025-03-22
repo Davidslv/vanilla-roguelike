@@ -44,9 +44,9 @@ module Vanilla
       end
 
       def draw_character(row, column, character, color = nil)
-        # Debug logging for message positioning
-        if row > @grid&.rows || row < 0
-          puts "DEBUG: Drawing outside grid at [#{row},#{column}]: '#{character}'" if $DEBUG && character != '-' && character != '|'
+        # Debug logging only for unusual positions, and only basic info
+        if $DEBUG && row > @grid&.rows && character != '-' && character != '|' && ![' ', '#'].include?(character)
+          puts "DEBUG: Drawing '#{character}' outside grid at [#{row},#{column}]"
         end
 
         # For characters within the grid bounds, use the grid buffer
@@ -133,52 +133,74 @@ module Vanilla
         # Print grid
         puts output
 
-        # Now render message area if there are any messages
-        unless @message_buffer.empty?
-          puts "DEBUG: Message buffer contains #{@message_buffer.size} entries" if $DEBUG
+        # Add a very obvious separator for the message area
+        puts "\n=== MESSAGES ===\n"
 
-          # Find the minimum row that would be below the grid
-          min_row = @grid.rows + 1
-          rows_to_show = @message_buffer.keys.select { |pos| pos[0] >= min_row }
-            .sort_by { |pos| pos[0] }
-            .group_by { |pos| pos[0] }
+        # DIRECT MESSAGE ACCESS - bypass message buffer issues
+        # Get access to the message manager via the game instance
+        if $game_instance&.instance_variable_get(:@message_manager)
+          message_manager = $game_instance.instance_variable_get(:@message_manager)
+          messages = message_manager.get_recent_messages(10)
 
-          # Render each row of messages as lines
-          rows_to_show.each do |row, positions|
-            # Sort positions by column
-            positions.sort_by! { |pos| pos[1] }
+          if messages && !messages.empty?
+            # Direct rendering of messages - bypassing the buffer
+            puts "Latest messages:"
+            puts "-" * 40
 
-            # Build the line with proper characters and colors
+            messages.each do |msg|
+              text = if msg.is_a?(Vanilla::Messages::Message)
+                  "#{msg.importance.to_s.upcase}: #{msg.translated_text}"
+                else
+                  "#{msg[:importance].to_s.upcase}: #{msg[:text]}"
+                end
+
+              # Format by importance
+              formatted = case (msg.is_a?(Vanilla::Messages::Message) ? msg.importance : msg[:importance])
+                         when :critical, :danger then "!! #{text}"
+                         when :warning then "* #{text}"
+                         when :success then "+ #{text}"
+                         else "> #{text}"
+                         end
+
+              puts formatted
+            end
+          else
+            puts "No messages available yet. Play the game to see messages here."
+          end
+        # Fallback to message buffer rendering
+        elsif !@message_buffer.empty?
+          # Use existing message buffer rendering code
+          if $DEBUG
+            msg_pos = @message_buffer.keys.map(&:first).uniq.sort
+            puts "DEBUG: Rendering #{@message_buffer.size} message chars at rows #{msg_pos.first}-#{msg_pos.last}"
+          end
+
+          # We'll take a different approach - collect all characters by row/col
+          message_area = {}
+
+          @message_buffer.each do |pos, char|
+            row, col = pos
+            message_area[row] ||= {}
+            message_area[row][col] = char
+          end
+
+          # Sort rows and render each one
+          message_area.keys.sort.each do |row|
+            # Get the max column for this row
+            max_col = message_area[row].keys.max || 0
+
+            # Create a line with the characters
             line = ""
-            current_color = nil
-
-            # Find the maximum column for this row
-            max_col = positions.map { |pos| pos[1] }.max
-
-            # Fill in the line character by character
             (0..max_col).each do |col|
-              pos = [row, col]
-              char = @message_buffer[pos] || ' '
-              color = @color_buffer[pos]
-
-              # Add color codes when color changes
-              if color && color != current_color
-                line << color_code(color)
-                current_color = color
-              elsif !color && current_color
-                line << reset_color
-                current_color = nil
-              end
-
-              line << char
+              line << (message_area[row][col] || " ")
             end
 
-            # Reset color at end of line if needed
-            line << reset_color if current_color
-
-            # Print the line
-            puts line
+            # Print the line - make sure lines aren't empty
+            puts line unless line.strip.empty?
           end
+        else
+          # If no messages, show a default
+          puts "No messages yet. Play the game to see messages here."
         end
       end
     end

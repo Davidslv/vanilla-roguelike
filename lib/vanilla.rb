@@ -139,12 +139,26 @@ module Vanilla
       # Record game start event for debugging and analytics
       @event_manager.publish_event(Events::Types::GAME_STARTED)
 
-      # Welcome message
-      @message_manager.log_success("game.welcome")
+      # Welcome message - use critical importance to make it more visible
+      @message_manager.log_translated("game.welcome",
+                                     importance: :critical,
+                                     category: :system)
 
       # Add some additional messages to ensure the message panel is visible
-      @message_manager.log_translated("ui.prompt_move", importance: :info)
-      @message_manager.log_exploration("exploration.enter_room", { room_type: "dimly lit" })
+      @message_manager.log_translated("ui.prompt_move",
+                                     importance: :warning,
+                                     category: :ui)
+
+      @message_manager.log_translated("exploration.enter_room",
+                                     importance: :success,
+                                     category: :exploration,
+                                     metadata: { room_type: "dimly lit" })
+
+      # Make intro messages visible before the level is generated
+      puts "\n\n=== WELCOME TO VANILLA ROGUELIKE ===\n\n"
+      puts "Loading game..."
+      puts "Hint: Look below the map for game messages!\n\n"
+      sleep(0.8)
 
       # Initialize the first level
       level = initialize_level(difficulty: 1)
@@ -238,6 +252,15 @@ module Vanilla
       level
     end
 
+    # Clear the screen and ensure enough terminal space for messages
+    def clear_screen_with_space_for_messages
+      # First clear the screen
+      @render_system.clear if @render_system.respond_to?(:clear)
+
+      # Add extra newlines to ensure messages are visible even on small terminals
+      puts "\n" * 5
+    end
+
     # The main game loop that implements the Game Loop pattern
     # This loop continues until the player exits or the game ends
     # @param level [Level] the current game level
@@ -272,14 +295,15 @@ module Vanilla
 
         # 3. UPDATE GAME STATE - update game world and check conditions
         monster_system = level.instance_variable_get(:@monster_system)
-
-        # Update monster positions according to AI
         monster_system.update
 
         # Handle collisions between player and monsters
         handle_collisions(level, monster_system)
 
         # 4. RENDER - update the display to reflect the new state
+        # Clear screen and ensure enough space for messages
+        clear_screen_with_space_for_messages
+
         all_entities = level.all_entities + monster_system.monsters
         @render_system.render(all_entities, level.grid)
 
@@ -294,6 +318,10 @@ module Vanilla
           # Re-render the new level
           monster_system = level.instance_variable_get(:@monster_system)
           all_entities = level.all_entities + monster_system.monsters
+
+          # Clear screen and ensure enough space
+          clear_screen_with_space_for_messages
+
           @render_system.render(all_entities, level.grid)
 
           # Re-render message panel
@@ -392,9 +420,19 @@ module Vanilla
         # Get the monster type - monsters have monster_type not name
         monster_type = monster.monster_type || "monster"
 
-        # Log a message about the collision
+        # Pause briefly to make sure player notices the collision
+        sleep(0.1)
+
+        # Log a message about the collision - make it a critical message for visibility
         @message_manager.log_translated("combat.player_hit",
                                        category: :combat,
+                                       importance: :critical,
+                                       metadata: { enemy: monster_type, damage: 1 })
+
+        # Also add a direct warning message that's more visible
+        @message_manager.log_translated("combat.enemy_hit",
+                                       category: :combat,
+                                       importance: :warning,
                                        metadata: { enemy: monster_type, damage: 1 })
 
         # Add combat damage event
@@ -403,6 +441,11 @@ module Vanilla
           defender: monster,
           damage: 1
         })
+
+        # Force a re-render after collision to ensure messages are visible
+        all_entities = level.all_entities + monster_system.monsters
+        @render_system.render(all_entities, level.grid)
+        @message_manager.render(@render_system)
       end
     end
 
@@ -414,9 +457,21 @@ module Vanilla
       current_difficulty = current_level.difficulty
       new_difficulty = current_difficulty + 1
 
-      # Log a message about finding stairs
+      # Clear screen and add space
+      clear_screen_with_space_for_messages
+
+      # Log multiple messages about finding stairs - using different importance levels for visibility
       @logger.info("Found stairs leading to depth #{new_difficulty}")
       @message_manager.log_success("exploration.find_stairs")
+      @message_manager.log_translated("exploration.find_stairs",
+                                     importance: :critical,
+                                     category: :exploration)
+
+      # Add a direct custom message for maximum visibility
+      stair_message = "*** YOU FOUND STAIRS TO LEVEL #{new_difficulty}! ***"
+      @message_manager.log_translated("ui.level_change_hint",
+                                     importance: :warning,
+                                     category: :ui)
 
       # Create event for level change - use only serializable data
       @event_manager.publish_event(Events::Types::LEVEL_CHANGED, {
@@ -431,24 +486,17 @@ module Vanilla
       # Generate the new level with increased difficulty
       @logger.info("Transitioning to level with difficulty #{new_difficulty}")
 
-      # Try to clear the screen - but handle case where method isn't available
-      begin
-        if @render_system.respond_to?(:clear_screen)
-          @render_system.clear_screen
-        else
-          # Fallback - print several newlines to visually separate levels
-          puts "\n" * 5
-          puts "===== DESCENDING TO LEVEL #{new_difficulty} =====\n\n"
-        end
-      rescue => e
-        @logger.warn("Could not clear screen, but continuing: #{e.message}")
-      end
-
-      # Render message panel to show transition message
+      # Pause to make sure player sees the messages
+      monster_system = current_level.instance_variable_get(:@monster_system)
+      all_entities = current_level.all_entities + monster_system.monsters
+      @render_system.render(all_entities, current_level.grid)
       @message_manager.render(@render_system)
 
       # Add a small delay to make the transition visible
-      sleep(0.5)
+      sleep(0.8)
+
+      # Clear screen again before new level
+      clear_screen_with_space_for_messages
 
       # Initialize new level
       new_level = initialize_level(difficulty: new_difficulty)

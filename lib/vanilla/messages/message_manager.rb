@@ -21,13 +21,13 @@ module Vanilla
         # Extract metadata if it's nested
         metadata = options.delete(:metadata) || options
 
-        # Debug logging
-        puts "DEBUG: Logging message with key: #{key}" if $DEBUG
-
         # Get the translated content with interpolation
         begin
           content = I18n.t(key, **metadata)
-          puts "DEBUG: Translated content: #{content}" if $DEBUG
+          if $DEBUG
+            short_content = content.to_s.length > 30 ? "#{content[0, 27]}..." : content
+            puts "DEBUG: Adding msg '#{key}' (#{category}): #{short_content}"
+          end
         rescue => e
           content = "Translation error for #{key}: #{e.message}"
           puts "DEBUG: Translation error: #{e.message}" if $DEBUG
@@ -40,7 +40,6 @@ module Vanilla
           importance: importance,
           metadata: metadata
         )
-        puts "DEBUG: Adding message to log: #{message.inspect}" if $DEBUG
         @message_log.add_message(message)
       end
 
@@ -137,16 +136,22 @@ module Vanilla
       end
 
       def render(render_system)
-        puts "DEBUG: Message manager rendering with panel: #{@message_panel.inspect}" if $DEBUG
-
-        if @message_panel.nil?
-          puts "DEBUG: Message panel is nil!" if $DEBUG
-          return
+        if $DEBUG
+          if @message_panel
+            message_count = @message_log.messages.size
+            puts "DEBUG: Rendering message panel at [#{@message_panel.x},#{@message_panel.y}] with #{message_count} messages"
+          else
+            puts "DEBUG: Message panel is nil!"
+          end
         end
 
+        return unless @message_panel
         @message_panel.render(render_system, @selection_mode)
       end
 
+      # Get recent messages from the log
+      # @param limit [Integer] Maximum number of messages to return
+      # @return [Array<Message>] The most recent messages
       def get_recent_messages(limit = 10)
         @message_log.get_recent(limit)
       end
