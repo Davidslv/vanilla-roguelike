@@ -136,11 +136,11 @@ module Vanilla
         # Add a very obvious separator for the message area
         puts "\n=== MESSAGES ===\n"
 
-        # DIRECT MESSAGE ACCESS - bypass message buffer issues
-        # Get access to the message manager via the game instance
-        if $game_instance&.instance_variable_get(:@message_manager)
-          message_manager = $game_instance.instance_variable_get(:@message_manager)
-          messages = message_manager.get_recent_messages(10)
+        # DIRECT MESSAGE ACCESS - use the MessageSystem facade
+        # This follows proper Service Locator pattern
+        message_system = Vanilla::Messages::MessageSystem.instance
+        if message_system
+          messages = message_system.get_recent_messages(10)
 
           if messages && !messages.empty?
             # Direct rendering of messages - bypassing the buffer

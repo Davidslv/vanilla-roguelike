@@ -10,13 +10,32 @@ module Vanilla
         @history_size = history_size
         @formatters = {}
         @current_selection_index = nil
+        @observers = []
 
         # Initialize default formatters
         register_default_formatters
       end
 
+      # Observer pattern methods
+      def add_observer(observer)
+        @observers << observer unless @observers.include?(observer)
+      end
+
+      def remove_observer(observer)
+        @observers.delete(observer)
+      end
+
+      def notify_observers
+        @observers.each { |observer| observer.update }
+      end
+
+      # Get the current game turn instead of directly accessing the global
+      def current_game_turn
+        Vanilla.game_turn
+      end
+
       # Add a message using a translation key
-      def add(key, options = {})
+      def add(key, options = {}, turn_provider = method(:current_game_turn))
         # Try to use the exact key first, if it doesn't exist, try with messages prefix
         text = if I18n.exists?(key)
           I18n.t(key, options)
@@ -27,12 +46,15 @@ module Vanilla
 
         category = options[:category] || :system
         importance = options[:importance] || :normal
+        # Use dependency injection for the turn number
+        turn = options[:turn] || turn_provider.call
         timestamp = Time.now
 
         message = {
           text: text,
           category: category,
           importance: importance,
+          turn: turn,
           timestamp: timestamp,
           metadata: options[:metadata] || {}
         }
@@ -45,6 +67,9 @@ module Vanilla
 
         # Trim history if needed
         @messages.pop if @messages.size > @history_size
+
+        # Notify observers about the new message
+        notify_observers
 
         message
       end
@@ -61,6 +86,9 @@ module Vanilla
 
         # Trim history if needed
         @messages.pop if @messages.size > @history_size
+
+        # Notify observers
+        notify_observers
 
         message
       end

@@ -17,6 +17,20 @@ module Vanilla
         @height = height
         @message_log = message_log
         @scroll_offset = 0
+
+        # Register as an observer of the message log
+        @message_log.add_observer(self) if @message_log.respond_to?(:add_observer)
+      end
+
+      # Called when the message log is updated
+      # Implements Observer pattern
+      def update
+        # Nothing needed here - panel will get updated on next render
+      end
+
+      # Clean up resources
+      def cleanup
+        @message_log.remove_observer(self) if @message_log.respond_to?(:remove_observer)
       end
 
       # Render the message panel

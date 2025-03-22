@@ -14,14 +14,16 @@ module Vanilla
       # @param metadata [Hash] Additional data for translation interpolation or message context
       # @param selectable [Boolean] Whether the message is selectable for interaction
       # @param shortcut_key [String, nil] Single-key shortcut for direct selection (optional)
+      # @param turn_provider [Proc] Optional proc that provides the current turn number
       # @yield [Message] Called when the message is selected, if selectable
       def initialize(content, category: :system, importance: :normal,
                     turn: nil, metadata: {}, selectable: false,
-                    shortcut_key: nil, &selection_callback)
+                    shortcut_key: nil, turn_provider: -> { Vanilla.game_turn rescue 0 },
+                    &selection_callback)
         @content = content
         @category = category
         @importance = importance
-        @turn = turn || Vanilla.game_turn rescue 0
+        @turn = turn || turn_provider.call
         @timestamp = Time.now
         @metadata = metadata
         @selectable = selectable
