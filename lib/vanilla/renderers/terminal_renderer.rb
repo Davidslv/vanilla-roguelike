@@ -44,6 +44,11 @@ module Vanilla
       end
 
       def draw_character(row, column, character, color = nil)
+        # Debug logging for message positioning
+        if row > @grid&.rows || row < 0
+          puts "DEBUG: Drawing outside grid at [#{row},#{column}]: '#{character}'" if $DEBUG && character != '-' && character != '|'
+        end
+
         # For characters within the grid bounds, use the grid buffer
         if @buffer && row >= 0 && row < @buffer.size && column >= 0 && column < @buffer.first.size
           @buffer[row][column] = character
@@ -130,26 +135,29 @@ module Vanilla
 
         # Now render message area if there are any messages
         unless @message_buffer.empty?
-          # Find the bounds for the message area
-          min_row = @message_buffer.keys.map { |pos| pos[0] }.min || 0
-          max_row = @message_buffer.keys.map { |pos| pos[0] }.max || 0
-          min_col = @message_buffer.keys.map { |pos| pos[1] }.min || 0
-          max_col = @message_buffer.keys.map { |pos| pos[1] }.max || 0
+          puts "DEBUG: Message buffer contains #{@message_buffer.size} entries" if $DEBUG
 
-          # Create a 2D array for the message area
-          height = max_row - min_row + 1
-          width = max_col - min_col + 1
+          # Find the minimum row that would be below the grid
+          min_row = @grid.rows + 1
+          rows_to_show = @message_buffer.keys.select { |pos| pos[0] >= min_row }
+            .sort_by { |pos| pos[0] }
+            .group_by { |pos| pos[0] }
 
-          message_lines = []
+          # Render each row of messages as lines
+          rows_to_show.each do |row, positions|
+            # Sort positions by column
+            positions.sort_by! { |pos| pos[1] }
 
-          # For each row in the message area
-          height.times do |row|
+            # Build the line with proper characters and colors
             line = ""
             current_color = nil
 
-            # For each column in the row
-            width.times do |col|
-              pos = [row + min_row, col + min_col]
+            # Find the maximum column for this row
+            max_col = positions.map { |pos| pos[1] }.max
+
+            # Fill in the line character by character
+            (0..max_col).each do |col|
+              pos = [row, col]
               char = @message_buffer[pos] || ' '
               color = @color_buffer[pos]
 
@@ -168,12 +176,9 @@ module Vanilla
             # Reset color at end of line if needed
             line << reset_color if current_color
 
-            message_lines << line
+            # Print the line
+            puts line
           end
-
-          # Print the message area
-          puts "\n" # Extra space before messages
-          puts message_lines
         end
       end
     end

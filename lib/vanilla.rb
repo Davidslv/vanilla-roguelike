@@ -191,19 +191,26 @@ module Vanilla
       @logger.info("Spawned initial monsters")
 
       # Set up message panel below the map area
-      # Position it just below the grid
+      # Position it just below the grid - the key issue is grid rendering
+      # takes 2 rows per grid cell plus border, so we need to position messages at:
+      # y = grid.rows * 2 + 1 (for the bottom border)
       grid_rows = level.grid.rows
       grid_cols = level.grid.columns
       panel_height = 5 # Show 5 messages at a time
 
+      # Calculate actual terminal rows based on grid size
+      # Each grid cell is 1 row for content and 1 row for bottom border
+      # Plus 1 row for the top border
+      terminal_rows = grid_rows * 2 + 1
+
       # Log message panel setup
-      @logger.info("Setting up message panel at row #{grid_rows + 1}, width #{grid_cols * 4}, height #{panel_height}")
+      @logger.info("Setting up message panel at terminal row #{terminal_rows}, width #{grid_cols * 4}, height #{panel_height}")
 
       # Ensure message panel is positioned with correct width to match the grid rendering
       @message_manager.setup_panel(
         0,                   # x position (left edge)
-        grid_rows + 1,       # y position (below the grid)
-        grid_cols * 3 + 1,   # width (match grid width in terminal cell units)
+        terminal_rows,       # y position (below the grid) - this is the key fix
+        grid_cols * 4,       # width (match grid width in terminal cell units)
         panel_height         # height (show 5 messages)
       )
 

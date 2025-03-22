@@ -17,7 +17,14 @@ module Vanilla
 
       # Add a message using a translation key
       def add(key, options = {})
-        text = I18n.t("messages.#{key}", options)
+        # Try to use the exact key first, if it doesn't exist, try with messages prefix
+        text = if I18n.exists?(key)
+          I18n.t(key, options)
+        else
+          # Fall back to legacy 'messages.' prefix format
+          I18n.t("messages.#{key}", default: key.to_s, **options)
+        end
+
         category = options[:category] || :system
         importance = options[:importance] || :normal
         timestamp = Time.now

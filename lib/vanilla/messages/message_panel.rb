@@ -25,6 +25,9 @@ module Vanilla
       def render(renderer, selection_mode = false)
         return unless renderer.respond_to?(:draw_character)
 
+        # Debug output to verify rendering is being called
+        puts "DEBUG: Rendering message panel with #{@message_log.messages.size} messages" if $DEBUG
+
         # Draw a separator line above the message panel
         draw_separator_line(renderer)
 
@@ -41,6 +44,9 @@ module Vanilla
         end
 
         visible_messages = messages[@scroll_offset, @height] || []
+
+        # Force visibility with a marker
+        renderer.draw_character(@y, @x, "#")
 
         # Draw messages directly using draw_character
         visible_messages.each_with_index do |message, idx|
