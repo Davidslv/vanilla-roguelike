@@ -1,4 +1,8 @@
 require 'pry'
+require 'logger'
+require 'set'
+require 'securerandom'
+require 'io/console'
 
 module Vanilla
   # required to use STDIN.getch
@@ -60,6 +64,9 @@ module Vanilla
   # message system
   require_relative 'vanilla/message_system'
 
+  # inventory system
+  require_relative 'vanilla/inventory'
+
   # I18n for localization
   require 'i18n'
 
@@ -77,26 +84,22 @@ module Vanilla
   # Service registry to replace global variables
   # Implementation of Service Locator pattern
   class ServiceRegistry
-    class << self
-      def register(service_name, instance)
-        services[service_name] = instance
-      end
+    @@services = {}
 
-      def get(service_name)
-        services[service_name]
-      end
+    def self.register(key, service)
+      @@services[key] = service
+    end
 
-      def unregister(service_name)
-        services.delete(service_name)
-      end
+    def self.get(key)
+      @@services[key]
+    end
 
-      def services
-        @services ||= {}
-      end
+    def self.unregister(key)
+      @@services.delete(key)
+    end
 
-      def reset
-        @services = {}
-      end
+    def self.clear
+      @@services.clear
     end
   end
 
@@ -126,401 +129,624 @@ module Vanilla
   # This implementation uses a turn-based approach appropriate for roguelike games,
   # where updates happen in discrete steps rather than in real-time.
   class Game
-    # Initialize a new game instance with all required systems
-    # @return [Game] a new Game instance
-    def initialize
-      @logger = Vanilla::Logger.instance
-      @logger.info("Starting Vanilla game")
+    attr_reader :level, :player, :monster_system, :scheduler, :render_system, :message_system, :inventory_system
+    attr_accessor :game_over
 
-      # Initialize event system with file storage for debugging and analytics
-      @event_manager = Events::EventManager.new(@logger)
+    def initialize(options = {})
+      @logger = options[:logger] || Logger.instance
+      @screen_transition_delay = options[:screen_transition_delay] || 0.5
+      @seed = options[:seed]
+      @difficulty = options[:difficulty] || 1
+      @scheduler = Scheduler.new
+      @game_over = false
+      @current_turn = 0
 
       # Initialize render system
-      @render_system = Systems::RenderSystemFactory.create
-
-      # Input handler translates raw keyboard input into game commands
-      @input_handler = InputHandler.new(@logger, @event_manager, @render_system)
+      @render_system = Vanilla::Systems::RenderSystemFactory.create
 
       # Initialize message system using the facade
       @message_system = Messages::MessageSystem.new(@logger, @render_system)
 
-      # Set turn counter
-      @turn = 0
-
-      # Store reference to current game instance
-      ServiceRegistry.register(:game, self)
-    end
-
-    # Get the current turn number
-    # @return [Integer] The current turn number
-    attr_reader :turn
-
-    # Start the game by initializing the first level and entering the game loop
-    # This is the main entry point after initialization
-    # @return [void]
-    def start
-      @logger.info("Starting game loop")
-
-      # Record game start event for debugging and analytics
-      @event_manager.publish_event(Events::Types::GAME_STARTED)
+      # Initialize inventory system
+      @inventory_system = Inventory::InventorySystemFacade.new(@logger, @render_system)
 
       # Welcome message - use critical importance to make it more visible
       @message_system.log_message("game.welcome",
-                                 importance: :critical,
-                                 category: :system)
+                                metadata: { difficulty: @difficulty },
+                                importance: :critical,
+                                category: :system)
 
       # Add some additional messages to ensure the message panel is visible
       @message_system.log_message("ui.prompt_move",
-                                 importance: :warning,
-                                 category: :ui)
+                                metadata: {},
+                                importance: :info,
+                                category: :system)
 
       @message_system.log_message("exploration.enter_room",
-                                 importance: :success,
-                                 category: :exploration,
-                                 metadata: { room_type: "dimly lit" })
+                                metadata: { room: "entrance" },
+                                importance: :info,
+                                category: :exploration)
 
       # Make intro messages visible before the level is generated
-      puts "\n\n=== WELCOME TO VANILLA ROGUELIKE ===\n\n"
-      puts "Loading game..."
+      clear_screen_with_space_for_messages
+      print_title_screen
       puts "Hint: Look below the map for game messages!\n\n"
-      sleep(0.8)
 
-      # Initialize the first level
-      level = initialize_level(difficulty: 1)
-
-      # Enter the main game loop - this will continue until the player exits
-      game_loop(level)
+      # Initialize the level
+      start_new_level
     end
 
-    # Perform cleanup operations when the game ends
-    # This ensures resources are properly released
-    # @return [void]
-    def cleanup
-      @event_manager.publish_event(Events::Types::GAME_ENDED)
-      @event_manager.close
-      @logger.info("Player exiting game")
+    # Display game title
+    def print_title_screen
+      puts ""
+      puts "========================================================="
+      puts "===             VANILLA ROGUELIKE GAME               ==="
+      puts "========================================================="
+      puts "===  Use arrow keys or hjkl to move                  ==="
+      puts "===  Press 'q' to quit                               ==="
+      puts "===  Difficulty: #{@difficulty.to_s.ljust(35)}  ==="
+      puts "===  Seed: #{@seed.to_s.ljust(40)}  ==="
+      puts "========================================================="
+      puts ""
+    end
 
+    # Exit the game and shut down cleanly
+    def exit_game
       # Display goodbye message
       @message_system.log_message("game.goodbye")
+      render # final render to show goodbye
+      sleep 1
+      clear_screen
+      puts "Thanks for playing!"
+      exit(0)
+    end
 
-      # Clear global reference
-      ServiceRegistry.unregister(:game)
+    # Start the main game loop
+    def start
+      render
+      until @game_over
+        key = STDIN.getch
+        handle_input(key)
+      end
+    end
+
+    # Get the current game turn
+    # @return [Integer] The current turn number
+    def self.game_turn
+      Vanilla.current_game.instance_variable_get(:@current_turn)
+    end
+
+    # Get the currently running game instance
+    # @return [Game] The current game
+    def self.current_game
+      Vanilla::ServiceRegistry.get(:game)
+    end
+
+    public
+
+    def cleanup
+      @message_system.cleanup if @message_system
+      @inventory_system.cleanup if @inventory_system
+      ServiceRegistry.clear
     end
 
     private
 
-    # Initialize a new level with the specified difficulty
-    # This creates the level, spawns monsters, and prepares it for play
-    # @param difficulty [Integer] the difficulty level (affects monster count and strength)
-    # @return [Level, MonsterSystem] the initialized level and its monster system
-    def initialize_level(difficulty:)
-      # Generate a new random level
-      level = Vanilla::Level.random(difficulty: difficulty)
-      @logger.info("Level created")
-
-      # Create a monster system for this level
-      monster_system = Vanilla::Systems::MonsterSystem.new(
-        grid: level.grid,
-        player: level.player,
-        logger: @logger
-      )
-
-      # Spawn monsters appropriate for this difficulty level
-      monster_system.spawn_monsters(difficulty)
-      @logger.info("Spawned initial monsters")
-
-      # Set up message panel below the map area
-      # Position it just below the grid - the key issue is grid rendering
+    # Set up message panel below the map area
+    def setup_message_panel
+      # Map has row_count and column_count
+      # Each grid cell takes 4 x 2 characters
+      # So the map position on screen is actually column_count * 4 wide and row_count
       # takes 2 rows per grid cell plus border, so we need to position messages at:
-      # y = grid.rows * 2 + 1 (for the bottom border)
-      grid_rows = level.grid.rows
-      grid_cols = level.grid.columns
-      panel_height = 5 # Show 5 messages at a time
-
-      # Calculate actual terminal rows based on grid size
-      # Each grid cell is 1 row for content and 1 row for bottom border
-      # Plus 1 row for the top border
+      #   y = row_count * 2 + 1
+      grid_rows = @level.grid.rows
+      grid_cols = @level.grid.columns
       terminal_rows = grid_rows * 2 + 1
+      panel_height = 5 # Show 5 messages at a time
 
       # Log message panel setup
       @logger.info("Setting up message panel at terminal row #{terminal_rows}, width #{grid_cols * 4}, height #{panel_height}")
 
       # Ensure message panel is positioned with correct width to match the grid rendering
       @message_system.setup_panel(
-        0,                   # x position (left edge)
-        terminal_rows,       # y position (below the grid) - this is the key fix
-        grid_cols * 4,       # width (match grid width in terminal cell units)
+        0,                  # x position - left aligned
+        terminal_rows,      # y position - just below the map
+        grid_cols * 4,      # width matches the grid width
         panel_height         # height (show 5 messages)
       )
 
       # Add a startup message to make the panel visible
       @message_system.log_message("game.startup_hint",
-                                     importance: :info,
-                                     category: :system,
-                                     metadata: { difficulty: difficulty })
+                                  metadata: {},
+                                  importance: :normal,
+                                  category: :system)
 
-      # Add a movement hint
       @message_system.log_message("ui.prompt_move",
-                                     importance: :info,
-                                     category: :ui)
+                                  metadata: {},
+                                  importance: :info,
+                                  category: :system)
+    end
 
-      # Initial render of the level
-      all_entities = level.all_entities + monster_system.monsters
-      @render_system.render(all_entities, level.grid)
+    # Render the game state
+    def render
+      # Render the level
+      @render_system.render(@level.all_entities, @level.grid)
 
       # Render message panel
       @message_system.render(@render_system)
-
-      # Store the monster system with the level for later access
-      level.instance_variable_set(:@monster_system, monster_system)
-
-      level
     end
 
     # Clear the screen and ensure enough terminal space for messages
     def clear_screen_with_space_for_messages
-      # First clear the screen
-      @render_system.clear if @render_system.respond_to?(:clear)
+      # First clear screen
+      clear_screen
 
       # Add extra newlines to ensure messages are visible even on small terminals
-      puts "\n" * 5
+      buffer_rows = 5
+
+      buffer_rows.times do
+        puts ""
+      end
     end
 
-    # The main game loop that implements the Game Loop pattern
-    # This loop continues until the player exits or the game ends
-    # @param level [Level] the current game level
-    # @return [void]
-    def game_loop(level)
-      # Flag to track exit request
-      exit_requested = false
+    # Clear the screen using ANSI escape sequence
+    def clear_screen
+      print "\e[H\e[2J"
+    end
 
-      # Start game loop following classic pattern:
-      # 1. Process Input
-      # 2. Update Game State
-      # 3. Render
-      loop do
-        # PHASE 1: START FRAME - mark the beginning of a new turn
-        @event_manager.publish_event(Events::Types::TURN_STARTED)
+    # Initialize a new level
+    def start_new_level
+      # Clear old services
+      Vanilla::ServiceRegistry.clear
+      @logger.debug("Cleared service registry")
 
-        # Clear any buffered input before getting new input
-        clear_input_buffer
+      # Register the game in the service registry
+      Vanilla::ServiceRegistry.register(:game, self)
+      @logger.debug("Registered game in service registry")
 
-        # PHASE 2: PROCESS INPUT - get and process player input
-        command = process_input(level)
+      # Create a new level with fresh entities
+      @level = Level.new(difficulty: @difficulty, seed: @seed)
+      @logger.debug("Created new level with difficulty: #{@difficulty}")
+      @player = @level.player
+      @logger.debug("Retrieved player from level")
 
-        # Check if player wants to exit the game
-        if command.is_a?(Vanilla::Commands::ExitCommand)
-          exit_requested = true
-          break
+      # Set up the monster system
+      @monster_system = Vanilla::Systems::MonsterSystem.new(grid: @level.grid, player: @player, logger: @logger)
+      @monster_system.spawn_monsters(@difficulty)
+
+      # Add inventory component to player if not already present
+      unless @player.has_component?(:inventory)
+        @player.add_component(Vanilla::Components::InventoryComponent.new)
+      end
+
+      # Add some starter items to the player's inventory
+      add_starter_items_to_player if @difficulty == 1
+
+      # Set up message panel
+      setup_message_panel
+
+      # Hint about level transition via stairs
+      @message_system.log_message("ui.level_change_hint",
+                                  metadata: {},
+                                  importance: :info,
+                                  category: :system)
+    end
+
+    # Add starter items to the player's inventory on first level
+    def add_starter_items_to_player
+      return unless @player && @player.has_component?(:inventory) && @inventory_system
+
+      # Create a healing potion
+      potion = @inventory_system.item_factory.create_potion(
+        "Healing Potion",
+        :heal,
+        20,
+        {
+          description: "A small vial of red liquid that restores health.",
+          character: '!',
+          color: :red
+        }
+      )
+
+      # Create a simple weapon
+      sword = @inventory_system.item_factory.create_weapon(
+        "Short Sword",
+        5,
+        {
+          description: "A simple but effective weapon.",
+          character: '/',
+          color: :white
+        }
+      )
+
+      # Create some gold coins
+      gold = Vanilla::Components::Entity.new
+      gold.add_component(Vanilla::Components::ItemComponent.new(
+        name: "Gold Coins",
+        description: "A small pouch of gold coins.",
+        item_type: :currency,
+        stackable: true,
+        stack_size: 10
+      ))
+
+      # Create a render component using the same approach as in ItemFactory
+      character = '$'
+      render_component = Vanilla::Components::RenderComponent.new(
+        character: character,
+        color: :yellow,
+        layer: 5,
+        entity_type: 'item'
+      )
+
+      # Add the render component to the gold
+      gold.add_component(render_component)
+
+      gold.add_component(Vanilla::Components::CurrencyComponent.new(10, :gold))
+
+      # Add the items to the player's inventory
+      @inventory_system.add_item_to_entity(@player, potion)
+      @inventory_system.add_item_to_entity(@player, sword)
+      @inventory_system.add_item_to_entity(@player, gold)
+
+      # Log a message about the starting items
+      @message_system.log_message("items.starter_kit",
+                                 importance: :info,
+                                 category: :item)
+    end
+
+    # Increase the difficulty and start a new level
+    def next_level
+      @difficulty += 1
+      @current_turn = 0
+      start_new_level
+    end
+
+    # Handle a player's keyboard input
+    def handle_input(key)
+      # First check if inventory system should handle the input
+      if @inventory_system.inventory_visible?
+        if @inventory_system.handle_inventory_input(key, @player)
+          # Input was handled by inventory system
+          clear_screen_with_space_for_messages
+          render
+          @message_system.render(@render_system)
+          return
+        end
+      end
+
+      # Check for inventory toggle key
+      if key == 'i'
+        @inventory_system.toggle_inventory_view(@player)
+        clear_screen_with_space_for_messages
+        render
+        @message_system.render(@render_system)
+        return
+      end
+
+      # Try to handle input with message system
+      return if try_handle_with_message_system(key)
+
+      # Handle movement keys directly with our special method
+      case key
+      when "k", "K", :KEY_UP
+        @logger.info("Player attempting to move UP")
+        return if move_player(:north)
+      when "j", "J", :KEY_DOWN
+        @logger.info("Player attempting to move DOWN")
+        return if move_player(:south)
+      when "l", "L", :KEY_RIGHT
+        @logger.info("Player attempting to move RIGHT")
+        return if move_player(:east)
+      when "h", "H", :KEY_LEFT
+        @logger.info("Player attempting to move LEFT")
+        return if move_player(:west)
+      when "\C-c", "q"
+        exit_game
+      end
+
+      # For non-movement keys, use the regular input handler
+      # Create a handler for the player's input
+      input_handler = InputHandler.new(@logger, @event_manager, @render_system)
+
+      # Try to handle the input and get the resulting command
+      command = input_handler.handle_input(key, @player, @level.grid)
+
+      # Process the command
+      case command
+      when Commands::ExitCommand
+        exit_game
+      when Commands::MoveCommand
+        # Debug log to check movement handling
+        @logger.debug("Processing MoveCommand, checking for items and stairs")
+
+        # Check if there are any items at the new position after movement
+        if @player.has_component?(:position)
+          position = @player.get_component(:position)
+          @inventory_system.check_for_items_at_position(@player, @level)
         end
 
-        # PHASE 3: UPDATE - update all game systems
-        monster_system = update_systems(level)
+        # Increment the turn counter
+        @current_turn += 1
 
-        # PHASE 4: RENDER - draw updated game state to screen
-        render_game_state(level, monster_system)
+        # Check if player has reached the stairs
+        @logger.debug("Checking if player is at stairs position")
+        if @level.player_at_stairs?
+          @logger.info("FOUND STAIRS: Player at stairs position!")
+          @message_system.log_message("level.stairs_found",
+                                   importance: :success,
+                                   category: :level)
 
-        # PHASE 5: HANDLE LEVEL TRANSITIONS if needed
-        if level.player_at_stairs?
-          level = transition_to_new_level(level)
-          monster_system = level.instance_variable_get(:@monster_system)
-
-          # Re-render after level transition
-          render_game_state(level, monster_system)
-
-          # Display level change hint
-          @message_system.log_message("ui.level_change_hint",
-                                    category: :system,
-                                    importance: :info)
+          # Call the more robust transition method
+          transition_to_next_level
+          return
+        else
+          @logger.debug("Player is not at stairs position")
         end
 
-        # PHASE 6: END FRAME - mark the end of the turn
-        @event_manager.publish_event(Events::Types::TURN_ENDED)
-        @turn += 1
-
-        # Exit check
-        break if exit_requested
+        # Update scheduled entities
+        @scheduler.update
       end
     end
 
-    # Clear input buffer to prevent buffered inputs
-    def clear_input_buffer
-      while STDIN.ready?
-        STDIN.read(1)
-      end
-      # Small delay to prevent input immediately after transition
-      sleep(0.1)
-    end
-
-    # Update all game systems
-    # @param level [Level] Current game level
-    # @return [MonsterSystem] Updated monster system
-    def update_systems(level)
-      monster_system = level.instance_variable_get(:@monster_system)
-      monster_system.update
-      handle_collisions(level, monster_system)
-      monster_system
-    end
-
-    # Render the current game state
-    # @param level [Level] Current game level
-    # @param monster_system [MonsterSystem] Monster system for the level
-    def render_game_state(level, monster_system)
-      # Clear screen and ensure enough space for messages
-      clear_screen_with_space_for_messages
-
-      # Render all entities
-      all_entities = level.all_entities + monster_system.monsters
-      @render_system.render(all_entities, level.grid)
-
-      # Render message panel
-      @message_system.render(@render_system)
-    end
-
-    # Handle transition to a new level
-    # @param current_level [Level] Current game level
-    # @return [Level] New game level
-    def transition_to_new_level(current_level)
-      new_difficulty = current_level.difficulty + 1
-
-      # Clear screen and show transition messages
-      clear_screen_with_space_for_messages
-
-      # Log transition events
-      @logger.info("Found stairs leading to depth #{new_difficulty}")
-      @message_system.log_success("exploration.find_stairs")
-      @message_system.log_message("exploration.find_stairs",
-                               importance: :critical,
-                               category: :exploration)
-
-      # Create event for level change
-      @event_manager.publish_event(Events::Types::LEVEL_CHANGED, {
-        level_difficulty: current_level.difficulty,
-        new_difficulty: new_difficulty,
-        player_stats: { position: "stairs", movement_count: @turn }
-      })
-
-      # Show transition animation
-      monster_system = current_level.instance_variable_get(:@monster_system)
-      all_entities = current_level.all_entities + monster_system.monsters
-      @render_system.render(all_entities, current_level.grid)
-      @message_system.render(@render_system)
-
-      # Delay to make transition visible
-      sleep(0.8)
-
-      # Initialize new level
-      new_level = initialize_level(difficulty: new_difficulty)
-      @logger.info("Level transition complete to depth #{new_difficulty}")
-
-      new_level
-    end
-
-    # Process player input and convert it to game commands
-    # @param level [Level] the current game level
-    # @return [Command] the command based on player input
-    def process_input(level)
-      # Get raw keyboard input
-      key = STDIN.getch
-
-      # First try to handle input with message system
-      if handled_by_message_system = try_handle_with_message_system(key)
-        return Vanilla::Commands::NoOpCommand.new(@logger, "Input handled by message system")
-      end
-
-      # Process into a game command - pass player and grid, not the level
-      # The input handler will execute the command internally
-      command = @input_handler.handle_input(key, level.player, level.grid)
-
-      # Return the executed command
-      command
-    end
-
-    # Try to handle input with the message system
-    # @param key [String] The raw input key
-    # @return [Boolean] Whether the input was handled by the message system
-    def try_handle_with_message_system(key)
-      # Check if player wants to quit the game
-      if key == "q" || key == "Q"
-        @logger.info("Player requesting to quit game")
-        exit_command = Vanilla::Commands::ExitCommand.new
-        exit_command.execute
-        return true
-      end
-
-      # Check for tab key to toggle message selection mode
-      if key == "\t"
-        @message_system.toggle_selection_mode
-        return true
-      end
-
-      # Special handling for arrow keys
-      if key == "\e" && STDIN.ready?
-        # It's an escape sequence - probably an arrow key
-        bracket = STDIN.read(1)
-        return false unless bracket == "["
-
-        arrow = STDIN.read(1)
-        arrow_sym = KEYBOARD_ARROWS[arrow.to_sym]
-
-        return @message_system.handle_input(arrow_sym) if @message_system.selection_mode
-        return false
-      end
-
-      # Handle enter key
-      if key == "\r" && @message_system.selection_mode
-        return @message_system.handle_input(:enter)
-      end
-
-      # For all other keys
-      @message_system.handle_input(key)
-    end
-
-    # Handle collisions between player and monsters
-    # @param level [Level] the current game level
-    # @param monster_system [MonsterSystem] the monster system for the level
-    # @return [void]
-    def handle_collisions(level, monster_system)
-      if monster_system.player_collision?
-        # Get the player's position
-        player_pos = level.player.get_component(:position)
-
-        # Get the monster at the player's position
-        monster = monster_system.monster_at(player_pos.row, player_pos.column)
-        return unless monster  # Safety check
-
-        @logger.info("Player collided with monster at [#{player_pos.row}, #{player_pos.column}]")
-
-        # Get the monster type - monsters have monster_type not name
-        monster_type = monster.monster_type || "monster"
-
-        # Pause briefly to make sure player notices the collision
-        sleep(0.1)
+    # Check for collisions with monsters
+    def check_for_monster_collisions
+      # Check if the player has collided with a monster
+      if @monster_system.player_collision?
+        monster = @monster_system.monster_at(@player.position.row, @player.position.column)
 
         # Log a message about the collision - make it a critical message for visibility
         @message_system.log_message("combat.player_hit",
-                                       category: :combat,
-                                       importance: :critical,
-                                       metadata: { enemy: monster_type, damage: 1 })
+                                  { monster: monster ? "a monster" : "something" },
+                                  importance: :critical,
+                                  category: :combat)
 
         # Also add a direct warning message that's more visible
         @message_system.log_message("combat.enemy_hit",
-                                       category: :combat,
-                                       importance: :warning,
-                                       metadata: { enemy: monster_type, damage: 1 })
+                                  { damage: 5, remaining_hp: 95 },
+                                  importance: :warning,
+                                  category: :combat)
 
-        # Add combat damage event
-        @event_manager.publish_event(Events::Types::COMBAT_DAMAGE, {
-          attacker: level.player,
-          defender: monster,
-          damage: 1
-        })
+        # TODO: Implement proper combat system
+        # For now, just prevent the player from moving onto the monster tile
+        # The message should be sufficient to indicate that combat happened
+      end
 
-        # Force a re-render after collision to ensure messages are visible
-        all_entities = level.all_entities + monster_system.monsters
-        @render_system.render(all_entities, level.grid)
+      # Force a re-render after collision to ensure messages are visible
+      clear_screen_with_space_for_messages
+      render
+      @message_system.render(@render_system)
+    end
+
+    # Handle transition to the next level
+    def transition_to_next_level
+      begin
+        # Simplify the transition to address the stairs issue
+        @logger.info("TRANSITION: Player found stairs, going to next level")
+
+        # Increment difficulty
+        @difficulty += 1
+
+        # Clear screen for transition
+        clear_screen
+        puts "Descending to level #{@difficulty}..."
+        puts "Please wait..."
+        sleep 1
+
+        # Save old level reference
+        old_level = @level
+
+        # Re-register game in service registry first
+        Vanilla::ServiceRegistry.clear
+        Vanilla::ServiceRegistry.register(:game, self)
+
+        # Create a new level with higher difficulty
+        @level = Level.new(difficulty: @difficulty, seed: nil)
+        @player = @level.player
+
+        # Re-setup monster system
+        @monster_system = Vanilla::Systems::MonsterSystem.new(grid: @level.grid, player: @player, logger: @logger)
+        @monster_system.spawn_monsters(@difficulty)
+
+        # Re-setup message panel with new grid dimensions
+        setup_message_panel
+
+        # Reset turn counter
+        @current_turn = 0
+
+        # Force garbage collection of old level
+        old_level = nil
+        GC.start
+
+        # Redraw everything
+        clear_screen_with_space_for_messages
+        print_title_screen
+        render
+
+        # Add success message
+        @message_system.log_message(
+          "level.descended",
+          metadata: { level: @difficulty },
+          importance: :success,
+          category: :level
+        )
+      rescue => e
+        # Log the error
+        @logger.error("Error during level transition: #{e.message}")
+        @logger.error(e.backtrace.join("\n"))
+
+        # Display error to player
+        clear_screen
+        puts "Error transitioning to next level: #{e.message}"
+        puts "Press any key to exit..."
+        STDIN.getch
+        exit(1)
+      end
+    end
+
+    # First try to handle input with message system
+    def try_handle_with_message_system(key)
+      handled_by_message_system = @message_system.handle_input(key)
+
+      # If the message system handled it, we're done
+      if handled_by_message_system
+        # Re-render after message system input
+        clear_screen_with_space_for_messages
+        render
         @message_system.render(@render_system)
       end
+
+      handled_by_message_system
+    end
+
+    # Wait for a keypress and return it
+    # This integrates with the message system for handling certain keys
+    def wait_for_keypress
+      loop do
+        # Check for keypress
+        if STDIN.ready?
+          key = STDIN.getch
+
+          # Check for arrow keys (escape sequences)
+          if key == "\e"
+            # Possibly an arrow key
+            if STDIN.ready?
+              # Read the next character
+              second_char = STDIN.getch
+              if second_char == '['
+                # It's an escape sequence
+                if STDIN.ready?
+                  # Read the actual arrow key
+                  third_char = STDIN.getch
+                  arrow_sym = KEYBOARD_ARROWS[third_char.to_sym]
+
+                  # Check for message system selection mode or inventory mode
+                  if @message_system.selection_mode? || @inventory_system.inventory_visible?
+                    return arrow_sym
+                  end
+
+                  # Otherwise, translate to h/j/k/l
+                  key = case arrow_sym
+                        when :KEY_UP then 'k'
+                        when :KEY_DOWN then 'j'
+                        when :KEY_LEFT then 'h'
+                        when :KEY_RIGHT then 'l'
+                        else key
+                        end
+                end
+              end
+            end
+          end
+
+          # Check for tab key to toggle message selection mode
+          if key == "\t"
+            @message_system.toggle_selection_mode
+            clear_screen_with_space_for_messages
+            render
+            @message_system.render(@render_system)
+            next
+          end
+
+          # If in message selection mode, handle arrow keys directly
+          if @message_system.selection_mode?
+            if key == 'k' || key == 'h'
+              return :KEY_UP
+            elsif key == 'j' || key == 'l'
+              return :KEY_DOWN
+            end
+          end
+
+          # Enter key in selection mode
+          if key == "\r" && @message_system.selection_mode?
+            return :enter
+          end
+
+          # Check if the message system should handle this
+          if try_handle_with_message_system(key)
+            next  # Get another key since this one was consumed
+          end
+
+          return key
+        end
+
+        # No key ready, sleep briefly to avoid CPU spin
+        sleep 0.01
+      end
+    end
+
+    # Handle direct player movement and check for stairs
+    def move_player(direction)
+      @logger.debug("Game.move_player called with direction: #{direction}")
+
+      # Get the player's position before movement
+      player_pos = @player.get_component(:position)
+      old_row, old_col = player_pos.row, player_pos.column
+      @logger.debug("Player position before movement: [#{old_row}, #{old_col}]")
+
+      # Create a movement system
+      movement_system = Vanilla::Systems::MovementSystem.new(@level.grid)
+
+      # Move the player
+      success = movement_system.move(@player, direction)
+      @logger.debug("Movement success: #{success}")
+
+      if success
+        # Get new position
+        new_row, new_col = player_pos.row, player_pos.column
+        @logger.debug("Player position after movement: [#{new_row}, #{new_col}]")
+
+        # Update the level's grid with the new position
+        @level.update_grid_with_entities
+
+        # Render the updated state
+        render
+
+        # Check directly if the player is at the same position as the stairs
+        stairs_pos = @level.stairs.get_component(:position)
+
+        if stairs_pos
+          @logger.debug("Player-Stairs Check - Stairs: [#{stairs_pos.row}, #{stairs_pos.column}], Player: [#{new_row}, #{new_col}]")
+
+          if new_row == stairs_pos.row && new_col == stairs_pos.column
+            @logger.info("DIRECT CHECK: Player is at stairs position! [#{new_row}, #{new_col}]")
+
+            # Update player's stairs component
+            if @player.has_component?(:stairs)
+              @player.get_component(:stairs).found_stairs = true
+            end
+
+            # Log message and show renderer
+            @message_system.log_message("level.stairs_found", importance: :success, category: :level)
+            render
+
+            # Add a small delay
+            sleep 0.5
+
+            # Transition to next level
+            transition_to_next_level
+            return true
+          end
+        end
+      end
+
+      return success
+    end
+  end
+
+  class Scheduler
+    def initialize
+      @entities = []
+    end
+
+    def register(entity)
+      @entities << entity
+    end
+
+    def unregister(entity)
+      @entities.delete(entity)
+    end
+
+    def update
+      @entities.each { |entity| entity.update }
     end
   end
 
