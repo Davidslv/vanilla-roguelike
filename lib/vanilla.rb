@@ -125,18 +125,12 @@ module Vanilla
     game&.instance_variable_get(:@event_manager)
   end
 
-  # Game class implements the core game loop pattern and orchestrates the game's
+  # The Game class is the central coordinator that connects all the
   # main components. It manages the game lifecycle from initialization to cleanup.
-  #
-  # The Game Loop pattern provides a way to:
-  # 1. Process player input
-  # 2. Update game state
-  # 3. Render the updated state
-  # 4. Repeat until the game ends
-  #
-  # This implementation uses a turn-based approach appropriate for roguelike games,
-  # where updates happen in discrete steps rather than in real-time.
   class Game
+    # @return [Boolean] Whether the game is currently running
+    attr_reader :running, :game_over, :world, :player, :level
+
     attr_reader :level, :player, :monster_system, :scheduler, :render_system, :message_system, :inventory_system
     attr_accessor :game_over
 
@@ -148,20 +142,54 @@ module Vanilla
       @scheduler = Scheduler.new
       @game_over = false
       @current_turn = 0
+      @running = false
+
+      # Create the world
+      @world = World.new
 
       # Skip UI initialization and display in test mode
       test_mode = ENV['VANILLA_TEST_MODE'] == 'true' || options[:test_mode]
 
-      # Initialize systems
-      if !test_mode
+      # Register the game in the service registry even in test mode
+      Vanilla::ServiceRegistry.register(:game, self)
+
+      # Initialize systems and basic entities even in test mode,
+      # but don't render anything or create a full-fledged level
+      if test_mode
+        # Create minimal test systems
+        @input_system = Vanilla::Systems::InputSystem.new(@world)
+        @world.add_system(@input_system, 10)
+
+        @movement_system = Vanilla::Systems::MovementSystem.new(@world)
+        @world.add_system(@movement_system, 20)
+
+        # Null renderer for test mode
+        @render_system = NullRenderer.new
+        @world.add_system(@render_system, 100)
+
+        # Minimal message system that doesn't crash but does nothing
+        @message_system = NullMessageSystem.new
+
+        # Create a minimal test level and player
+        initialize_test_entities
+      else
+        # Normal mode initialization with real systems and UI
         # Initialize render system
-        @render_system = Vanilla::Systems::RenderSystemFactory.create
+        @render_system = Vanilla::Systems::RenderSystemFactory.create(@world)
+        @world.add_system(@render_system, 100) # Render last (highest priority)
 
         # Initialize message system using the facade
         @message_system = Messages::MessageSystem.new(@logger, @render_system)
 
         # Initialize inventory system
         @inventory_system = Inventory::InventorySystemFacade.new(@logger, @render_system)
+
+        # Initialize other systems
+        @input_system = Vanilla::Systems::InputSystem.new(@world)
+        @world.add_system(@input_system, 10) # Process input first (low priority)
+
+        @movement_system = Vanilla::Systems::MovementSystem.new(@world)
+        @world.add_system(@movement_system, 20)
 
         # Welcome message - use critical importance to make it more visible
         @message_system.log_message("game.welcome",
@@ -184,10 +212,26 @@ module Vanilla
         clear_screen_with_space_for_messages
         print_title_screen
         puts "Hint: Look below the map for game messages!\n\n"
-      end
 
-      # Initialize the level
-      start_new_level unless test_mode
+        # Initialize the level
+        start_new_level
+      end
+    end
+
+    # Initialize test entities for test mode
+    def initialize_test_entities
+      # Create a minimal level for tests
+      level = Level.new(difficulty: @difficulty, seed: @seed, rows: 10, columns: 10)
+      @world.set_level(level)
+
+      # Create a player entity
+      player = Components::Entity.new
+      player.add_tag(:player)
+      player.add_component(Components::PositionComponent.new(row: 1, column: 1))
+      player.add_component(Components::InputComponent.new)
+      player.add_component(Components::MovementComponent.new)
+      @world.add_entity(player)
+      @player = player
     end
 
     # Display game title
@@ -204,44 +248,66 @@ module Vanilla
       puts ""
     end
 
-    # Exit the game and shut down cleanly
-    def exit_game
-      # Display goodbye message
-      @message_system.log_message("game.goodbye")
-      render # final render to show goodbye
-      sleep 1
-      clear_screen
-      puts "Thanks for playing!"
-      exit(0)
-    end
-
     # Start the main game loop
     def start
-      render
-      until @game_over
-        key = STDIN.getch
-        handle_input(key)
+      @running = true
+      @current_turn = 0
+      @player = @world.find_entity_by_tag(:player)
+
+      # Game loop
+      while @running && !@game_over
+        # Process a single turn
+        process_turn
+
+        # Sleep to limit frame rate for turn-based games
+        sleep(0.05)
       end
     end
 
-    # Get the current game turn
-    # @return [Integer] The current turn number
-    def self.game_turn
-      Vanilla.current_game.instance_variable_get(:@current_turn)
+    # Return the player entity
+    def player
+      @player ||= @world.find_entity_by_tag(:player)
     end
 
-    # Get the currently running game instance
-    # @return [Game] The current game
-    def self.current_game
-      Vanilla::ServiceRegistry.get(:game)
+    # Return the current level
+    def level
+      @world.current_level
     end
 
-    public
+    # Move to the next game level
+    def next_level
+      @difficulty += 1
 
+      # Queue a command to change the level
+      @world.queue_command(
+        :change_level,
+        {
+          difficulty: @difficulty,
+          player_id: player&.id
+        }
+      )
+    end
+
+    # Exit the game
+    def exit_game
+      # Log a final message
+      @message_system&.log_message("game.goodbye")
+
+      # Set running to false to exit the game loop
+      @running = false
+    end
+
+    # Free resources when the game is done
     def cleanup
       @message_system.cleanup if @message_system
       @inventory_system.cleanup if @inventory_system
       ServiceRegistry.clear
+    end
+
+    # Get the currently running game instance
+    # @return [Game] The current game instance
+    def self.current
+      ServiceRegistry.get(:game)
     end
 
     private
@@ -412,13 +478,6 @@ module Vanilla
       @message_system.log_message("items.starter_kit",
                                  importance: :info,
                                  category: :item)
-    end
-
-    # Increase the difficulty and start a new level
-    def next_level
-      @difficulty += 1
-      @current_turn = 0
-      start_new_level
     end
 
     # Handle a player's keyboard input
@@ -785,4 +844,58 @@ module Vanilla
     end
   end
 
+  # Simple null implementation of a renderer for testing
+  class NullRenderer
+    def render(entities, grid)
+      # Do nothing
+    end
+
+    def clear
+      # Do nothing
+    end
+
+    def present
+      # Do nothing
+    end
+
+    def clear_screen
+      # Do nothing
+    end
+
+    def draw_grid(grid)
+      # Do nothing
+    end
+
+    def draw_character(row, column, char, color = nil)
+      # Do nothing
+    end
+
+    def update(delta_time)
+      # Do nothing
+    end
+  end
+
+  # Simple null implementation of a message system for testing
+  class NullMessageSystem
+    def log_message(key, metadata = {}, importance: :normal, category: :general)
+      # Do nothing
+    end
+
+    def get_recent_messages
+      []
+    end
+
+    def clear
+      # Do nothing
+    end
+
+    def cleanup
+      # Do nothing
+    end
+  end
+
+  # Logger singleton for application-wide logging
+
 end
+
+

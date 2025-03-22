@@ -2,10 +2,13 @@ require 'spec_helper'
 
 RSpec.describe Vanilla::Systems::RenderSystem do
   let(:renderer) { instance_double('Vanilla::Renderers::Renderer') }
-  let(:grid) { instance_double('Vanilla::MapUtils::Grid') }
+  let(:grid) { instance_double('Vanilla::MapUtils::Grid', rows: 10, columns: 20) }
   let(:system) { described_class.new(renderer) }
 
   before do
+    # Allow grid access using array syntax for cells
+    allow(grid).to receive(:[]).and_return(instance_double("Vanilla::Cell"))
+
     # Allow TileType validation to pass for test characters
     allow(Vanilla::Support::TileType).to receive(:valid?).and_return(true)
   end
@@ -34,6 +37,10 @@ RSpec.describe Vanilla::Systems::RenderSystem do
 
       expect(renderer).to receive(:present)
 
+      # Create a system that uses our mocked renderer instead of creating a real one
+      system = Vanilla::Systems::RenderSystem.new(double('Vanilla::World'))
+      system.instance_variable_set(:@renderer, renderer)
+
       # Execute
       system.render([entity1, entity2, entity3], grid)
     end
@@ -61,6 +68,10 @@ RSpec.describe Vanilla::Systems::RenderSystem do
 
       expect(renderer).to receive(:present)
 
+      # Create a system that uses our mocked renderer instead of creating a real one
+      system = Vanilla::Systems::RenderSystem.new(double('Vanilla::World'))
+      system.instance_variable_set(:@renderer, renderer)
+
       # Execute
       system.render([entity1, entity2, entity3], grid)
     end
@@ -72,6 +83,10 @@ RSpec.describe Vanilla::Systems::RenderSystem do
       expect(renderer).to receive(:present)
 
       # No draw_character calls expected
+
+      # Create a system that uses our mocked renderer instead of creating a real one
+      system = Vanilla::Systems::RenderSystem.new(double('Vanilla::World'))
+      system.instance_variable_set(:@renderer, renderer)
 
       # Execute
       system.render([], grid)
