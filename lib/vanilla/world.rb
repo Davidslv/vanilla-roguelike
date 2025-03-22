@@ -115,6 +115,12 @@ module Vanilla
       @current_level = level
     end
 
+    # Get the grid from the current level
+    # @return [Grid, nil] The grid or nil if no level is set
+    def grid
+      @current_level&.grid
+    end
+
     private
 
     # Process all queued events
