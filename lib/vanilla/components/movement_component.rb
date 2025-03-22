@@ -19,53 +19,23 @@ module Vanilla
     #   movement_system.move(entity, :north)
     class MovementComponent < Component
       # @return [Float] Movement speed factor
-      attr_reader :speed
+      attr_accessor :speed
 
       # @return [Array<Symbol>] Directions this entity can move in (:north, :south, :east, :west)
-      attr_reader :can_move_directions
+      attr_accessor :can_move_directions
 
       # Initialize a new movement component
       # @param speed [Float] Movement speed multiplier
       # @param can_move_directions [Array<Symbol>] Directions this entity can move in
       def initialize(speed: 1, can_move_directions: [:north, :south, :east, :west])
-        super()
         @speed = speed
         @can_move_directions = can_move_directions
+        super()
       end
 
       # @return [Symbol] the component type
       def type
         :movement
-      end
-
-      # Set the movement speed
-      # @param value [Float] The new speed value
-      # @return [Float] The updated speed
-      def set_speed(value)
-        @speed = [0, value.to_f].max
-      end
-
-      # Set the allowed movement directions
-      # @param directions [Array<Symbol>] The new allowed directions
-      # @return [Array<Symbol>] The updated directions
-      def set_movement_directions(directions)
-        @can_move_directions = directions
-      end
-
-      # Add a direction to the allowed movement directions
-      # @param direction [Symbol] The direction to add
-      # @return [Array<Symbol>] The updated directions
-      def add_movement_direction(direction)
-        @can_move_directions << direction unless @can_move_directions.include?(direction)
-        @can_move_directions
-      end
-
-      # Remove a direction from the allowed movement directions
-      # @param direction [Symbol] The direction to remove
-      # @return [Array<Symbol>] The updated directions
-      def remove_movement_direction(direction)
-        @can_move_directions.delete(direction)
-        @can_move_directions
       end
 
       # @return [Hash] serialized component data

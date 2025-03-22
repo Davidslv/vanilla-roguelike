@@ -2,26 +2,8 @@ module Vanilla
   module Components
     # Component for items that can be picked up, used, and stored in inventory
     class ItemComponent < Component
-      # @return [String] The display name of the item
-      attr_reader :name
-
-      # @return [String] The item description
-      attr_reader :description
-
-      # @return [Symbol] The type of item (:weapon, :armor, :potion, etc.)
-      attr_reader :item_type
-
-      # @return [Integer] The weight of the item
-      attr_reader :weight
-
-      # @return [Integer] The value of the item in currency
-      attr_reader :value
-
-      # @return [Boolean] Whether the item can be stacked
-      attr_reader :stackable
-
-      # @return [Integer] The current stack size for stackable items
-      attr_reader :stack_size
+      attr_reader :name, :description, :item_type, :weight, :value
+      attr_accessor :stack_size
 
       # Initialize a new item component
       # @param name [String] The display name of the item
@@ -55,28 +37,33 @@ module Vanilla
         @stackable
       end
 
-      # Modify the stack size
-      # @param amount [Integer] Amount to change the stack by (positive or negative)
+      # Increase the stack size by 1
       # @return [Integer] The new stack size
-      def modify_stack(amount)
-        if @stackable
-          @stack_size = [@stack_size + amount, 1].max
-        end
+      def increase_stack
+        @stack_size += 1 if stackable?
         @stack_size
       end
 
-      # Set the stack size directly
-      # @param size [Integer] The new stack size
+      # Decrease the stack size by 1
       # @return [Integer] The new stack size
-      def set_stack_size(size)
-        @stack_size = [size, 1].max if @stackable
+      def decrease_stack
+        @stack_size -= 1 if stackable? && @stack_size > 0
         @stack_size
       end
 
-      # Get additional data for serialization
-      # @return [Hash] additional data to include in serialization
-      def data
+      # Use the item on a target entity
+      # @param entity [Entity] The entity using the item
+      # @return [Boolean] Whether the item was successfully used
+      def use(entity)
+        # Base implementation does nothing - subclasses should override
+        false
+      end
+
+      # Convert to hash for serialization
+      # @return [Hash] The component data as a hash
+      def to_hash
         {
+          type: type,
           name: @name,
           description: @description,
           item_type: @item_type,
@@ -100,6 +87,14 @@ module Vanilla
           stackable: hash[:stackable] || false,
           stack_size: hash[:stack_size] || 1
         )
+      end
+
+      # Get a display string for the item
+      # @return [String] A formatted string representation of the item
+      def display_string
+        base = @name
+        base += " (#{@stack_size})" if stackable? && @stack_size > 1
+        base
       end
     end
 

@@ -1,18 +1,14 @@
 module Vanilla
   module Components
     # Component for items that represent currency or valuable treasures
-    class CurrencyComponent < Component
-      # @return [Symbol] The type of currency (:gold, :silver, etc.)
+    class CurrencyComponent
       attr_reader :currency_type
-
-      # @return [Integer] The monetary value of the currency
-      attr_reader :value
+      attr_accessor :value
 
       # Initialize a new currency component
       # @param value [Integer] The monetary value of the currency
       # @param currency_type [Symbol] The type of currency (:gold, :silver, etc.)
       def initialize(value, currency_type = :gold)
-        super()
         @value = value
         @currency_type = currency_type
       end
@@ -23,26 +19,64 @@ module Vanilla
         :currency
       end
 
-      # Set the value
-      # @param new_value [Integer] The new monetary value
-      # @return [Integer] The updated value
-      def set_value(new_value)
-        @value = [0, new_value].max
-        @value
+      # Combine with another currency component
+      # @param other [CurrencyComponent] Another currency component to combine with
+      # @return [Integer] The new value after combining
+      def combine(other)
+        return @value unless other.is_a?(CurrencyComponent) && other.currency_type == @currency_type
+
+        @value += other.value
       end
 
-      # Modify the value
-      # @param amount [Integer] The amount to change by (positive or negative)
-      # @return [Integer] The updated value
-      def modify_value(amount)
-        @value = [0, @value + amount].max
-        @value
+      # Split off a portion of the currency
+      # @param amount [Integer] The amount to split off
+      # @return [Integer, nil] The amount split off, or nil if not enough
+      def split(amount)
+        return nil if amount > @value
+
+        @value -= amount
+        amount
       end
 
-      # Get additional data for serialization
-      # @return [Hash] additional data to include in serialization
-      def data
+      # Get the display string for the currency
+      # @return [String] A formatted string showing value and type
+      def display_string
+        case @currency_type
+        when :gold
+          "#{@value} gold coin#{@value > 1 ? 's' : ''}"
+        when :silver
+          "#{@value} silver coin#{@value > 1 ? 's' : ''}"
+        when :copper
+          "#{@value} copper coin#{@value > 1 ? 's' : ''}"
+        when :gem
+          "#{@value} #{@value > 1 ? 'gems' : 'gem'}"
+        else
+          "#{@value} #{@currency_type}"
+        end
+      end
+
+      # Get the currency value adjusted by type
+      # @return [Integer] The standardized value in gold
+      def standard_value
+        case @currency_type
+        when :copper
+          (@value.to_f / 100).ceil  # 100 copper = 1 gold
+        when :silver
+          (@value.to_f / 10).ceil   # 10 silver = 1 gold
+        when :gold
+          @value
+        when :gem
+          @value * 5                # 1 gem = 5 gold
+        else
+          @value
+        end
+      end
+
+      # Convert to hash for serialization
+      # @return [Hash] The component data as a hash
+      def to_hash
         {
+          type: type,
           value: @value,
           currency_type: @currency_type
         }

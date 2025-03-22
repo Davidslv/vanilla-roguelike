@@ -10,17 +10,12 @@ module Vanilla
       # @return [Array<Component>] all components attached to this entity
       attr_reader :components
 
-      # @return [Hash] additional data and tags for this entity
-      attr_reader :data
-
       # Initialize a new entity
       # @param id [String, nil] optional ID for the entity, will be auto-generated if nil
       def initialize(id: nil)
         @id = id || SecureRandom.uuid
         @components = []
         @component_map = {}
-        @data = {}
-        @data[:tags] = []
       end
 
       # Add a component to the entity
@@ -72,48 +67,6 @@ module Vanilla
         @component_map[type]
       end
 
-      # Add a tag to the entity
-      # @param tag [Symbol] the tag to add
-      # @return [Entity] self, for method chaining
-      def add_tag(tag)
-        @data[:tags] ||= []
-        @data[:tags] << tag unless @data[:tags].include?(tag)
-        self
-      end
-
-      # Remove a tag from the entity
-      # @param tag [Symbol] the tag to remove
-      # @return [Entity] self, for method chaining
-      def remove_tag(tag)
-        @data[:tags] ||= []
-        @data[:tags].delete(tag)
-        self
-      end
-
-      # Check if the entity has the given tag
-      # @param tag [Symbol] the tag to check for
-      # @return [Boolean] true if the entity has the tag
-      def has_tag?(tag)
-        @data[:tags] ||= []
-        @data[:tags].include?(tag)
-      end
-
-      # Get a value from the entity's data
-      # @param key [Symbol] the data key
-      # @return [Object, nil] the value, or nil if not found
-      def get_data(key)
-        @data[key]
-      end
-
-      # Set a value in the entity's data
-      # @param key [Symbol] the data key
-      # @param value [Object] the value to set
-      # @return [Entity] self, for method chaining
-      def set_data(key, value)
-        @data[key] = value
-        self
-      end
-
       # Update all components
       # @param delta_time [Float] time since last update in seconds
       def update(delta_time)
@@ -127,8 +80,7 @@ module Vanilla
       def to_hash
         {
           id: @id,
-          components: @components.map(&:to_hash),
-          data: @data
+          components: @components.map(&:to_hash)
         }
       end
 
@@ -138,10 +90,6 @@ module Vanilla
       def self.from_hash(hash)
         entity = new(id: hash[:id])
 
-        # Set data if present
-        entity.instance_variable_set(:@data, hash[:data] || {})
-
-        # Add components
         hash[:components].each do |component_hash|
           component = Component.from_hash(component_hash)
           entity.add_component(component)

@@ -1,23 +1,24 @@
 module Vanilla
-  # The World class manages entities and systems
+  # The World class is the central container for all entities and systems.
+  # It manages entities, systems, events, and commands.
   class World
-    # @return [Hash<String, Vanilla::Components::Entity>] All entities in the world
-    attr_reader :entities
-
-    # @return [Array<Object>] All systems in the world
-    attr_reader :systems
+    attr_reader :entities, :systems, :keyboard, :display, :current_level
 
     # Initialize a new world
     def initialize
       @entities = {}
       @systems = []
+      @keyboard = KeyboardHandler.new
+      @display = DisplayHandler.new
+      @current_level = nil
       @event_subscribers = Hash.new { |h, k| h[k] = [] }
       @event_queue = Queue.new
+      @command_queue = Queue.new
     end
 
     # Add an entity to the world
-    # @param entity [Vanilla::Components::Entity] The entity to add
-    # @return [Vanilla::Components::Entity] The added entity
+    # @param entity [Entity] The entity to add
+    # @return [Entity] The added entity
     def add_entity(entity)
       @entities[entity.id] = entity
       entity
@@ -25,21 +26,28 @@ module Vanilla
 
     # Remove an entity from the world
     # @param entity_id [String] The ID of the entity to remove
-    # @return [Vanilla::Components::Entity, nil] The removed entity, or nil if not found
+    # @return [Entity, nil] The removed entity or nil if not found
     def remove_entity(entity_id)
       @entities.delete(entity_id)
     end
 
     # Get an entity by ID
-    # @param entity_id [String] The ID of the entity to get
-    # @return [Vanilla::Components::Entity, nil] The entity, or nil if not found
+    # @param entity_id [String] The ID of the entity to find
+    # @return [Entity, nil] The entity or nil if not found
     def get_entity(entity_id)
       @entities[entity_id]
     end
 
-    # Find entities with all the given components
+    # Find the first entity with a specific tag
+    # @param tag [Symbol, String] The tag to find
+    # @return [Entity, nil] The first entity with the tag or nil if none found
+    def find_entity_by_tag(tag)
+      @entities.values.find { |e| e.has_tag?(tag) }
+    end
+
+    # Query entities with specific component types
     # @param component_types [Array<Symbol>] The component types to find
-    # @return [Array<Vanilla::Components::Entity>] Entities with all the specified components
+    # @return [Array<Entity>] Entities with all specified component types
     def query_entities(component_types)
       return @entities.values if component_types.empty?
 
@@ -48,33 +56,22 @@ module Vanilla
       end
     end
 
-    # Find entities with the given tag
-    # @param tag [Symbol] The tag to find
-    # @return [Array<Vanilla::Components::Entity>] Entities with the specified tag
-    def find_entities_by_tag(tag)
-      @entities.values.select { |entity| entity.has_tag?(tag) }
-    end
-
-    # Find the first entity with the given tag
-    # @param tag [Symbol] The tag to find
-    # @return [Vanilla::Components::Entity, nil] The first entity with the tag, or nil if none found
-    def find_entity_by_tag(tag)
-      @entities.values.find { |entity| entity.has_tag?(tag) }
-    end
-
-    # Add a system to the world
-    # @param system [Object] The system to add
-    # @param priority [Integer] The priority of the system (lower numbers run first)
-    # @return [Object] The added system
+    # Add a system to the world with a priority
+    # @param system [System] The system to add
+    # @param priority [Integer] The priority for update order (lower numbers run first)
+    # @return [System] The added system
     def add_system(system, priority = 0)
       @systems << [system, priority]
-      @systems.sort_by! { |s| s[1] }
+      @systems.sort_by! { |s, p| p }
       system
     end
 
-    # Update all systems
-    # @param delta_time [Float] Time in seconds since the last update
+    # Update all systems and process events and commands
+    # @param delta_time [Float] The time since the last update
     def update(delta_time)
+      # Process queued commands
+      process_commands
+
       # Update all systems
       @systems.each do |system, _|
         system.update(delta_time)
@@ -84,52 +81,43 @@ module Vanilla
       process_events
     end
 
-    # Queue an event to be processed
+    # Queue a command to be processed
+    # @param command_type [Symbol] The type of command
+    # @param params [Hash] The command parameters
+    def queue_command(command_type, params = {})
+      @command_queue << [command_type, params]
+    end
+
+    # Emit an event to be processed
     # @param event_type [Symbol] The type of event
-    # @param data [Hash] Event data
+    # @param data [Hash] The event data
     def emit_event(event_type, data = {})
       @event_queue << [event_type, data]
     end
 
-    # Subscribe a system to an event type
-    # @param event_type [Symbol] The type of event to subscribe to
-    # @param subscriber [Object] The system that will handle the event
+    # Subscribe a system to an event
+    # @param event_type [Symbol] The type of event
+    # @param subscriber [Object] The object that will handle the event
     def subscribe(event_type, subscriber)
       @event_subscribers[event_type] << subscriber
     end
 
-    # Unsubscribe a system from an event type
-    # @param event_type [Symbol] The type of event to unsubscribe from
-    # @param subscriber [Object] The system to unsubscribe
+    # Unsubscribe a system from an event
+    # @param event_type [Symbol] The type of event
+    # @param subscriber [Object] The object to unsubscribe
     def unsubscribe(event_type, subscriber)
       @event_subscribers[event_type].delete(subscriber)
     end
 
-    # Convert the world to a hash representation
-    # @return [Hash] Serialized world data
-    def to_hash
-      {
-        entities: @entities.values.map(&:to_hash)
-      }
-    end
-
-    # Create a world from a hash representation
-    # @param hash [Hash] Serialized world data
-    # @return [World] The deserialized world
-    def self.from_hash(hash)
-      world = new
-
-      hash[:entities].each do |entity_hash|
-        entity = Components::Entity.from_hash(entity_hash)
-        world.add_entity(entity)
-      end
-
-      world
+    # Set the current level
+    # @param level [Level] The level to set
+    def set_level(level)
+      @current_level = level
     end
 
     private
 
-    # Process all events in the queue
+    # Process all queued events
     def process_events
       until @event_queue.empty?
         event_type, data = @event_queue.pop
@@ -137,6 +125,71 @@ module Vanilla
           subscriber.handle_event(event_type, data)
         end
       end
+    end
+
+    # Process all queued commands
+    def process_commands
+      until @command_queue.empty?
+        command_type, params = @command_queue.pop
+        handle_command(command_type, params)
+      end
+    end
+
+    # Handle a specific command
+    # @param command_type [Symbol] The type of command
+    # @param params [Hash] The command parameters
+    def handle_command(command_type, params)
+      case command_type
+      when :change_level
+        change_level(params[:difficulty], params[:player_id])
+      when :add_entity
+        add_entity(params[:entity])
+      when :remove_entity
+        remove_entity(params[:entity_id])
+      when :add_to_inventory
+        add_to_inventory(params[:player_id], params[:item_id])
+      # Other command handlers...
+      end
+    end
+
+    # Change the current level
+    # @param difficulty [Integer] The difficulty of the new level
+    # @param player_id [String] The ID of the player entity
+    def change_level(difficulty, player_id)
+      # Create new level
+      level_generator = LevelGenerator.new
+      new_level = level_generator.generate(difficulty)
+
+      # Transfer player to new level
+      player = get_entity(player_id)
+      if player
+        # Place player at entrance
+        position = player.get_component(:position)
+        position.set_position(new_level.entrance_row, new_level.entrance_column)
+      end
+
+      # Set new level
+      set_level(new_level)
+
+      # Notify systems of level change
+      emit_event(:level_transitioned, {
+        difficulty: difficulty,
+        player_id: player_id
+      })
+    end
+
+    # Add an item to a player's inventory
+    # @param player_id [String] The ID of the player entity
+    # @param item_id [String] The ID of the item entity
+    def add_to_inventory(player_id, item_id)
+      player = get_entity(player_id)
+      item = get_entity(item_id)
+
+      return unless player && item
+      return unless player.has_component?(:inventory) && item.has_component?(:item)
+
+      inventory = player.get_component(:inventory)
+      inventory.add_item(item)
     end
   end
 end

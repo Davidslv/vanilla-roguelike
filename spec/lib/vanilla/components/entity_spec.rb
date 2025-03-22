@@ -1,127 +1,117 @@
 require 'spec_helper'
 
 RSpec.describe Vanilla::Components::Entity do
-  describe 'initialization' do
-    it 'generates a UUID if no ID is provided' do
+  describe '#initialize' do
+    it 'creates an entity with a unique ID' do
       entity = described_class.new
       expect(entity.id).not_to be_nil
       expect(entity.id).to be_a(String)
     end
 
-    it 'uses the provided ID if one is given' do
-      custom_id = 'custom-entity-id'
+    it 'creates entities with different IDs' do
+      entity1 = described_class.new
+      entity2 = described_class.new
+      expect(entity1.id).not_to eq(entity2.id)
+    end
+
+    it 'can be initialized with a specific ID' do
+      custom_id = "custom-id-123"
       entity = described_class.new(id: custom_id)
       expect(entity.id).to eq(custom_id)
     end
 
-    it 'initializes with empty components' do
+    it 'starts with no components' do
       entity = described_class.new
       expect(entity.components).to be_empty
     end
+  end
 
-    it 'initializes with empty data and tags' do
-      entity = described_class.new
-      expect(entity.data).to eq({ tags: [] })
+  describe '#add_component' do
+    let(:entity) { described_class.new }
+    let(:component) { double("Component", type: :test_component) }
+
+    it 'adds a component to the entity' do
+      entity.add_component(component)
+      expect(entity.components).to include(component)
+    end
+
+    it 'allows access to the component by type' do
+      entity.add_component(component)
+      expect(entity.get_component(:test_component)).to eq(component)
+    end
+
+    it 'returns the entity for method chaining' do
+      result = entity.add_component(component)
+      expect(result).to eq(entity)
+    end
+
+    it 'raises an error when adding a component with a duplicate type' do
+      entity.add_component(component)
+      duplicate = double("Duplicate Component", type: :test_component)
+      expect { entity.add_component(duplicate) }.to raise_error(ArgumentError)
+    end
+
+    it 'raises an error when component does not respond to type' do
+      invalid_component = double("Invalid Component")
+      expect { entity.add_component(invalid_component) }.to raise_error(ArgumentError)
     end
   end
 
-  describe 'component management' do
+  describe '#remove_component' do
     let(:entity) { described_class.new }
-    let(:position_component) { Vanilla::Components::PositionComponent.new(row: 5, column: 10) }
-    let(:render_component) { Vanilla::Components::RenderComponent.new(character: '@') }
-
-    it 'can add components' do
-      entity.add_component(position_component)
-      expect(entity.components).to include(position_component)
-      expect(entity.has_component?(:position)).to be true
-    end
-
-    it 'can get components by type' do
-      entity.add_component(position_component)
-      retrieved = entity.get_component(:position)
-      expect(retrieved).to eq(position_component)
-    end
-
-    it 'can remove components' do
-      entity.add_component(position_component)
-      removed = entity.remove_component(:position)
-      expect(removed).to eq(position_component)
-      expect(entity.has_component?(:position)).to be false
-    end
-
-    it 'prevents adding duplicate component types' do
-      entity.add_component(position_component)
-      expect {
-        entity.add_component(Vanilla::Components::PositionComponent.new(row: 0, column: 0))
-      }.to raise_error(ArgumentError)
-    end
-  end
-
-  describe 'tag management' do
-    let(:entity) { described_class.new }
-
-    it 'can add tags' do
-      entity.add_tag(:player)
-      expect(entity.has_tag?(:player)).to be true
-    end
-
-    it 'can remove tags' do
-      entity.add_tag(:player)
-      entity.remove_tag(:player)
-      expect(entity.has_tag?(:player)).to be false
-    end
-
-    it 'prevents duplicate tags' do
-      entity.add_tag(:player)
-      entity.add_tag(:player)
-      expect(entity.data[:tags].count(:player)).to eq(1)
-    end
-  end
-
-  describe 'data management' do
-    let(:entity) { described_class.new }
-
-    it 'can store arbitrary data' do
-      entity.set_data(:health, 100)
-      expect(entity.get_data(:health)).to eq(100)
-    end
-
-    it 'can update data' do
-      entity.set_data(:health, 100)
-      entity.set_data(:health, 50)
-      expect(entity.get_data(:health)).to eq(50)
-    end
-
-    it 'returns nil for unknown data keys' do
-      expect(entity.get_data(:nonexistent)).to be_nil
-    end
-  end
-
-  describe 'serialization' do
-    let(:entity) { described_class.new }
-    let(:position_component) { Vanilla::Components::PositionComponent.new(row: 5, column: 10) }
+    let(:component) { double("Component", type: :test_component) }
 
     before do
-      entity.add_component(position_component)
-      entity.add_tag(:player)
-      entity.set_data(:health, 100)
+      entity.add_component(component)
     end
 
-    it 'can be converted to hash' do
-      hash = entity.to_hash
-      expect(hash[:id]).to eq(entity.id)
-      expect(hash[:components]).to be_an(Array)
-      expect(hash[:data]).to include(tags: [:player], health: 100)
+    it 'removes a component by type' do
+      entity.remove_component(:test_component)
+      expect(entity.components).not_to include(component)
     end
 
-    it 'can be created from hash' do
-      hash = entity.to_hash
-      recreated = described_class.from_hash(hash)
+    it 'returns the removed component' do
+      result = entity.remove_component(:test_component)
+      expect(result).to eq(component)
+    end
 
-      expect(recreated.id).to eq(entity.id)
-      expect(recreated.has_component?(:position)).to be true
-      expect(recreated.has_tag?(:player)).to be true
-      expect(recreated.get_data(:health)).to eq(100)
+    it 'returns nil when trying to remove a non-existent component' do
+      result = entity.remove_component(:non_existent)
+      expect(result).to be_nil
+    end
+  end
+
+  describe '#has_component?' do
+    let(:entity) { described_class.new }
+    let(:component) { double("Component", type: :test_component) }
+
+    before do
+      entity.add_component(component)
+    end
+
+    it 'returns true if the entity has the component type' do
+      expect(entity.has_component?(:test_component)).to be true
+    end
+
+    it 'returns false if the entity does not have the component type' do
+      expect(entity.has_component?(:non_existent)).to be false
+    end
+  end
+
+  describe '#get_component' do
+    let(:entity) { described_class.new }
+    let(:component) { double("Component", type: :test_component) }
+
+    before do
+      entity.add_component(component)
+    end
+
+    it 'returns the component of the specified type' do
+      expect(entity.get_component(:test_component)).to eq(component)
+    end
+
+    it 'returns nil if the component type does not exist' do
+      expect(entity.get_component(:non_existent)).to be_nil
     end
   end
 
