@@ -19,6 +19,7 @@ module Vanilla
           errors: [],
           actions_performed: 0
         }
+        @display_rendering = true # Always show rendering by default
       end
 
       # Set up a new game instance
@@ -615,6 +616,16 @@ module Vanilla
             screen_state = [buffer.join('')]
           end
 
+          # Display the screen to the user for visual feedback
+          if @display_rendering
+            puts "\nCurrent Game Screen:"
+            puts "===================="
+            screen_state.each do |line|
+              puts line
+            end
+            puts "===================="
+          end
+
           # Store in results for later verification
           @results[:screen_states] ||= []
           @results[:screen_states] << {
@@ -627,11 +638,15 @@ module Vanilla
         else
           # If the buffer isn't directly accessible, try to render to a string
           if renderer.respond_to?(:to_s)
-            [renderer.to_s]
+            render_str = renderer.to_s
+            puts "\nCurrent Game Screen:\n#{render_str}" if @display_rendering
+            [render_str]
           else
             # Last resort - force a render and return something to compare
             render_system.render(@level.all_entities, @level.grid) rescue nil
-            ["Rendered at turn #{@game.instance_variable_get(:@current_turn).to_i}"]
+            screen_info = "Rendered at turn #{@game.instance_variable_get(:@current_turn).to_i}"
+            puts "\nCurrent Game Screen:\n#{screen_info}" if @display_rendering
+            [screen_info]
           end
         end
       end
@@ -753,16 +768,26 @@ module Vanilla
         results = []
 
         count.times do
+          # Display direction information
+          puts "\nAttempting to move #{direction.to_s.upcase}" if @display_rendering
+
           # First, capture the screen before movement
+          puts "\nBEFORE MOVEMENT:" if @display_rendering
           pre_move_screen = capture_screen
           pre_move_pos = player_position
+
+          puts "\nPlayer position: [#{pre_move_pos[0]}, #{pre_move_pos[1]}]" if @display_rendering
 
           # Perform the movement
           move_result = simulate_movement(direction, 1).first
 
           # Capture the screen after movement
+          puts "\nAFTER MOVEMENT:" if @display_rendering
           post_move_screen = capture_screen
           post_move_pos = player_position
+
+          puts "\nPlayer position: [#{post_move_pos[0]}, #{post_move_pos[1]}]" if @display_rendering
+          puts "\nMovement successful: #{move_result[:moved]}" if @display_rendering
 
           # Check if the player moved
           moved = move_result[:moved]
@@ -798,31 +823,6 @@ module Vanilla
         end
 
         results
-      end
-
-      private
-
-      # Process a single action from the action sequence
-      def process_action(action)
-        case action[:type]
-        when :move
-          direction = action[:direction]
-          count = action[:count] || 1
-          simulate_movement(direction, count)
-        when :wait
-          turns = action[:turns] || 1
-          turns.times do
-            @game.current_turn += 1
-            collect_messages
-          end
-        when :use_stairs
-          find_and_use_stairs
-        when :custom
-          # Execute a custom block with this simulator as argument
-          action[:block].call(self) if action[:block]
-        else
-          raise "Unknown action type: #{action[:type]}"
-        end
       end
 
       # Helper method to get player position
@@ -872,6 +872,31 @@ module Vanilla
             context: "Getting player position"
           }
           [nil, nil]
+        end
+      end
+
+      private
+
+      # Process a single action from the action sequence
+      def process_action(action)
+        case action[:type]
+        when :move
+          direction = action[:direction]
+          count = action[:count] || 1
+          simulate_movement(direction, count)
+        when :wait
+          turns = action[:turns] || 1
+          turns.times do
+            @game.current_turn += 1
+            collect_messages
+          end
+        when :use_stairs
+          find_and_use_stairs
+        when :custom
+          # Execute a custom block with this simulator as argument
+          action[:block].call(self) if action[:block]
+        else
+          raise "Unknown action type: #{action[:type]}"
         end
       end
 

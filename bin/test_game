@@ -16,6 +16,8 @@ require_relative '../lib/vanilla'
 require_relative '../lib/vanilla/simulation/game_simulator'
 require_relative '../lib/vanilla/algorithms/dijkstra'
 
+ENV['VANILLA_LOG_DIR'] = 'simulation/logs'
+
 # Set a predetermined seed for consistent testing
 DEFAULT_SEED = 676418890322387
 
@@ -23,7 +25,8 @@ DEFAULT_SEED = 676418890322387
 options = {
   seed: DEFAULT_SEED,
   verbose: false,
-  test_type: 'all'
+  test_type: 'all',
+  delay: 1.0  # Default delay between movements in seconds
 }
 
 OptionParser.new do |opts|
@@ -41,6 +44,14 @@ OptionParser.new do |opts|
     options[:test_type] = type
   end
 
+  opts.on("-d", "--delay SECONDS", Float, "Delay between movements in seconds (default: 1.0)") do |delay|
+    options[:delay] = delay
+  end
+
+  opts.on("-f", "--fast", "Run tests quickly with minimal delay (0.2 seconds)") do
+    options[:delay] = 0.2
+  end
+
   opts.on("-h", "--help", "Show this message") do
     puts opts
     exit
@@ -52,7 +63,9 @@ if options[:verbose]
   puts "Running in verbose mode"
   # Set logger to debug level
 else
-  # Suppress most output to make test results cleaner
+  # Don't suppress all output to ensure visual feedback, but keep a reference to original stdout
+  # so we can send important messages to it while suppressing detailed logs
+  $original_stdout = $stdout
   $stdout = StringIO.new unless options[:verbose]
 end
 
@@ -69,9 +82,17 @@ test_cases = {
     name: "Basic Movement Test (With Rendering Verification)",
     actions: [
       { type: :custom, block: lambda { |sim|
+        # Set delay between movements
+        movement_delay = options[:delay]
+
         # Verify screen renders correctly before movement
         initial_render_check = sim.verify_player_rendering
-        puts "Initial player rendering correct: #{initial_render_check}" if $stdout.is_a?(IO)
+        # Always show important information even in non-verbose mode
+        if $stdout.is_a?(StringIO) && defined?($original_stdout)
+          $original_stdout.puts "Initial player rendering correct: #{initial_render_check}"
+        elsif $stdout.is_a?(IO)
+          puts "Initial player rendering correct: #{initial_render_check}"
+        end
 
         # Test all four movement directions with rendering validation
         directions = [:up, :right, :down, :left]
@@ -80,15 +101,22 @@ test_cases = {
         render_checks = []
 
         directions.each do |direction|
+          # Wait to make movements visible
+          sleep movement_delay
+
           # Use the rendering verification version of movement
           move_results = sim.simulate_movement_with_render_check(direction)
           render_checks << move_results.first
 
-          # Report on rendering check
-          if $stdout.is_a?(IO)
-            puts "Moved #{direction}: " +
+          # Report on rendering check - always show movement results
+          message = "Moved #{direction}: " +
                  "Position correct: #{move_results.first[:rendering_correct]}, " +
                  "Screen updated: #{move_results.first[:screen_changed]}"
+
+          if $stdout.is_a?(StringIO) && defined?($original_stdout)
+            $original_stdout.puts message
+          elsif $stdout.is_a?(IO)
+            puts message
           end
         end
 
@@ -96,8 +124,15 @@ test_cases = {
         rendering_success = render_checks.all? { |r| r[:rendering_correct] }
         screen_updates = render_checks.all? { |r| r[:screen_changed] }
 
-        puts "All rendering checks passed: #{rendering_success}" if $stdout.is_a?(IO)
-        puts "All screen updates verified: #{screen_updates}" if $stdout.is_a?(IO)
+        # Always show summary results
+        summary_message = "All rendering checks passed: #{rendering_success}\n" +
+                          "All screen updates verified: #{screen_updates}"
+
+        if $stdout.is_a?(StringIO) && defined?($original_stdout)
+          $original_stdout.puts summary_message
+        elsif $stdout.is_a?(IO)
+          puts summary_message
+        end
       }}
     ]
   },
@@ -121,6 +156,9 @@ test_cases = {
       # Custom action to test stairs by finding the optimal path using Dijkstra's algorithm
       # and verify rendering updates at each step
       { type: :custom, block: lambda { |sim|
+        # Set delay between movements
+        movement_delay = options[:delay]
+
         # Get player position first to check it's valid
         player_pos = sim.metrics[:player_position]
 
@@ -163,6 +201,9 @@ test_cases = {
 
               # Follow the path one step at a time, checking rendering
               path_directions.each do |direction|
+                # Wait to make movements visible
+                sleep movement_delay
+
                 # Use the rendering verification version of movement
                 move_results = sim.simulate_movement_with_render_check(direction)
                 render_checks << move_results.first
@@ -194,8 +235,11 @@ test_cases = {
 
               # Fallback to simple movement if Dijkstra couldn't find a path
               # Still verify rendering
+              sleep movement_delay
               sim.simulate_movement_with_render_check(:right, 2)
+              sleep movement_delay
               sim.simulate_movement_with_render_check(:down, 2)
+              sleep movement_delay
               sim.find_and_use_stairs
             end
           end
@@ -208,6 +252,7 @@ test_cases = {
 
           directions.each do |dir|
             # Try moving with rendering check
+            sleep movement_delay
             sim.simulate_movement_with_render_check(dir, 3)
 
             # Try to use stairs if we've found them
@@ -225,7 +270,32 @@ test_cases = {
   # not appear during shorter, more controlled tests.
   'stress' => {
     name: "Stress Test",
-    actions: (1..100).map { { type: :move, direction: [:up, :down, :left, :right].sample } }
+    actions: [
+      { type: :custom, block: lambda { |sim|
+        movement_delay = options[:delay] / 5.0  # Use a shorter delay for stress test
+
+        # Perform 50 random movements
+        50.times do |i|
+          direction = [:up, :down, :left, :right].sample
+
+          # Wait between movements
+          sleep movement_delay
+
+          # Move with render check
+          move_result = sim.simulate_movement_with_render_check(direction).first
+
+          # Display progress
+          if i % 10 == 0
+            progress_msg = "Completed #{i}/50 random movements"
+            if $stdout.is_a?(StringIO) && defined?($original_stdout)
+              $original_stdout.puts progress_msg
+            else
+              puts progress_msg
+            end
+          end
+        end
+      }}
+    ]
   }
 }
 
@@ -247,14 +317,21 @@ end
 # Run the selected tests
 tests_to_run.each do |test_key|
   test = test_cases[test_key]
-  puts "\n======================="
-  puts "Running test: #{test[:name]}"
-  puts "======================="
+  test_header = "\n=======================\n" +
+                "Running test: #{test[:name]}\n" +
+                "======================="
+
+  # Always display test headers
+  if $stdout.is_a?(StringIO) && defined?($original_stdout)
+    $original_stdout.puts test_header
+  else
+    puts test_header
+  end
 
   # Create a simulator with the specified seed
   simulator = Vanilla::Simulation::GameSimulator.new(
     seed: options[:seed],
-    capture_output: !options[:verbose]
+    capture_output: false  # Don't capture output - let user see the game
   )
 
   # Run the test
@@ -262,35 +339,67 @@ tests_to_run.each do |test_key|
   results = simulator.run(test[:actions])
   elapsed_time = Time.now - start_time
 
-  # Print test results
-  puts "\nTest completed in #{elapsed_time.round(2)} seconds"
-  puts "Actions performed: #{results[:actions_performed]}"
-  puts "Movement attempts: #{results[:movements].size}"
-  puts "Successful movements: #{results[:movements].count { |m| m[:moved] }}"
-  puts "Levels completed: #{results[:levels_completed]}"
+  # Print test results - always show these
+  result_summary = "\nTest completed in #{elapsed_time.round(2)} seconds\n" +
+                 "Actions performed: #{results[:actions_performed]}\n" +
+                 "Movement attempts: #{results[:movements].size}\n" +
+                 "Successful movements: #{results[:movements].count { |m| m[:moved] }}\n" +
+                 "Levels completed: #{results[:levels_completed]}"
+
+  if $stdout.is_a?(StringIO) && defined?($original_stdout)
+    $original_stdout.puts result_summary
+  else
+    puts result_summary
+  end
 
   # Add rendering verification statistics if available
   if results[:rendering_checks]&.any?
     rendering_checks = results[:rendering_checks]
     rendering_success = rendering_checks.count { |check| check[:correct] }
-    puts "Rendering checks: #{rendering_success}/#{rendering_checks.size} successful"
+    render_message = "Rendering checks: #{rendering_success}/#{rendering_checks.size} successful"
+
+    if $stdout.is_a?(StringIO) && defined?($original_stdout)
+      $original_stdout.puts render_message
+    else
+      puts render_message
+    end
   end
 
   if results[:rendering_data]&.any?
     render_data = results[:rendering_data]
     screen_updates = render_data.count { |data| data[:screen_changed] }
-    puts "Screen updates: #{screen_updates}/#{render_data.size} verified"
+    update_message = "Screen updates: #{screen_updates}/#{render_data.size} verified"
+
+    if $stdout.is_a?(StringIO) && defined?($original_stdout)
+      $original_stdout.puts update_message
+    else
+      puts update_message
+    end
   end
 
   if results[:errors].any?
-    puts "\n⚠️ ERRORS ENCOUNTERED ⚠️"
-    results[:errors].each do |error|
-      puts "- #{error[:error]}: #{error[:message]}"
-      puts "  At action index: #{error[:action_index]}"
+    error_message = "\n⚠️ ERRORS ENCOUNTERED ⚠️"
+    if $stdout.is_a?(StringIO) && defined?($original_stdout)
+      $original_stdout.puts error_message
+      results[:errors].each do |error|
+        $original_stdout.puts "- #{error[:error]}: #{error[:message]}"
+        $original_stdout.puts "  At action index: #{error[:action_index]}"
+      end
+    else
+      puts error_message
+      results[:errors].each do |error|
+        puts "- #{error[:error]}: #{error[:message]}"
+        puts "  At action index: #{error[:action_index]}"
+      end
     end
     exit 1
   else
-    puts "\n✅ TEST PASSED"
+    pass_message = "\n✅ TEST PASSED"
+    if $stdout.is_a?(StringIO) && defined?($original_stdout)
+      $original_stdout.puts pass_message
+    else
+      puts pass_message
+    end
   end
 
   # Print performance details if verbose
@@ -307,5 +416,10 @@ tests_to_run.each do |test_key|
   end
 end
 
-puts "\nAll tests completed successfully!"
+completion_message = "\nAll tests completed successfully!"
+if $stdout.is_a?(StringIO) && defined?($original_stdout)
+  $original_stdout.puts completion_message
+else
+  puts completion_message
+end
 exit 0
