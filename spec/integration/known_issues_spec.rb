@@ -19,8 +19,8 @@ RSpec.describe "Known ECS Implementation Issues", type: :integration do
 
   describe "Component interface issues" do
     it "PositionComponent should have a set_position method" do
-      pending "PositionComponent needs more encapsulation with proper setters"
-      position = Vanilla::Components::PositionComponent.new(5, 5)
+      # RESOLVED: Added proper encapsulation in Phase 1
+      position = Vanilla::Components::PositionComponent.new(row: 5, column: 5)
       expect(position).to respond_to(:set_position)
     end
 
