@@ -2,6 +2,7 @@ en:
   game:
     welcome: "Welcome to Vanilla, brave adventurer! Your journey begins..."
     goodbye: "Farewell, adventurer. The dungeon claims another soul."
+    startup_hint: "You find yourself on dungeon level %{difficulty}. Be cautious!"
 
   combat:
     player_hit: "You strike the %{enemy} for %{damage} damage!"
@@ -14,6 +15,7 @@ en:
   exploration:
     move_blocked: "A wall blocks your path."
     enter_room: "You enter a %{room_type} room."
+    move: "You move %{direction}."
     room_types:
       dusty: "dusty"
       dark: "dark"

@@ -25,12 +25,26 @@ module Vanilla
       def render(renderer, selection_mode = false)
         return unless renderer.respond_to?(:draw_character)
 
+        # Add debug info at top of message panel to ensure it's visible
+        debug_info = "--- Message Panel ---"
+        debug_info.each_char.with_index do |char, i|
+          renderer.draw_character(@y - 1, @x + i, char)
+        end
+
         # Draw a separator line above the message panel
         draw_separator_line(renderer)
 
         # Get messages to display with scroll offset
         messages = @message_log.get_recent(@height + @scroll_offset)
-        return if messages.nil? || messages.empty?
+
+        # Add a default message if no messages exist
+        if messages.nil? || messages.empty?
+          default_msg = "Welcome to Vanilla! Use movement keys to navigate."
+          default_msg.each_char.with_index do |char, i|
+            renderer.draw_character(@y + 1, @x + i, char)
+          end
+          return
+        end
 
         visible_messages = messages[@scroll_offset, @height] || []
 

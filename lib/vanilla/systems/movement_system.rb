@@ -171,6 +171,28 @@ module Vanilla
       # @param new_position [Array<Integer>] The new position [row, col]
       def log_movement(entity, direction, old_position, new_position)
         @logger.info("Entity moved #{direction} from #{old_position} to #{new_position}")
+
+        # If this is a player entity, add a message to the message system
+        if entity.is_a?(Vanilla::Entities::Player) && defined?($game_instance) && $game_instance
+          message_manager = $game_instance.instance_variable_get(:@message_manager)
+
+          if message_manager
+            # Translate direction for user-friendly message
+            direction_name = case direction
+                            when :north then "north"
+                            when :south then "south"
+                            when :east then "east"
+                            when :west then "west"
+                            else direction.to_s
+                            end
+
+            # Add the movement message
+            message_manager.log_translated("exploration.move",
+                                          importance: :info,
+                                          category: :movement,
+                                          metadata: { direction: direction_name })
+          end
+        end
       end
     end
   end

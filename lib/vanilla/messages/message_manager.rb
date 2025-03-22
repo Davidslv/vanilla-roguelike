@@ -127,6 +127,21 @@ module Vanilla
       end
 
       def render(render_system)
+        # Debug log
+        puts "DEBUG: MessageManager rendering with #{@message_log.messages.size} messages"
+        puts "DEBUG: Message panel exists? #{@message_panel ? 'YES' : 'NO'}"
+
+        if @message_panel.nil?
+          puts "ERROR: Message panel not initialized. Call setup_panel first!"
+          return
+        end
+
+        # Print first few messages for debugging
+        @message_log.messages.take(3).each_with_index do |msg, idx|
+          content = msg.is_a?(Message) ? msg.translated_text : msg[:text]
+          puts "DEBUG: Message #{idx}: #{content[0..30]}..."
+        end
+
         @message_panel&.render(render_system, @selection_mode)
       end
 

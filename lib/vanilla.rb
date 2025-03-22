@@ -142,6 +142,13 @@ module Vanilla
       # Welcome message
       @message_manager.log_translated("game.welcome", importance: :success)
 
+      # Add some additional messages to ensure the message panel is visible
+      @message_manager.log_translated("ui.prompt_move", importance: :info)
+      @message_manager.log_translated("exploration.enter_room",
+                                     importance: :info,
+                                     category: :exploration,
+                                     metadata: { room_type: "dimly lit" })
+
       # Initialize the first level
       level = initialize_level(difficulty: 1)
 
@@ -192,12 +199,27 @@ module Vanilla
       grid_cols = level.grid.columns
       panel_height = 5 # Show 5 messages at a time
 
+      # Log message panel setup
+      @logger.info("Setting up message panel at row #{grid_rows + 1}, width #{grid_cols * 4}, height #{panel_height}")
+
+      # Ensure message panel is positioned with correct width to match the grid rendering
       @message_manager.setup_panel(
-        0,                 # x position (left edge)
-        grid_rows + 1,     # y position (just below the grid)
-        grid_cols * 4,     # width (sufficient for the grid)
-        panel_height       # height (show 5 messages)
+        0,                   # x position (left edge)
+        grid_rows + 1,       # y position (below the grid)
+        grid_cols * 3 + 1,   # width (match grid width in terminal cell units)
+        panel_height         # height (show 5 messages)
       )
+
+      # Add a startup message to make the panel visible
+      @message_manager.log_translated("game.startup_hint",
+                                     importance: :info,
+                                     category: :system,
+                                     metadata: { difficulty: difficulty })
+
+      # Add a movement hint
+      @message_manager.log_translated("ui.prompt_move",
+                                     importance: :info,
+                                     category: :ui)
 
       # Initial render of the level
       all_entities = level.all_entities + monster_system.monsters

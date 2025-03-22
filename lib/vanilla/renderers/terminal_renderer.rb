@@ -5,11 +5,13 @@ module Vanilla
         @buffer = nil
         @grid = nil
         @header = ""
+        @message_buffer = {} # Separate buffer for messages below the grid
       end
 
       def clear
         # Clear internal buffer
         @buffer = nil
+        @message_buffer = {}
         system("clear")
       end
 
@@ -40,22 +42,30 @@ module Vanilla
       end
 
       def draw_character(row, column, character, color = nil)
-        return unless @buffer && row >= 0 && row < @buffer.size &&
-                     column >= 0 && column < @buffer.first.size
+        # Log when called with positions outside the grid
+        if @grid && (row >= @grid.rows || column >= @grid.columns * 3)
+          puts "DEBUG: Drawing outside grid at [#{row},#{column}]: '#{character}'"
+        end
 
-        @buffer[row][column] = character
-        # Color is stored for future implementation
+        # For characters within the grid bounds, use the grid buffer
+        if @buffer && row >= 0 && row < @buffer.size && column >= 0 && column < @buffer.first.size
+          @buffer[row][column] = character
+          return
+        end
+
+        # For characters outside grid bounds (like message panel), use message buffer
+        @message_buffer[[row, column]] = character
       end
 
       def present
-        return unless @buffer && @grid
+        return unless @grid
 
         # Print header
         puts @header
         puts "-" * 35
         puts "\n"
 
-        # Render based on the same logic as the original Terminal class
+        # Render grid
         output = "+" + "---+" * @grid.columns + "\n"
 
         @grid.rows.times do |row_idx|
@@ -67,7 +77,7 @@ module Vanilla
             next unless cell
 
             # Use our buffer content instead of grid.contents_of
-            body = @buffer[row_idx][col_idx]
+            body = @buffer ? @buffer[row_idx][col_idx] : ' '
             body = " #{body} " if body.size == 1
             body = " #{body}" if body.size == 2
 
@@ -86,7 +96,41 @@ module Vanilla
           output << bottom << "\n"
         end
 
+        # Print grid
         puts output
+
+        # Now render message area if there are any messages
+        unless @message_buffer.empty?
+          # Find the bounds for the message area
+          min_row = @message_buffer.keys.map { |pos| pos[0] }.min || 0
+          max_row = @message_buffer.keys.map { |pos| pos[0] }.max || 0
+          min_col = @message_buffer.keys.map { |pos| pos[1] }.min || 0
+          max_col = @message_buffer.keys.map { |pos| pos[1] }.max || 0
+
+          puts "DEBUG: Message area bounds - rows: #{min_row}..#{max_row}, cols: #{min_col}..#{max_col}"
+
+          # Create a 2D array for the message area
+          height = max_row - min_row + 1
+          width = max_col - min_col + 1
+
+          message_grid = Array.new(height) { Array.new(width, ' ') }
+
+          # Fill in the message characters
+          @message_buffer.each do |pos, char|
+            row, col = pos
+            local_row = row - min_row
+            local_col = col - min_col
+
+            if local_row >= 0 && local_row < height && local_col >= 0 && local_col < width
+              message_grid[local_row][local_col] = char
+            end
+          end
+
+          # Convert to strings and print
+          message_lines = message_grid.map(&:join)
+          puts "\n" # Extra space before messages
+          puts message_lines
+        end
       end
     end
   end
