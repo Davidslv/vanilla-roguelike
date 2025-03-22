@@ -10,9 +10,10 @@ module Vanilla
       # Initialize a new tile component
       # @param tile [String] the tile character
       def initialize(tile: Vanilla::Support::TileType::EMPTY)
+        super()
         # Log deprecation warning
         Vanilla::Logger.instance.warn("TileComponent is deprecated. Use RenderComponent instead.")
-        change_tile(tile)
+        set_tile(tile)
       end
 
       # @return [Symbol] the component type
@@ -20,10 +21,11 @@ module Vanilla
         :tile
       end
 
-      # Change the tile character
+      # Set the tile character
       # @param new_tile [String] the new tile character
       # @raise [ArgumentError] if the tile is invalid
-      def change_tile(new_tile)
+      # @return [String] The tile character
+      def set_tile(new_tile)
         unless Vanilla::Support::TileType.valid?(new_tile)
           raise ArgumentError, "Invalid tile type: #{new_tile}"
         end

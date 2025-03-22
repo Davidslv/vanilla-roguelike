@@ -2,14 +2,19 @@ module Vanilla
   module Components
     # Component for managing an entity's inventory of items
     # Used primarily by the player, but can be used by other entities like chests
-    class InventoryComponent
-      attr_reader :items, :max_size
+    class InventoryComponent < Component
+      # @return [Array<Entity>] Items in the inventory
+      attr_reader :items
+
+      # @return [Integer] Maximum number of items this inventory can hold
+      attr_reader :max_size
 
       # Initialize a new inventory component
       # @param max_size [Integer] The maximum number of items this inventory can hold
       def initialize(max_size: 20)
         @items = []
         @max_size = max_size
+        super()
       end
 
       # Get the component type
@@ -24,62 +29,44 @@ module Vanilla
         @items.size >= @max_size
       end
 
-      # Add an item to the inventory
+      # Get the current number of items
+      # @return [Integer] The number of items in inventory
+      def size
+        @items.size
+      end
+
+      # Add an item to the inventory without any logic
       # @param item [Entity] The item entity to add
       # @return [Boolean] Whether the item was successfully added
-      def add(item)
+      def add_item(item)
         return false if full?
-
-        # If the item is stackable, try to stack it with existing items
-        if item.has_component?(:item) && item.get_component(:item).stackable?
-          existing_item = find_stackable_item(item)
-          if existing_item
-            existing_item.get_component(:item).increase_stack
-            return true
-          end
-        end
-
         @items << item
         true
       end
 
-      # Remove an item from the inventory
+      # Remove an item from the inventory without any logic
       # @param item [Entity] The item entity to remove
       # @return [Entity, nil] The removed item, or nil if not found
-      def remove(item)
+      def remove_item(item)
         index = @items.find_index(item)
         return nil unless index
-
-        # If stackable with more than 1 in stack, reduce stack size instead of removing
-        if item.has_component?(:item) && item.get_component(:item).stackable? &&
-           item.get_component(:item).stack_size > 1
-          item.get_component(:item).decrease_stack
-          return item
-        end
-
         @items.delete_at(index)
       end
 
-      # Check if the inventory contains an item of a specific type
-      # @param item_type [Symbol] The type of item to check for
-      # @return [Boolean] Whether an item of the specified type exists
-      def has?(item_type)
-        @items.any? do |item|
-          item.has_component?(:item) && item.get_component(:item).item_type == item_type
-        end
+      # Remove an item by index
+      # @param index [Integer] Index of the item to remove
+      # @return [Entity, nil] The removed item, or nil if index out of bounds
+      def remove_item_at(index)
+        return nil if index < 0 || index >= @items.size
+        @items.delete_at(index)
       end
 
-      # Count the number of items of a specific type
-      # @param item_type [Symbol] The type of item to count
-      # @return [Integer] The number of items of that type (including stack sizes)
-      def count(item_type)
-        @items.sum do |item|
-          if item.has_component?(:item) && item.get_component(:item).item_type == item_type
-            item.get_component(:item).stack_size
-          else
-            0
-          end
-        end
+      # Get an item by index
+      # @param index [Integer] Index of the item to get
+      # @return [Entity, nil] The item, or nil if index out of bounds
+      def get_item_at(index)
+        return nil if index < 0 || index >= @items.size
+        @items[index]
       end
 
       # Find an item by its ID
@@ -91,9 +78,8 @@ module Vanilla
 
       # Convert to hash for serialization
       # @return [Hash] The component data as a hash
-      def to_hash
+      def data
         {
-          type: type,
           max_size: @max_size,
           items: @items.map(&:to_hash)
         }
@@ -103,28 +89,7 @@ module Vanilla
       # @param hash [Hash] The hash data to create from
       # @return [InventoryComponent] The created component
       def self.from_hash(hash)
-        component = new(max_size: hash[:max_size])
-
-        # Items will be handled separately by the entity that owns this component
-        component
-      end
-
-      private
-
-      # Find a stackable item of the same type
-      # @param item [Entity] The item to find a stack for
-      # @return [Entity, nil] A matching item that can be stacked with, or nil
-      def find_stackable_item(item)
-        return nil unless item.has_component?(:item)
-
-        item_component = item.get_component(:item)
-        item_type = item_component.item_type
-
-        @items.find do |inv_item|
-          inv_item.has_component?(:item) &&
-          inv_item.get_component(:item).item_type == item_type &&
-          inv_item.get_component(:item).stackable?
-        end
+        new(max_size: hash[:max_size] || 20)
       end
     end
 
