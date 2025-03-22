@@ -14,12 +14,40 @@ module Vanilla
         @buffer = nil
         @message_buffer = {}
         @color_buffer = {}
-        system("clear")
+
+        # Use a more robust way to clear the screen
+        # that works cross-platform and handles errors
+        begin
+          # Skip in test mode
+          return if ENV['VANILLA_TEST_MODE'] == 'true'
+
+          # Try system clear command first
+          system("clear") || system("cls") || print("\e[H\e[2J")
+        rescue StandardError => e
+          # If system commands fail, fall back to ANSI escape sequence
+          print("\e[H\e[2J")
+        rescue Interrupt
+          # Handle Ctrl+C gracefully
+          print("\e[H\e[2J")
+          puts "Game interrupted. Continuing..."
+        end
       end
 
       def clear_screen
-        # Clear the terminal
-        system("clear")
+        # Try system clear command first
+        begin
+          # Skip in test mode
+          return if ENV['VANILLA_TEST_MODE'] == 'true'
+
+          system("clear") || system("cls") || print("\e[H\e[2J")
+        rescue StandardError => e
+          # If system commands fail, fall back to ANSI escape sequence
+          print("\e[H\e[2J")
+        rescue Interrupt
+          # Handle Ctrl+C gracefully
+          print("\e[H\e[2J")
+          puts "Game interrupted. Continuing..."
+        end
       end
 
       def draw_grid(grid)
