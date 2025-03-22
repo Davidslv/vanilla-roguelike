@@ -132,6 +132,8 @@ class LogMonitor
         puts "🚪 Level transition in progress"
       elsif entry.include?("Level transition complete")
         puts "✅ Level transition completed"
+      elsif entry.include?("Player collided with monster")
+        puts "👹 Player collided with monster"
       elsif entry.include?("Player exiting game")
         puts "👋 Player exited game"
       end
