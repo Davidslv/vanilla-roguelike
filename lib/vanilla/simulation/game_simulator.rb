@@ -190,6 +190,10 @@ module Vanilla
         player_pos = player_position
         return false unless player_pos && player_pos[0] && player_pos[1]
 
+        # Log state for debugging
+        debug_trace("Starting guaranteed stairs usage",
+                    context: "Player at #{player_pos.inspect}")
+
         # First, move right to the stairs position - only if we created stairs to the right
         # Otherwise, try to determine which direction to move based on stairs location
 
@@ -277,7 +281,7 @@ module Vanilla
         # If we found stairs, try to move to them
         if stairs_found && move_direction
           puts "Found stairs adjacent to player, moving #{move_direction}" if @display_rendering
-          move_result = simulate_movement(move_direction)
+          move_result = simulate_movement(move_direction, 1, caller_info: "use_guaranteed_stairs:move_to_stairs")
 
           if !move_result || !move_result.first || !move_result.first[:moved]
             puts "✗ Failed to move to the stairs position" if @display_rendering
@@ -285,7 +289,7 @@ module Vanilla
           end
         else
           puts "No stairs found adjacent to player, defaulting to right" if @display_rendering
-          move_result = simulate_movement(:right)
+          move_result = simulate_movement(:right, 1, caller_info: "use_guaranteed_stairs:default_move")
         end
 
         # Now try to use the stairs
@@ -452,13 +456,17 @@ module Vanilla
         player_pos = player_position
         return false unless player_pos
 
+        # Log current state for debugging
+        debug_trace("Starting stairs search",
+                    context: "Player at #{player_pos.inspect}, grid size #{grid.respond_to?(:rows) ? grid.rows : 'unknown'}x#{grid.respond_to?(:columns) ? grid.columns : 'unknown'}")
+
         # Look for stairs in adjacent cells to the player
         stairs_found = false
         directions = [
           [0, 1],  # Right
           [1, 0],  # Down
           [0, -1], # Left
-          [-1, 0], # Up
+          [-1, 0],  # Up
           [1, 1],  # Down-Right
           [1, -1], # Down-Left
           [-1, 1], # Up-Right
@@ -527,7 +535,7 @@ module Vanilla
             # Move to the stairs position if not already there
             if player_pos[0] != row || player_pos[1] != col
               # Determine direction to move
-              direction = if row < player_pos[0]
+              move_direction = if row < player_pos[0]
                 :up
               elsif row > player_pos[0]
                 :down
@@ -537,10 +545,10 @@ module Vanilla
                 :right
               end
 
-              # Move toward the stairs
-              if direction
-                puts "Moving toward stairs (#{direction})" if @display_rendering
-                move_result = simulate_movement(direction)
+              # Move toward the stairs - using the caller_info parameter to track where this is called from
+              if move_direction
+                puts "Moving toward stairs (#{move_direction})" if @display_rendering
+                move_result = simulate_movement(move_direction, 1, caller_info: "find_and_use_stairs:move_to_stairs")
                 if move_result && move_result.first && move_result.first[:moved]
                   puts "✓ Moved to stairs position" if @display_rendering
                 else
@@ -816,109 +824,272 @@ module Vanilla
         end
       end
 
+      # Helper method to log detailed stack traces and context for debugging
+      # @param message [String] descriptive message about what's happening
+      # @param object [Object] the object being inspected (optional)
+      # @param error [Exception] the error that occurred (optional)
+      # @param context [String] additional context for the error
+      # @return [void]
+      def debug_trace(message, object: nil, error: nil, context: nil)
+        return unless @display_rendering || ENV['VANILLA_DEBUG'] == 'true'
+
+        # Format the trace info
+        output = ["\n🔍 DEBUG TRACE 🔍"]
+        output << "Message: #{message}"
+        output << "Location: #{caller[1..3].join("\n           ")}"
+        output << "Context: #{context}" if context
+
+        if object
+          output << "Object: #{object.inspect}"
+          output << "Object Class: #{object.class}"
+
+          # Add more details for common problematic objects
+          if object.is_a?(Vanilla::MapUtils::Grid)
+            output << "Grid Size: #{object.rows}x#{object.columns}" if object.respond_to?(:rows) && object.respond_to?(:columns)
+            output << "Grid Methods: #{object.methods.grep(/access|get|cell|neighbor/).sort.join(', ')}"
+          end
+        end
+
+        if error
+          output << "Error: #{error.class.name}: #{error.message}"
+          output << "Backtrace: #{error.backtrace[0..5].join("\n           ")}"
+        end
+
+        # Print to STDOUT and also to file if we're running in test mode
+        puts output.join("\n") if @display_rendering
+
+        # Add to results for later analysis
+        @results[:debug_traces] ||= []
+        @results[:debug_traces] << {
+          message: message,
+          location: caller[1..3],
+          context: context,
+          object_class: object&.class&.to_s,
+          error_class: error&.class&.to_s,
+          error_message: error&.message,
+          timestamp: Time.now
+        }
+      end
+
       # Simulate player movement in the specified direction
       # @param direction [Symbol] the direction to move (:up, :down, :left, :right)
       # @param count [Integer] number of steps to move in the specified direction
+      # @param caller_info [String] information about which method called this one (for debugging)
       # @return [Array<Hash>] detailed results of each movement
-      def simulate_movement(direction, count = 1)
+      #
+      # IMPORTANT: This method expects direction as a Symbol (:up, :down, :left, :right)
+      # and translates it to the appropriate cardinal direction (:north, :south, :west, :east)
+      # for the MoveCommand. The MoveCommand constructor requires parameters in this specific order:
+      #
+      #   MoveCommand.new(entity, direction, grid)
+      #
+      # DO NOT change the parameter order or the command will fail with:
+      # NoMethodError: undefined method 'to_sym' for #<Vanilla::MapUtils::Grid:...>
+      def simulate_movement(direction, count = 1, caller_info: nil)
         return [] unless @game && @level
 
-        # Handle direction parameter safely
-        dir = nil
-        if direction.is_a?(Symbol)
-          dir = direction
-        elsif direction.is_a?(String) && direction.respond_to?(:to_sym)
-          dir = direction.to_sym
-        elsif direction.class.name.include?("Grid") || !direction.is_a?(String) && !direction.is_a?(Symbol)
-          # We received a Grid object or some other invalid type
-          # Log this error but continue with a default direction
-          dir = :right # Default to right
+        # Track who's calling this method for better error reporting
+        caller_method = caller_info || caller[0].split("`").last.gsub("'", "")
+
+        # Debug print the direction we received
+        puts "DEBUG SIMULATOR: Received direction: #{direction.inspect} (#{direction.class}, #{direction.object_id})"
+        puts "DEBUG SIMULATOR: Is it a Grid? #{direction.is_a?(Vanilla::MapUtils::Grid) if defined?(Vanilla::MapUtils::Grid)}"
+        puts "DEBUG SIMULATOR: Is it the level grid? #{@level.respond_to?(:grid) && direction.equal?(@level.grid)}" if @level.respond_to?(:grid)
+        puts "DEBUG SIMULATOR: Caller: #{caller_method}"
+        puts "DEBUG SIMULATOR: Caller stack: #{caller[0..2].join(' -> ')}"
+
+        # Safety check: ensure direction is not a Grid object which is a common error source
+        if direction.is_a?(Object) &&
+           (defined?(Vanilla::MapUtils::Grid) && direction.is_a?(Vanilla::MapUtils::Grid) ||
+            (@level.respond_to?(:grid) && direction.equal?(@level.grid)))
+
+          debug_trace("Grid object received instead of direction",
+                      object: direction,
+                      context: "Called by #{caller_method}")
+
+          # Add to errors and use a safe default
+          @results[:errors] ||= []
+          @results[:errors] << {
+            error: "InvalidDirectionType",
+            message: "Grid object passed as direction - expected Symbol or String, got Grid",
+            context: "Movement attempt called from #{caller_method}",
+            location: caller[0..2].join(" -> ")
+          }
+
+          # Use a safe default direction
+          direction = :right
+        end
+
+        # Ensure direction is a proper symbol
+        direction = if direction.is_a?(Symbol)
+          direction  # Already a symbol, use as is
+        elsif direction.is_a?(String)
+          direction.to_sym rescue :right  # Convert string to symbol, with fallback
+        else
+          # Handle unexpected input
+          debug_trace("Invalid direction type",
+                      object: direction,
+                      context: "Called by #{caller_method}")
+
           @results[:errors] ||= []
           @results[:errors] << {
             error: "InvalidDirectionType",
             message: "Expected Symbol or String for direction, got #{direction.class}",
-            context: "Movement attempt"
+            context: "Movement attempt called from #{caller_method}",
+            location: caller[0..2].join(" -> ")
           }
-        else
-          # Some other type that might be convertible
-          begin
-            dir = direction.to_s.to_sym
-          rescue => e
-            # If conversion fails, use default
-            dir = :right
-            @results[:errors] ||= []
-            @results[:errors] << {
-              error: "ConversionError",
-              message: "Failed to convert #{direction.class} to direction symbol: #{e.message}",
-              context: "Movement attempt"
-            }
-          end
+          :right  # Default to right as a safe direction
         end
 
         results = []
 
         count.times do |i|
-          # Store initial position for comparison
-          initial_position = player_position
-
-          # Create a command to move in the specified direction
-          command = case dir
-          when :up, :KEY_UP
-            Vanilla::Commands::MoveCommand.new(@level.player, @level.grid, :north)
-          when :down, :KEY_DOWN
-            Vanilla::Commands::MoveCommand.new(@level.player, @level.grid, :south)
-          when :left, :KEY_LEFT
-            Vanilla::Commands::MoveCommand.new(@level.player, @level.grid, :west)
-          when :right, :KEY_RIGHT
-            Vanilla::Commands::MoveCommand.new(@level.player, @level.grid, :east)
-          else
-            @results[:errors] << {
-              error: "InvalidDirection",
-              message: "Invalid movement direction: #{dir}",
-              context: "Movement attempt ##{i+1}"
-            }
-            nil
-          end
-
-          # Execute the command if valid
-          moved = false
           begin
-            if command
-              moved = command.execute
+            # Store initial position for comparison
+            initial_position = player_position
 
-              # Get updated position after command execution
+            # Create a command to move in the specified direction
+            command = nil
+            begin # Add begin/rescue block around command creation
+              # Create MoveCommand with CORRECT PARAMETER ORDER:
+              # entity, direction, grid (NOT entity, grid, direction)
+              command = case direction
+              when :up, :KEY_UP
+                puts "DEBUG SIMULATOR: Creating MoveCommand for UP direction"
+                if @level && @level.player && @level.grid
+                  puts "DEBUG SIMULATOR: Player: #{@level.player}, Grid: #{@level.grid.class}"
+                  # IMPORTANT: MoveCommand parameters: (entity, direction, grid)
+                  Vanilla::Commands::MoveCommand.new(@level.player, :north, @level.grid)
+                else
+                  puts "DEBUG SIMULATOR: Missing required objects - Player: #{!!@level&.player}, Grid: #{!!@level&.grid}"
+                  nil
+                end
+              when :down, :KEY_DOWN
+                puts "DEBUG SIMULATOR: Creating MoveCommand for DOWN direction"
+                if @level && @level.player && @level.grid
+                  puts "DEBUG SIMULATOR: Player: #{@level.player}, Grid: #{@level.grid.class}"
+                  # IMPORTANT: MoveCommand parameters: (entity, direction, grid)
+                  Vanilla::Commands::MoveCommand.new(@level.player, :south, @level.grid)
+                else
+                  puts "DEBUG SIMULATOR: Missing required objects - Player: #{!!@level&.player}, Grid: #{!!@level&.grid}"
+                  nil
+                end
+              when :left, :KEY_LEFT
+                puts "DEBUG SIMULATOR: Creating MoveCommand for LEFT direction"
+                if @level && @level.player && @level.grid
+                  puts "DEBUG SIMULATOR: Player: #{@level.player}, Grid: #{@level.grid.class}"
+                  # IMPORTANT: MoveCommand parameters: (entity, direction, grid)
+                  Vanilla::Commands::MoveCommand.new(@level.player, :west, @level.grid)
+                else
+                  puts "DEBUG SIMULATOR: Missing required objects - Player: #{!!@level&.player}, Grid: #{!!@level&.grid}"
+                  nil
+                end
+              when :right, :KEY_RIGHT
+                puts "DEBUG SIMULATOR: Creating MoveCommand for RIGHT direction"
+                if @level && @level.player && @level.grid
+                  puts "DEBUG SIMULATOR: Player: #{@level.player}, Grid: #{@level.grid.class}"
+                  # IMPORTANT: MoveCommand parameters: (entity, direction, grid)
+                  Vanilla::Commands::MoveCommand.new(@level.player, :east, @level.grid)
+                else
+                  puts "DEBUG SIMULATOR: Missing required objects - Player: #{!!@level&.player}, Grid: #{!!@level&.grid}"
+                  nil
+                end
+              else
+                debug_trace("Invalid movement direction",
+                          object: direction,
+                          context: "Movement attempt ##{i+1} from #{caller_method}")
+
+                @results[:errors] << {
+                  error: "InvalidDirection",
+                  message: "Invalid movement direction: #{direction}",
+                  context: "Movement attempt ##{i+1} from #{caller_method}",
+                  location: caller[0..2].join(" -> ")
+                }
+                nil
+              end
+            rescue => e
+              # Handle errors during command creation
+              puts "DEBUG SIMULATOR: Error creating MoveCommand: #{e.message}"
+              puts "DEBUG SIMULATOR: Error backtrace: #{e.backtrace.first(3).join(' -> ')}"
+              command = nil
+              @results[:errors] ||= []
+              @results[:errors] << {
+                error: e.class.name,
+                message: e.message,
+                backtrace: e.backtrace&.first(3),
+                context: "Creating MoveCommand for #{direction} (attempt #{i+1})",
+                location: caller[0..2].join(" -> ")
+              }
+            end
+
+            if command
+              # Execute the movement command
+              begin
+                command.execute
+                @results[:movement_attempts] ||= 0
+                @results[:movement_attempts] += 1
+              rescue => e
+                debug_trace("Error executing movement command",
+                            object: command,
+                            error: e,
+                            context: "Movement attempt ##{i+1} with direction #{direction} from #{caller_method}")
+
+                @results[:errors] ||= []
+                @results[:errors] << {
+                  error: e.class.name,
+                  message: e.message,
+                  backtrace: e.backtrace&.first(3),
+                  context: "Moving #{direction} (attempt #{i+1} from #{caller_method})",
+                  location: caller[0..2].join(" -> ")
+                }
+              end
+
+              # Get the new position
               new_position = player_position
 
-              # Check if the player actually moved
-              position_changed = (initial_position != new_position)
+              # Check if we actually moved
+              moved = (initial_position != new_position)
+              @results[:successful_movements] ||= 0
+              @results[:successful_movements] += 1 if moved
 
               # Record the movement details
               movement_result = {
-                direction: dir,
+                direction: direction,
                 old_position: initial_position,
                 new_position: new_position,
                 moved: moved,
-                position_changed: position_changed
+                command: command.class.name
               }
 
-              # Store movement in results
-              @results[:movements] << movement_result
+              # Collect any messages that were generated during the movement
+              if @level.respond_to?(:message_manager) && @level.message_manager.respond_to?(:messages)
+                movement_result[:messages] = collect_messages
+              end
 
-              # Store player position for tracking
-              @results[:player_positions] << new_position
-
-              # Collect any messages generated during movement
-              collect_messages
-
-              # Add to return array
               results << movement_result
             end
           rescue => e
+            debug_trace("Error in movement simulation",
+                        error: e,
+                        context: "Full movement cycle for #{direction} from #{caller_method}")
+
+            # Log the error but continue with other movements
+            @results[:errors] ||= []
             @results[:errors] << {
               error: e.class.name,
               message: e.message,
               backtrace: e.backtrace&.first(3),
-              context: "Moving #{dir.to_s.upcase} (attempt #{i+1})"
+              context: "Moving #{direction.to_s.upcase} (attempt #{i+1} from #{caller_method})",
+              location: caller[0..2].join(" -> ")
+            }
+
+            # Add a failed movement result
+            results << {
+              direction: direction,
+              old_position: initial_position || "unknown",
+              new_position: "unknown",
+              moved: false,
+              error: e.class.name
             }
           end
         end
@@ -1116,99 +1287,170 @@ module Vanilla
       # @param direction [Symbol] the direction to move (:up, :down, :left, :right)
       # @param count [Integer] number of steps to move in the specified direction
       # @param verify_render [Boolean] whether to verify rendering (can be disabled for performance)
+      # @param caller_info [String] information about which method called this one (for debugging)
       # @return [Array<Hash>] detailed results of each movement with rendering verification data
-      def simulate_movement_with_render_check(direction, count = 1, verify_render: true)
+      def simulate_movement_with_render_check(direction, count = 1, verify_render: true, caller_info: nil)
+        # Track the calling method for better error reporting
+        caller_method = caller_info || caller[0].split("`").last.gsub("'", "")
+
         # Ensure direction is a symbol or string before proceeding
         dir = nil
 
         # First check the type of the direction parameter
-        if direction.is_a?(Symbol)
-          # Symbol directions are valid
-          dir = direction
-        elsif direction.is_a?(String) && direction.respond_to?(:to_sym)
-          # Convert string to symbol
-          dir = direction.to_sym
-        elsif direction.class.name.include?("Grid") || !direction.is_a?(String) && !direction.is_a?(Symbol)
-          # We received a Grid object or some other invalid type
-          # Log this error but continue with a default direction
-          dir = :right # Default direction
+        begin
+          if direction.is_a?(Symbol)
+            # Symbol directions are valid
+            dir = direction
+          elsif direction.is_a?(String) && direction.respond_to?(:to_sym)
+            # Convert string to symbol
+            dir = direction.to_sym
+          elsif direction.is_a?(Vanilla::MapUtils::Grid)
+            # We received a Grid object which is a common error
+            debug_trace("Grid object received instead of direction in render check",
+                        object: direction,
+                        context: "Called by #{caller_method}")
 
-          # Add to error list
-          @results[:errors] ||= []
-          @results[:errors] << {
-            error: "InvalidDirectionType",
-            message: "Expected Symbol or String for direction, got #{direction.class}",
-            context: "Movement rendering check"
-          }
-        else
-          # Some other type but it might be convertible to a symbol
-          begin
-            dir = direction.to_s.to_sym
-          rescue => e
-            # If conversion fails, use default
+            # Default to right and log the error
             dir = :right
             @results[:errors] ||= []
             @results[:errors] << {
-              error: "ConversionError",
-              message: "Failed to convert #{direction.class} to direction symbol: #{e.message}",
-              context: "Movement rendering check"
+              error: "InvalidDirectionType",
+              message: "Grid object passed as direction in render check - expected Symbol or String, got Grid",
+              context: "Movement render check called from #{caller_method}",
+              location: caller[0..2].join(" -> ")
             }
+          elsif !direction.is_a?(String) && !direction.is_a?(Symbol)
+            # Some other invalid type
+            debug_trace("Invalid direction type in render check",
+                        object: direction,
+                        context: "Called by #{caller_method}")
+
+            # Default to right
+            dir = :right
+            @results[:errors] ||= []
+            @results[:errors] << {
+              error: "InvalidDirectionType",
+              message: "Expected Symbol or String for direction, got #{direction.class}",
+              context: "Movement rendering check called from #{caller_method}",
+              location: caller[0..2].join(" -> ")
+            }
+          else
+            # Some other type but it might be convertible to a symbol
+            begin
+              dir = direction.to_s.to_sym
+            rescue => e
+              # If conversion fails, use default
+              debug_trace("Failed to convert direction in render check",
+                          object: direction,
+                          error: e,
+                          context: "Called by #{caller_method}")
+
+              dir = :right
+              @results[:errors] ||= []
+              @results[:errors] << {
+                error: "ConversionError",
+                message: "Failed to convert #{direction.class} to direction symbol in render check: #{e.message}",
+                context: "Movement rendering check called from #{caller_method}",
+                location: caller[0..2].join(" -> ")
+              }
+            end
           end
+        rescue => e
+          # Catch any unexpected errors in the direction handling
+          debug_trace("Unexpected error processing direction in render check",
+                      object: direction,
+                      error: e,
+                      context: "Called by #{caller_method}")
+
+          dir = :right # Default to safe direction
+          @results[:errors] ||= []
+          @results[:errors] << {
+            error: e.class.name,
+            message: "Unexpected error processing direction in render check: #{e.message}",
+            context: "Movement rendering check from #{caller_method}",
+            location: caller[0..2].join(" -> ")
+          }
         end
 
         results = []
 
         count.times do
-          # Display direction information
-          puts "\nAttempting to move #{dir.to_s.upcase}" if @display_rendering
+          begin
+            # Display direction information
+            puts "\nAttempting to move #{dir.to_s.upcase}" if @display_rendering
 
-          # First, capture the screen before movement
-          puts "\nBEFORE MOVEMENT:" if @display_rendering
-          pre_move_screen = capture_screen
-          pre_move_pos = player_position
+            # First, capture the screen before movement
+            puts "\nBEFORE MOVEMENT:" if @display_rendering
+            pre_move_screen = capture_screen
+            pre_move_pos = player_position
 
-          puts "\nPlayer position: [#{pre_move_pos[0]}, #{pre_move_pos[1]}]" if @display_rendering
+            puts "\nPlayer position: [#{pre_move_pos[0]}, #{pre_move_pos[1]}]" if @display_rendering
 
-          # Perform the movement
-          move_result = simulate_movement(dir, 1).first
+            # Perform the movement using the caller_info parameter
+            move_result = simulate_movement(dir, 1, caller_info: "simulate_movement_with_render_check:#{caller_method}").first
 
-          # Capture the screen after movement
-          puts "\nAFTER MOVEMENT:" if @display_rendering
-          post_move_screen = capture_screen
-          post_move_pos = player_position
+            # Capture the screen after movement
+            puts "\nAFTER MOVEMENT:" if @display_rendering
+            post_move_screen = capture_screen
+            post_move_pos = player_position
 
-          puts "\nPlayer position: [#{post_move_pos[0]}, #{post_move_pos[1]}]" if @display_rendering
-          puts "\nMovement successful: #{move_result[:moved]}" if @display_rendering
+            puts "\nPlayer position: [#{post_move_pos[0]}, #{post_move_pos[1]}]" if @display_rendering
+            puts "\nMovement successful: #{move_result[:moved]}" if @display_rendering
 
-          # Check if the player moved
-          moved = move_result[:moved]
+            # Check if the player moved
+            moved = move_result[:moved]
 
-          # Verify rendering if requested and if the player moved
-          rendering_correct = !verify_render || verify_player_rendering
+            # Verify rendering if requested and if the player moved
+            rendering_correct = !verify_render || verify_player_rendering
 
-          # Check if the screen actually changed
-          screen_changed = pre_move_screen != post_move_screen
+            # Check if the screen actually changed
+            screen_changed = pre_move_screen != post_move_screen
 
-          # Add all data to the result
-          result = move_result.merge({
-            screen_changed: screen_changed,
-            rendering_correct: rendering_correct,
-            rendering_verified: verify_render
-          })
-
-          results << result
-
-          # Add detailed rendering data
-          if verify_render
-            @results[:rendering_data] ||= []
-            @results[:rendering_data] << {
-              turn: @game.instance_variable_get(:@current_turn).to_i,
-              direction: dir,
-              pre_position: pre_move_pos,
-              post_position: post_move_pos,
-              moved: moved,
+            # Add all data to the result
+            result = move_result.merge({
               screen_changed: screen_changed,
-              rendering_correct: rendering_correct
+              rendering_correct: rendering_correct,
+              rendering_verified: verify_render
+            })
+
+            results << result
+
+            # Add detailed rendering data
+            if verify_render
+              @results[:rendering_data] ||= []
+              @results[:rendering_data] << {
+                turn: @game.instance_variable_get(:@current_turn).to_i,
+                direction: dir,
+                pre_position: pre_move_pos,
+                post_position: post_move_pos,
+                moved: moved,
+                screen_changed: screen_changed,
+                rendering_correct: rendering_correct
+              }
+            end
+          rescue => e
+            # Log any errors but continue
+            debug_trace("Error in movement render check",
+                        error: e,
+                        context: "Full render cycle for #{dir} from #{caller_method}")
+
+            @results[:errors] ||= []
+            @results[:errors] << {
+              error: e.class.name,
+              message: e.message,
+              backtrace: e.backtrace&.first(3),
+              context: "Movement render check for #{dir} called by #{caller_method}",
+              location: caller[0..2].join(" -> ")
+            }
+
+            # Add a failed movement result
+            results << {
+              direction: dir,
+              moved: false,
+              screen_changed: false,
+              rendering_correct: false,
+              rendering_verified: verify_render,
+              error: e.class.name
             }
           end
         end

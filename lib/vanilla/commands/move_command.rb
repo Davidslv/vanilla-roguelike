@@ -2,9 +2,20 @@ require_relative 'command'
 
 module Vanilla
   module Commands
+    # MoveCommand handles entity movement in a specified direction
+    # This is a critical command used by the player and NPCs for movement
     class MoveCommand < Command
       attr_reader :entity, :direction, :grid
 
+      # Create a new movement command
+      #
+      # @param entity [Object] the entity to move (usually player or monster)
+      # @param direction [Symbol] the direction to move in (:north, :south, :east, :west)
+      # @param grid [Vanilla::MapUtils::Grid] the grid on which to move
+      # @param render_system [Vanilla::Systems::RenderSystem] optional render system
+      #
+      # IMPORTANT: The parameter order is (entity, direction, grid), NOT (entity, grid, direction)
+      # Incorrect parameter order will result in a NoMethodError when trying to call to_sym on a Grid object
       def initialize(entity, direction, grid, render_system = nil)
         super()
         @entity = entity
