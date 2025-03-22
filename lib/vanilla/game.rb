@@ -41,36 +41,48 @@ module Vanilla
       print_title_screen
 
       # Main game loop
-      while @running
-        # Process a single turn
-        process_turn
+      begin
+        while @running
+          # Process a single turn
+          process_turn
+        end
+      rescue Interrupt
+        puts "\nGame interrupted. Exiting gracefully..."
+        @running = false
+      ensure
+        # Clean up resources
+        cleanup
       end
-
-      # Clean up resources
-      cleanup
     end
 
     # Process a single game turn
     def process_turn
-      # Calculate delta time
-      current_time = Time.now
-      delta_time = current_time - @last_update_time
-      @last_update_time = current_time
+      begin
+        # Calculate delta time
+        current_time = Time.now
+        delta_time = current_time - @last_update_time
+        @last_update_time = current_time
 
-      # Process input and update world
-      @world.update(delta_time)
+        # Process input and update world
+        @world.update(delta_time)
 
-      # Update grid with entities for compatibility
-      if @world.current_level
-        @world.current_level.update_grid_with_entities(@world.entities.values)
+        # Update grid with entities for compatibility
+        if @world.current_level
+          @world.current_level.update_grid_with_entities(@world.entities.values)
+        end
+
+        # Check for exit condition
+        @running = false if @world.keyboard.key_pressed?(:q)
+
+        # Limit frame rate
+        sleep_time = [0, (1.0 / 30) - delta_time].max
+        sleep(sleep_time) if sleep_time > 0
+      rescue Interrupt
+        # Handle Ctrl+C gracefully within a turn
+        puts "\nGame turn interrupted. Press 'q' to exit or any other key to continue."
+        @running = false if gets.chomp.downcase == 'q'
+        @last_update_time = Time.now  # Reset time counter
       end
-
-      # Check for exit condition
-      @running = false if @world.keyboard.key_pressed?(:q)
-
-      # Limit frame rate
-      sleep_time = [0, (1.0 / 30) - delta_time].max
-      sleep(sleep_time) if sleep_time > 0
     end
 
     # Clean up and exit the game
