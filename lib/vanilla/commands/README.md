@@ -25,20 +25,10 @@ MoveCommand.new(entity, direction, grid, render_system = nil)
 * `direction`: A Symbol representing the direction (:north, :south, :east, :west)
 * `grid`: The game grid on which the entity should move
 
-**Common Error**
-
-If you pass the parameters in the wrong order (especially putting grid before direction), you'll encounter this error:
-
-```
-NoMethodError: undefined method 'to_sym' for #<Vanilla::MapUtils::Grid:...>
-```
-
-This happens because the command tries to call `to_sym` on what it expects to be a direction Symbol, but is actually the Grid object.
-
 **Direction Translation**
 
 The game simulator uses UI directions (:up, :down, :left, :right) which are translated to cardinal directions (:north, :south, :west, :east) for the MoveCommand.
 
 ### Testing
 
-When testing with the game simulator, always ensure the direction parameter is a Symbol, not a Grid object. The `bin/test_game` script includes examples of correct usage.
+When testing with the game simulator, always ensure the direction parameter is a Symbol, not a Grid object. For more details about testing, including troubleshooting common issues, please see the [Testing Guide](../../doc/testing.md).
