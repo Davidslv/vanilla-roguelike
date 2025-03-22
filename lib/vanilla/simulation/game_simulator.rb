@@ -685,15 +685,15 @@ module Vanilla
       def initialize_test_level_if_needed
         return nil unless @game
 
-        # Use private initialize_level method to create a test level
+        # Use private start_new_level method to create a test level
         # This requires accessing the private method via send
-        if @game.respond_to?(:initialize_level)
+        if @game.respond_to?(:start_new_level)
           # Regular access for public method
-          @game.initialize_level(difficulty: 1)
+          @game.start_new_level
         elsif @game.respond_to?(:send)
           # Use send to access private method
           begin
-            @game.send(:initialize_level, difficulty: 1)
+            @game.send(:start_new_level)
           rescue => e
             @results[:errors] << {
               error: e.class.name,
