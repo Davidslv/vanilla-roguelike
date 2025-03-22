@@ -9,8 +9,8 @@ module Vanilla
     # @return [Entity] The created player entity
     def self.create_player(world, row, column, name = "Hero")
       entity = Components::Entity.new
-      entity.add_component(Components::PositionComponent.new(row, column))
-      entity.add_component(Components::RenderComponent.new('@'))
+      entity.add_component(Components::PositionComponent.new(row: row, column: column))
+      entity.add_component(Components::RenderComponent.new(character: '@', color: :white))
       entity.add_component(Components::InputComponent.new)
       entity.add_component(Components::InventoryComponent.new)
       entity.add_component(Components::MovementComponent.new(1))
@@ -29,20 +29,20 @@ module Vanilla
     # @return [Entity] The created monster entity
     def self.create_monster(world, row, column, type = :goblin)
       entity = Components::Entity.new
-      entity.add_component(Components::PositionComponent.new(row, column))
+      entity.add_component(Components::PositionComponent.new(row: row, column: column))
 
       # Configure based on monster type
       case type
       when :goblin
-        entity.add_component(Components::RenderComponent.new('g'))
+        entity.add_component(Components::RenderComponent.new(character: 'g', color: :green))
         entity.add_component(Components::MovementComponent.new(1))
         entity.name = "Goblin"
       when :troll
-        entity.add_component(Components::RenderComponent.new('T'))
+        entity.add_component(Components::RenderComponent.new(character: 'T', color: :red))
         entity.add_component(Components::MovementComponent.new(0.5))
         entity.name = "Troll"
       else
-        entity.add_component(Components::RenderComponent.new('m'))
+        entity.add_component(Components::RenderComponent.new(character: 'm', color: :yellow))
         entity.add_component(Components::MovementComponent.new(1))
         entity.name = "Unknown Monster"
       end
@@ -62,27 +62,27 @@ module Vanilla
     # @return [Entity] The created item entity
     def self.create_item(world, row, column, item_type = :potion)
       entity = Components::Entity.new
-      entity.add_component(Components::PositionComponent.new(row, column))
+      entity.add_component(Components::PositionComponent.new(row: row, column: column))
 
       # Configure based on item type
       case item_type
       when :potion
-        entity.add_component(Components::RenderComponent.new('!'))
+        entity.add_component(Components::RenderComponent.new(character: '!', color: :red))
         entity.add_component(Components::ItemComponent.new("Health Potion", :potion))
         entity.add_component(Components::ConsumableComponent.new)
         entity.name = "Health Potion"
       when :sword
-        entity.add_component(Components::RenderComponent.new('/'))
+        entity.add_component(Components::RenderComponent.new(character: '/', color: :cyan))
         entity.add_component(Components::ItemComponent.new("Steel Sword", :weapon))
         entity.add_component(Components::EquippableComponent.new(:weapon))
         entity.name = "Steel Sword"
       when :key
-        entity.add_component(Components::RenderComponent.new('k'))
+        entity.add_component(Components::RenderComponent.new(character: 'k', color: :yellow))
         entity.add_component(Components::ItemComponent.new("Key", :key))
         entity.add_component(Components::KeyComponent.new)
         entity.name = "Key"
       else
-        entity.add_component(Components::RenderComponent.new('?'))
+        entity.add_component(Components::RenderComponent.new(character: '?', color: :white))
         entity.add_component(Components::ItemComponent.new("Unknown Item", :misc))
         entity.name = "Unknown Item"
       end
@@ -102,14 +102,14 @@ module Vanilla
     # @return [Entity] The created stairs entity
     def self.create_stairs(world, row, column, up = false)
       entity = Components::Entity.new
-      entity.add_component(Components::PositionComponent.new(row, column))
+      entity.add_component(Components::PositionComponent.new(row: row, column: column))
 
       if up
-        entity.add_component(Components::RenderComponent.new('<'))
+        entity.add_component(Components::RenderComponent.new(character: '<', color: :magenta))
         entity.add_component(Components::StairsComponent.new(:up))
         entity.name = "Stairs Up"
       else
-        entity.add_component(Components::RenderComponent.new('>'))
+        entity.add_component(Components::RenderComponent.new(character: '>', color: :magenta))
         entity.add_component(Components::StairsComponent.new(:down))
         entity.name = "Stairs Down"
       end

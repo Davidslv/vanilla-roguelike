@@ -45,6 +45,9 @@ module Vanilla
         # Process input and update world
         @world.update(delta_time)
 
+        # Update grid with entities for compatibility
+        @world.current_level.update_grid_with_entities(@world.entities.values)
+
         # Check for exit condition
         @running = false if @world.keyboard.key_pressed?(:q)
 
@@ -112,7 +115,7 @@ module Vanilla
       @world.set_level(starting_level)
 
       # Create player entity
-      Vanilla::EntityFactory.create_player(
+      player = Vanilla::EntityFactory.create_player(
         @world,
         starting_level.entrance_row,
         starting_level.entrance_column,
@@ -128,6 +131,9 @@ module Vanilla
 
       # Add some monsters based on difficulty
       spawn_monsters
+
+      # Update grid with initial entities
+      @world.current_level.update_grid_with_entities(@world.entities.values)
 
       @logger.info("Initial level created with difficulty #{@difficulty}")
     end

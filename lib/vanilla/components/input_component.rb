@@ -12,6 +12,13 @@ module Vanilla
         @move_direction = nil
         @action_triggered = false
         @action_params = {}
+        super()
+      end
+
+      # Get the component type
+      # @return [Symbol] The component type
+      def type
+        :input
       end
 
       # Set the movement direction
@@ -43,9 +50,8 @@ module Vanilla
 
       # Convert to hash for serialization
       # @return [Hash] Serialized representation
-      def to_hash
+      def data
         {
-          type: self.class.component_type,
           move_direction: @move_direction,
           action_triggered: @action_triggered,
           action_params: @action_params
@@ -68,5 +74,8 @@ module Vanilla
         :input
       end
     end
+
+    # Register this component
+    Component.register(InputComponent)
   end
 end

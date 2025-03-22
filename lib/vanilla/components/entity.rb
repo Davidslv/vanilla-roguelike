@@ -1,4 +1,5 @@
 require 'securerandom'
+require 'set'
 
 module Vanilla
   module Components
@@ -10,12 +11,17 @@ module Vanilla
       # @return [Array<Component>] all components attached to this entity
       attr_reader :components
 
+      # @return [String] name of the entity (for display purposes)
+      attr_accessor :name
+
       # Initialize a new entity
       # @param id [String, nil] optional ID for the entity, will be auto-generated if nil
       def initialize(id: nil)
         @id = id || SecureRandom.uuid
         @components = []
         @component_map = {}
+        @tags = Set.new
+        @name = "Entity_#{@id[0..7]}"
       end
 
       # Add a component to the entity
@@ -54,98 +60,127 @@ module Vanilla
       end
 
       # Check if the entity has a component of the given type
-      # @param type [Symbol] the component type to check for
-      # @return [Boolean] true if the entity has a component of this type
+      # @param type [Symbol] the type to check for
+      # @return [Boolean] true if the entity has a component of the given type
       def has_component?(type)
         @component_map.key?(type)
       end
 
-      # Get a component by type
-      # @param type [Symbol] the type of component to get
+      # Get a component of the given type
+      # @param type [Symbol] the type to get
       # @return [Component, nil] the component, or nil if not found
       def get_component(type)
         @component_map[type]
       end
 
+      # Add a tag to the entity
+      # @param tag [Symbol, String] the tag to add
+      # @return [Entity] self, for method chaining
+      def add_tag(tag)
+        @tags.add(tag.to_sym)
+        self
+      end
+
+      # Remove a tag from the entity
+      # @param tag [Symbol, String] the tag to remove
+      # @return [Entity] self, for method chaining
+      def remove_tag(tag)
+        @tags.delete(tag.to_sym)
+        self
+      end
+
+      # Check if the entity has a tag
+      # @param tag [Symbol, String] the tag to check for
+      # @return [Boolean] true if the entity has the tag
+      def has_tag?(tag)
+        @tags.include?(tag.to_sym)
+      end
+
+      # Get all tags on the entity
+      # @return [Array<Symbol>] the tags
+      def tags
+        @tags.to_a
+      end
+
       # Update all components
-      # @param delta_time [Float] time since last update in seconds
+      # @param delta_time [Float] time since last update
       def update(delta_time)
         @components.each do |component|
-          component.update(self, delta_time) if component.respond_to?(:update)
+          component.update(delta_time) if component.respond_to?(:update)
         end
       end
 
-      # Convert the entity to a hash representation
-      # @return [Hash] serialized entity data
+      # Convert to hash for serialization
+      # @return [Hash] serialized representation
       def to_hash
         {
           id: @id,
+          name: @name,
+          tags: @tags.to_a,
           components: @components.map(&:to_hash)
         }
       end
 
-      # Create an entity from a hash representation
-      # @param hash [Hash] serialized entity data
-      # @return [Entity] the deserialized entity
+      # Create from hash for deserialization
+      # @param hash [Hash] serialized representation
+      # @return [Entity] the new entity
       def self.from_hash(hash)
         entity = new(id: hash[:id])
+        entity.name = hash[:name] if hash[:name]
 
-        hash[:components].each do |component_hash|
-          component = Component.from_hash(component_hash)
-          entity.add_component(component)
+        # Add tags
+        hash[:tags]&.each do |tag|
+          entity.add_tag(tag)
+        end
+
+        # Add components
+        hash[:components]&.each do |component_hash|
+          component_type = component_hash[:type]
+          component_class = Component.get_class(component_type)
+
+          if component_class
+            component = component_class.from_hash(component_hash)
+            entity.add_component(component)
+          end
         end
 
         entity
       end
 
-      # Handle method missing to delegate to components
-      # @param method [Symbol] the method name
-      # @param args [Array] arguments to the method
-      # @param block [Proc] optional block
+      # Method missing to provide component accessors
+      # @deprecated Use #get_component instead
       def method_missing(method, *args, &block)
         # Log a warning about using method_missing
         Vanilla::Logger.instance.warn("Entity#method_missing called for #{method}. Consider accessing the component directly instead. Entity: #{id}")
 
-        # Check if method is a setter (ends with =)
-        if method.to_s.end_with?('=')
-          attr_name = method.to_s.chomp('=').to_sym
+        # Check for component accessor methods (e.g., position, render, etc.)
+        component_type = method.to_sym
+        return get_component(component_type) if has_component?(component_type)
 
-          # Find a component that responds to this setter
-          @components.each do |component|
-            if component.respond_to?(method)
-              return component.send(method, *args, &block)
-            end
-          end
-        else
-          # For getter methods, check all components
-          @components.each do |component|
-            if component.respond_to?(method)
-              return component.send(method, *args, &block)
-            end
-          end
+        # Check for component predicate methods (e.g., position?, render?, etc.)
+        if method.to_s.end_with?('?')
+          component_type = method.to_s.chomp('?').to_sym
+          return has_component?(component_type)
         end
 
-        # If we get here, no component handled the method
         super
       end
 
-      # Respond to missing to support method_missing
-      # @param method [Symbol] the method name
-      # @param include_private [Boolean] whether to include private methods
+      # Allow respond_to? to work with method_missing
+      # @deprecated Use #has_component? instead
       def respond_to_missing?(method, include_private = false)
         # Log a warning about using respond_to_missing?
         Vanilla::Logger.instance.warn("Entity#respond_to_missing? called for #{method}. Consider checking component types directly. Entity: #{id}")
 
-        # Check if method is a setter (ends with =)
-        if method.to_s.end_with?('=')
-          attr_name = method.to_s.chomp('=').to_sym
+        component_type = method.to_sym
+        return true if has_component?(component_type)
 
-          # Find a component that responds to this setter
-          @components.any? { |c| c.respond_to?(method) }
-        else
-          # For getter methods, check all components
-          @components.any? { |c| c.respond_to?(method) }
-        end || super
+        if method.to_s.end_with?('?')
+          component_type = method.to_s.chomp('?').to_sym
+          return true if @component_map.key?(component_type)
+        end
+
+        super
       end
     end
   end
