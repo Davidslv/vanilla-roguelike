@@ -7,6 +7,10 @@ module Vanilla
         @header = ""
         @message_buffer = {} # Separate buffer for messages below the grid
         @color_buffer = {}   # Store colors for characters outside the grid
+        @logger = Vanilla::Logger.instance
+
+        # Print initialization message for debugging
+        @logger.debug("Terminal renderer initialized")
       end
 
       def clear
@@ -15,42 +19,41 @@ module Vanilla
         @message_buffer = {}
         @color_buffer = {}
 
-        # Use a more robust way to clear the screen
-        # that works cross-platform and handles errors
+        # Use a direct approach for terminal clearing that works consistently
         begin
           # Skip in test mode
           return if ENV['VANILLA_TEST_MODE'] == 'true'
 
-          # Try system clear command first
-          system("clear") || system("cls") || print("\e[H\e[2J")
+          # Clear terminal with simpler approach that works more consistently
+          # First move to home position (0,0)
+          print("\e[H")
+          # Then clear entire screen
+          print("\e[2J")
+          # Ensure it's flushed
+          STDOUT.flush
+
+          @logger.debug("Screen cleared")
         rescue StandardError => e
-          # If system commands fail, fall back to ANSI escape sequence
-          print("\e[H\e[2J")
+          # If ANSI escape sequences fail, try a simpler approach
+          puts "\n" * 50
+          @logger.error("Error clearing screen: #{e.message}")
         rescue Interrupt
           # Handle Ctrl+C gracefully
-          print("\e[H\e[2J")
-          puts "Game interrupted. Continuing..."
+          @logger.info("Interrupt received during screen clear")
         end
       end
 
       def clear_screen
-        # Try system clear command first
-        begin
-          # Skip in test mode
-          return if ENV['VANILLA_TEST_MODE'] == 'true'
-
-          system("clear") || system("cls") || print("\e[H\e[2J")
-        rescue StandardError => e
-          # If system commands fail, fall back to ANSI escape sequence
-          print("\e[H\e[2J")
-        rescue Interrupt
-          # Handle Ctrl+C gracefully
-          print("\e[H\e[2J")
-          puts "Game interrupted. Continuing..."
-        end
+        # Same as clear, but meant to be an explicit total clear
+        clear
       end
 
       def draw_grid(grid)
+        unless grid
+          @logger.error("Attempted to draw nil grid")
+          return false
+        end
+
         @grid = grid
         # Initialize buffer with grid dimensions
         @buffer = Array.new(grid.rows) { Array.new(grid.columns, ' ') }
@@ -67,15 +70,24 @@ module Vanilla
           end
         end
 
-        # Store header info
-        @header = "Seed: #{$seed} | Rows: #{grid.rows} | Columns: #{grid.columns}"
+        # Store header info with proper seed display
+        seed_display = $seed.nil? ? "random" : $seed.to_s
+        @header = "Seed: #{seed_display} | Grid: #{grid.rows}x#{grid.columns}"
+
+        @logger.debug("Grid prepared for rendering: #{grid.rows}x#{grid.columns}")
+
+        true
       end
 
       def draw_character(row, column, character, color = nil)
-        # Debug logging only for unusual positions, and only basic info
-        if $DEBUG && row > @grid&.rows && character != '-' && character != '|' && ![' ', '#'].include?(character)
-          puts "DEBUG: Drawing '#{character}' outside grid at [#{row},#{column}]"
+        # Validate parameters
+        unless character
+          @logger.warn("Attempted to draw nil character at [#{row},#{column}]")
+          character = '?'
         end
+
+        # Debug logging for character placement
+        @logger.debug("Drawing '#{character}' at [#{row},#{column}] with color #{color || 'none'}")
 
         # For characters within the grid bounds, use the grid buffer
         if @buffer && row >= 0 && row < @buffer.size && column >= 0 && column < @buffer.first.size
@@ -119,117 +131,145 @@ module Vanilla
       end
 
       def present
-        return unless @grid
-        return unless @buffer
+        # Make sure we have something to display
+        if !@grid || !@buffer
+          puts "⚠️  No grid or buffer to display"
+          STDOUT.flush
+          @logger.error("Cannot present: grid=#{@grid.nil? ? 'nil' : 'present'}, buffer=#{@buffer.nil? ? 'nil' : 'present'}")
+          return
+        end
 
         # Print header
         puts @header
-        puts "-" * 35
-        puts "\n"
+        puts "-" * 50
+        puts ""
 
-        # Render grid
-        output = "+" + "---+" * @grid.columns + "\n"
+        # Render grid - make sure we handle nil cells properly
+        begin
+          output = "+" + "---+" * @grid.columns + "\n"
 
-        @grid.rows.times do |row_idx|
-          top = "|"
-          bottom = "+"
+          @grid.rows.times do |row_idx|
+            top = "|"
+            bottom = "+"
 
-          @grid.columns.times do |col_idx|
-            cell = @grid[row_idx, col_idx]
-            next unless cell
+            @grid.columns.times do |col_idx|
+              cell = @grid[row_idx, col_idx]
 
-            # Use our buffer content instead of grid.contents_of
-            body = @buffer ? @buffer[row_idx][col_idx] : ' '
-            body = " #{body} " if body.size == 1
-            body = " #{body}" if body.size == 2
+              # Handle nil cells gracefully
+              unless cell
+                @logger.warn("Nil cell at [#{row_idx},#{col_idx}]")
+                top << " ? |"
+                bottom << "---+"
+                next
+              end
 
-            east_cell = @grid[row_idx, col_idx + 1]
-            south_cell = @grid[row_idx + 1, col_idx]
+              # Use our buffer content instead of grid.contents_of
+              body = @buffer ? @buffer[row_idx][col_idx] : ' '
+              body = " #{body} " if body.size == 1
+              body = " #{body}" if body.size == 2
 
-            east_boundary = (east_cell && cell.linked?(east_cell) ? " " : "|")
-            south_boundary = (south_cell && cell.linked?(south_cell) ? "   " : "---")
-            corner = "+"
+              east_cell = @grid[row_idx, col_idx + 1]
+              south_cell = @grid[row_idx + 1, col_idx]
 
-            top << body << east_boundary
-            bottom << south_boundary << corner
+              # Check linked cells, using safe navigation to avoid nil errors
+              east_boundary = (east_cell && cell.respond_to?(:linked?) && cell.linked?(east_cell) ? " " : "|")
+              south_boundary = (south_cell && cell.respond_to?(:linked?) && cell.linked?(south_cell) ? "   " : "---")
+              corner = "+"
+
+              top << body << east_boundary
+              bottom << south_boundary << corner
+            end
+
+            output << top << "\n"
+            output << bottom << "\n"
           end
 
-          output << top << "\n"
-          output << bottom << "\n"
-        end
+          # Print grid
+          print output
+          STDOUT.flush # Ensure output is displayed
 
-        # Print grid
-        puts output
+          @logger.debug("Grid display output generated and printed")
+        rescue => e
+          puts "Error rendering grid: #{e.message}"
+          @logger.error("Grid rendering error: #{e.class}: #{e.message}")
+          @logger.error(e.backtrace.join("\n"))
+        end
 
         # Add a very obvious separator for the message area
-        puts "\n=== MESSAGES ===\n"
+        puts "\n=== MESSAGES ==="
+        STDOUT.flush # Ensure separator is displayed
 
-        # DIRECT MESSAGE ACCESS - use the MessageSystem facade
-        # This follows proper Service Locator pattern
-        message_system = Vanilla::Messages::MessageSystem.instance
-        if message_system
-          messages = message_system.get_recent_messages(10)
+        # Always show game controls
+        puts "USE KEYBOARD CONTROLS:"
+        puts "• Arrow keys: Move character"
+        puts "• Q: Quit game"
+        puts "• CTRL+C: Force exit"
+        STDOUT.flush
 
-          if messages && !messages.empty?
-            # Direct rendering of messages - bypassing the buffer
-            puts "Latest messages:"
-            puts "-" * 40
+        # Display messages from the message system if available
+        begin
+          message_system = Vanilla::ServiceRegistry.get(:message_system)
 
-            messages.each do |msg|
-              text = if msg.is_a?(Vanilla::Messages::Message)
-                  "#{msg.importance.to_s.upcase}: #{msg.translated_text}"
-                else
-                  "#{msg[:importance].to_s.upcase}: #{msg[:text]}"
-                end
+          if message_system && message_system.respond_to?(:get_recent_messages)
+            messages = message_system.get_recent_messages(5) rescue []
 
-              # Format by importance
-              formatted = case (msg.is_a?(Vanilla::Messages::Message) ? msg.importance : msg[:importance])
-                         when :critical, :danger then "!! #{text}"
-                         when :warning then "* #{text}"
-                         when :success then "+ #{text}"
-                         else "> #{text}"
-                         end
+            if messages && !messages.empty?
+              puts "\nRECENT EVENTS:"
+              puts "-" * 40
 
-              puts formatted
+              messages.each do |msg|
+                text = if msg.is_a?(Hash) && msg[:text]
+                        msg[:text].to_s
+                      elsif msg.respond_to?(:to_s)
+                        msg.to_s
+                      else
+                        "Unknown message"
+                      end
+
+                puts "• #{text}"
+              end
             end
-          else
-            puts "No messages available yet. Play the game to see messages here."
           end
-        # Fallback to message buffer rendering
-        elsif !@message_buffer.empty?
-          # Use existing message buffer rendering code
-          if $DEBUG
-            msg_pos = @message_buffer.keys.map(&:first).uniq.sort
-            puts "DEBUG: Rendering #{@message_buffer.size} message chars at rows #{msg_pos.first}-#{msg_pos.last}"
-          end
-
-          # We'll take a different approach - collect all characters by row/col
-          message_area = {}
-
-          @message_buffer.each do |pos, char|
-            row, col = pos
-            message_area[row] ||= {}
-            message_area[row][col] = char
-          end
-
-          # Sort rows and render each one
-          message_area.keys.sort.each do |row|
-            # Get the max column for this row
-            max_col = message_area[row].keys.max || 0
-
-            # Create a line with the characters
-            line = ""
-            (0..max_col).each do |col|
-              line << (message_area[row][col] || " ")
-            end
-
-            # Print the line - make sure lines aren't empty
-            puts line unless line.strip.empty?
-          end
-        else
-          # If no messages, show a default
-          puts "No messages yet. Play the game to see messages here."
+        rescue => e
+          puts "Message system unavailable: #{e.message}"
+          @logger.error("Message system error: #{e.class}: #{e.message}")
         end
+
+        # Display entity debug info if in debug mode
+        if ENV['VANILLA_DEBUG'] == 'true'
+          begin
+            world = nil
+            game = Vanilla::ServiceRegistry.get(:game)
+            world = game.world if game && game.respond_to?(:world)
+
+            if world
+              puts "\nDEBUG INFO:"
+              puts "-" * 40
+              puts "Entities: #{world.entities.size}"
+              player = world.find_entity_by_tag(:player)
+              if player
+                pos = player.get_component(:position)
+                puts "Player position: [#{pos&.row || '?'},#{pos&.column || '?'}]"
+              else
+                puts "Player not found"
+              end
+
+              stairs = world.find_entity_by_tag(:stairs)
+              if stairs
+                pos = stairs.get_component(:position)
+                puts "Stairs position: [#{pos&.row || '?'},#{pos&.column || '?'}]"
+              else
+                puts "Stairs not found"
+              end
+            end
+          rescue => e
+            puts "Debug info error: #{e.message}"
+          end
+        end
+
+        # Always flush to make sure everything is displayed
+        STDOUT.flush
+        @logger.debug("Display presentation complete")
       end
     end
   end
