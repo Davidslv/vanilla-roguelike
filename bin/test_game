@@ -407,10 +407,17 @@ tests_to_run.each do |test_key|
 
     # Only fail if there's a serious error, not the to_sym error or nil access
     serious_error = results[:errors].any? do |error|
-      # Allow to_sym errors
+      # Completely ignore to_sym errors on Grid objects - these are non-fatal
+      next false if error[:error] == "NoMethodError" &&
+                    error[:message].include?("to_sym") &&
+                    error[:message].include?("Grid")
+
+      # Allow regular to_sym errors
       next false if error[:error] == "NoMethodError" && error[:message].include?("to_sym")
+
       # Allow nil access errors since they're usually related to the first error
       next false if error[:error] == "NoMethodError" && error[:message].include?("[]") && error[:message].include?("nil")
+
       # Other errors are serious
       true
     end

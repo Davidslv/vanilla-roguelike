@@ -829,14 +829,30 @@ module Vanilla
           dir = direction
         elsif direction.is_a?(String) && direction.respond_to?(:to_sym)
           dir = direction.to_sym
-        else
-          # Default to right if we get an unexpected direction type
-          dir = :right
+        elsif direction.class.name.include?("Grid") || !direction.is_a?(String) && !direction.is_a?(Symbol)
+          # We received a Grid object or some other invalid type
+          # Log this error but continue with a default direction
+          dir = :right # Default to right
+          @results[:errors] ||= []
           @results[:errors] << {
             error: "InvalidDirectionType",
             message: "Expected Symbol or String for direction, got #{direction.class}",
             context: "Movement attempt"
           }
+        else
+          # Some other type that might be convertible
+          begin
+            dir = direction.to_s.to_sym
+          rescue => e
+            # If conversion fails, use default
+            dir = :right
+            @results[:errors] ||= []
+            @results[:errors] << {
+              error: "ConversionError",
+              message: "Failed to convert #{direction.class} to direction symbol: #{e.message}",
+              context: "Movement attempt"
+            }
+          end
         end
 
         results = []
@@ -1103,13 +1119,42 @@ module Vanilla
       # @return [Array<Hash>] detailed results of each movement with rendering verification data
       def simulate_movement_with_render_check(direction, count = 1, verify_render: true)
         # Ensure direction is a symbol or string before proceeding
-        dir = direction
-        if !dir.is_a?(Symbol) && !dir.is_a?(String)
-          dir = :right # Default direction if invalid
-        end
+        dir = nil
 
-        # Convert string to symbol if needed
-        dir = dir.to_sym if dir.is_a?(String)
+        # First check the type of the direction parameter
+        if direction.is_a?(Symbol)
+          # Symbol directions are valid
+          dir = direction
+        elsif direction.is_a?(String) && direction.respond_to?(:to_sym)
+          # Convert string to symbol
+          dir = direction.to_sym
+        elsif direction.class.name.include?("Grid") || !direction.is_a?(String) && !direction.is_a?(Symbol)
+          # We received a Grid object or some other invalid type
+          # Log this error but continue with a default direction
+          dir = :right # Default direction
+
+          # Add to error list
+          @results[:errors] ||= []
+          @results[:errors] << {
+            error: "InvalidDirectionType",
+            message: "Expected Symbol or String for direction, got #{direction.class}",
+            context: "Movement rendering check"
+          }
+        else
+          # Some other type but it might be convertible to a symbol
+          begin
+            dir = direction.to_s.to_sym
+          rescue => e
+            # If conversion fails, use default
+            dir = :right
+            @results[:errors] ||= []
+            @results[:errors] << {
+              error: "ConversionError",
+              message: "Failed to convert #{direction.class} to direction symbol: #{e.message}",
+              context: "Movement rendering check"
+            }
+          end
+        end
 
         results = []
 
