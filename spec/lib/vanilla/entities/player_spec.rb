@@ -193,12 +193,24 @@ RSpec.describe Vanilla::Entities::Player do
       cell = instance_double('Vanilla::MapUtils::Cell')
       north_cell = instance_double('Vanilla::MapUtils::Cell')
 
+      # Add row and column methods to cell
       allow(grid).to receive(:[]).with(row, column).and_return(cell)
+      allow(cell).to receive(:row).and_return(row)
+      allow(cell).to receive(:column).and_return(column)
       allow(cell).to receive(:linked?).with(north_cell).and_return(true)
       allow(cell).to receive(:north).and_return(north_cell)
+      allow(cell).to receive(:tile).and_return('.')  # Basic floor tile
+
+      # Set up north cell methods
       allow(north_cell).to receive(:row).and_return(row - 1)
       allow(north_cell).to receive(:column).and_return(column)
       allow(north_cell).to receive(:stairs?).and_return(false)
+      allow(north_cell).to receive(:tile).and_return('.')  # Basic floor tile
+
+      # Set up other required mocks for MovementSystem's get_target_cell method
+      allow(grid).to receive(:rows).and_return(20)
+      allow(grid).to receive(:columns).and_return(20)
+      allow(grid).to receive(:[]).with(row - 1, column).and_return(north_cell)
 
       movement_system = Vanilla::Systems::MovementSystem.new(grid)
       expect {
