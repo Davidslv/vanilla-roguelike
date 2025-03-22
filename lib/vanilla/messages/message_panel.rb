@@ -25,12 +25,6 @@ module Vanilla
       def render(renderer, selection_mode = false)
         return unless renderer.respond_to?(:draw_character)
 
-        # Add debug info at top of message panel to ensure it's visible
-        debug_info = "--- Message Panel ---"
-        debug_info.each_char.with_index do |char, i|
-          renderer.draw_character(@y - 1, @x + i, char)
-        end
-
         # Draw a separator line above the message panel
         draw_separator_line(renderer)
 
@@ -99,14 +93,14 @@ module Vanilla
 
           # Show selection indicator (* or >)
           indicator = is_selected ? ">" : "*"
-          renderer.draw_character(y_pos, @x, indicator)
+          renderer.draw_character(y_pos, @x, indicator, :cyan)
           x_offset += 1
 
           # If it has a shortcut key, show it
           if message.has_shortcut?
             shortcut_text = "#{message.shortcut_key})"
             shortcut_text.each_char.with_index do |char, char_idx|
-              renderer.draw_character(y_pos, @x + x_offset + char_idx, char)
+              renderer.draw_character(y_pos, @x + x_offset + char_idx, char, :cyan)
             end
             x_offset += shortcut_text.length
           end
@@ -117,8 +111,10 @@ module Vanilla
 
         # Draw message text
         text = format_message_object(message, @width - x_offset)
+        color = get_color_for_message(message)
+
         text.each_char.with_index do |char, char_idx|
-          renderer.draw_character(y_pos, @x + char_idx + x_offset, char)
+          renderer.draw_character(y_pos, @x + char_idx + x_offset, char, color)
         end
       end
 
@@ -131,8 +127,43 @@ module Vanilla
         text = message[:text].to_s
         text = text.length > @width ? text[0...(@width-3)] + "..." : text
 
+        # Get color based on importance and category
+        color = get_color_for_hash_message(message)
+
         text.each_char.with_index do |char, char_idx|
-          renderer.draw_character(y_pos, @x + char_idx + 1, char)
+          renderer.draw_character(y_pos, @x + char_idx + 1, char, color)
+        end
+      end
+
+      # Get color for a hash-based message
+      # @param message [Hash] The message hash
+      # @return [Symbol] Color to use
+      def get_color_for_hash_message(message)
+        # First check importance
+        importance = message[:importance] || :normal
+        category = message[:category] || :system
+
+        case importance
+        when :critical, :danger
+          :red
+        when :warning
+          :yellow
+        when :success
+          :green
+        else
+          # Then check category
+          case category
+          when :combat
+            :red
+          when :item
+            :green
+          when :movement
+            :cyan
+          when :exploration
+            :blue
+          else
+            :white
+          end
         end
       end
 
@@ -175,6 +206,35 @@ module Vanilla
         count_text = "[#{visible_count}/#{@message_log.messages.size}]"
         count_text.each_char.with_index do |char, i|
           renderer.draw_character(@y, @x + width - count_text.length + i, char)
+        end
+      end
+
+      # Get appropriate color for a message based on category and importance
+      # @param message [Message] The message to color
+      # @return [Symbol] The color symbol to use
+      def get_color_for_message(message)
+        # First check importance for critical/warning messages
+        case message.importance
+        when :critical, :danger
+          :red
+        when :warning
+          :yellow
+        when :success
+          :green
+        else
+          # Then check category for normal importance messages
+          case message.category
+          when :combat
+            :red
+          when :item
+            :green
+          when :movement
+            :cyan
+          when :exploration
+            :blue
+          else
+            :white
+          end
         end
       end
     end

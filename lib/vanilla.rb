@@ -140,14 +140,11 @@ module Vanilla
       @event_manager.publish_event(Events::Types::GAME_STARTED)
 
       # Welcome message
-      @message_manager.log_translated("game.welcome", importance: :success)
+      @message_manager.log_success("game.welcome")
 
       # Add some additional messages to ensure the message panel is visible
       @message_manager.log_translated("ui.prompt_move", importance: :info)
-      @message_manager.log_translated("exploration.enter_room",
-                                     importance: :info,
-                                     category: :exploration,
-                                     metadata: { room_type: "dimly lit" })
+      @message_manager.log_exploration("exploration.enter_room", { room_type: "dimly lit" })
 
       # Initialize the first level
       level = initialize_level(difficulty: 1)
@@ -412,9 +409,7 @@ module Vanilla
 
       # Log a message about finding stairs
       @logger.info("Found stairs leading to depth #{new_difficulty}")
-      @message_manager.log_translated("exploration.find_stairs",
-                                     category: :exploration,
-                                     importance: :success)
+      @message_manager.log_success("exploration.find_stairs")
 
       # Create event for level change - use only serializable data
       @event_manager.publish_event(Events::Types::LEVEL_CHANGED, {

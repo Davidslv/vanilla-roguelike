@@ -6,12 +6,14 @@ module Vanilla
         @grid = nil
         @header = ""
         @message_buffer = {} # Separate buffer for messages below the grid
+        @color_buffer = {}   # Store colors for characters outside the grid
       end
 
       def clear
         # Clear internal buffer
         @buffer = nil
         @message_buffer = {}
+        @color_buffer = {}
         system("clear")
       end
 
@@ -42,11 +44,6 @@ module Vanilla
       end
 
       def draw_character(row, column, character, color = nil)
-        # Log when called with positions outside the grid
-        if @grid && (row >= @grid.rows || column >= @grid.columns * 3)
-          puts "DEBUG: Drawing outside grid at [#{row},#{column}]: '#{character}'"
-        end
-
         # For characters within the grid bounds, use the grid buffer
         if @buffer && row >= 0 && row < @buffer.size && column >= 0 && column < @buffer.first.size
           @buffer[row][column] = character
@@ -55,6 +52,37 @@ module Vanilla
 
         # For characters outside grid bounds (like message panel), use message buffer
         @message_buffer[[row, column]] = character
+        @color_buffer[[row, column]] = color if color
+      end
+
+      # Get ANSI color code for the given color symbol
+      # @param color_sym [Symbol] The color symbol
+      # @return [String] The ANSI color code
+      def color_code(color_sym)
+        case color_sym
+        when :red
+          "\e[31m"
+        when :green
+          "\e[32m"
+        when :yellow
+          "\e[33m"
+        when :blue
+          "\e[34m"
+        when :magenta
+          "\e[35m"
+        when :cyan
+          "\e[36m"
+        when :white
+          "\e[37m"
+        else
+          ""  # No color
+        end
+      end
+
+      # Reset ANSI color codes
+      # @return [String] The ANSI reset code
+      def reset_color
+        "\e[0m"
       end
 
       def present
@@ -107,27 +135,42 @@ module Vanilla
           min_col = @message_buffer.keys.map { |pos| pos[1] }.min || 0
           max_col = @message_buffer.keys.map { |pos| pos[1] }.max || 0
 
-          puts "DEBUG: Message area bounds - rows: #{min_row}..#{max_row}, cols: #{min_col}..#{max_col}"
-
           # Create a 2D array for the message area
           height = max_row - min_row + 1
           width = max_col - min_col + 1
 
-          message_grid = Array.new(height) { Array.new(width, ' ') }
+          message_lines = []
 
-          # Fill in the message characters
-          @message_buffer.each do |pos, char|
-            row, col = pos
-            local_row = row - min_row
-            local_col = col - min_col
+          # For each row in the message area
+          height.times do |row|
+            line = ""
+            current_color = nil
 
-            if local_row >= 0 && local_row < height && local_col >= 0 && local_col < width
-              message_grid[local_row][local_col] = char
+            # For each column in the row
+            width.times do |col|
+              pos = [row + min_row, col + min_col]
+              char = @message_buffer[pos] || ' '
+              color = @color_buffer[pos]
+
+              # Add color codes when color changes
+              if color && color != current_color
+                line << color_code(color)
+                current_color = color
+              elsif !color && current_color
+                line << reset_color
+                current_color = nil
+              end
+
+              line << char
             end
+
+            # Reset color at end of line if needed
+            line << reset_color if current_color
+
+            message_lines << line
           end
 
-          # Convert to strings and print
-          message_lines = message_grid.map(&:join)
+          # Print the message area
           puts "\n" # Extra space before messages
           puts message_lines
         end

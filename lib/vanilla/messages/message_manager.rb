@@ -127,21 +127,6 @@ module Vanilla
       end
 
       def render(render_system)
-        # Debug log
-        puts "DEBUG: MessageManager rendering with #{@message_log.messages.size} messages"
-        puts "DEBUG: Message panel exists? #{@message_panel ? 'YES' : 'NO'}"
-
-        if @message_panel.nil?
-          puts "ERROR: Message panel not initialized. Call setup_panel first!"
-          return
-        end
-
-        # Print first few messages for debugging
-        @message_log.messages.take(3).each_with_index do |msg, idx|
-          content = msg.is_a?(Message) ? msg.translated_text : msg[:text]
-          puts "DEBUG: Message #{idx}: #{content[0..30]}..."
-        end
-
         @message_panel&.render(render_system, @selection_mode)
       end
 
@@ -155,6 +140,76 @@ module Vanilla
 
       def clear_messages
         @message_log.clear
+      end
+
+      # Add a combat-related message
+      # @param key [String, Symbol] The translation key
+      # @param metadata [Hash] Interpolation values
+      # @param importance [Symbol] Message importance
+      def log_combat(key, metadata = {}, importance = :normal)
+        log_translated(key,
+                      category: :combat,
+                      importance: importance,
+                      metadata: metadata)
+      end
+
+      # Add a movement-related message
+      # @param key [String, Symbol] The translation key
+      # @param metadata [Hash] Interpolation values
+      def log_movement(key, metadata = {})
+        log_translated(key,
+                      category: :movement,
+                      importance: :info,
+                      metadata: metadata)
+      end
+
+      # Add an item interaction message
+      # @param key [String, Symbol] The translation key
+      # @param metadata [Hash] Interpolation values
+      # @param importance [Symbol] Message importance
+      def log_item(key, metadata = {}, importance = :info)
+        log_translated(key,
+                      category: :item,
+                      importance: importance,
+                      metadata: metadata)
+      end
+
+      # Add an exploration-related message
+      # @param key [String, Symbol] The translation key
+      # @param metadata [Hash] Interpolation values
+      # @param importance [Symbol] Message importance
+      def log_exploration(key, metadata = {}, importance = :info)
+        log_translated(key,
+                      category: :exploration,
+                      importance: importance,
+                      metadata: metadata)
+      end
+
+      # Add a warning message
+      # @param key [String, Symbol] The translation key
+      # @param metadata [Hash] Interpolation values
+      def log_warning(key, metadata = {})
+        log_translated(key,
+                      importance: :warning,
+                      metadata: metadata)
+      end
+
+      # Add a critical message
+      # @param key [String, Symbol] The translation key
+      # @param metadata [Hash] Interpolation values
+      def log_critical(key, metadata = {})
+        log_translated(key,
+                      importance: :critical,
+                      metadata: metadata)
+      end
+
+      # Add a success/achievement message
+      # @param key [String, Symbol] The translation key
+      # @param metadata [Hash] Interpolation values
+      def log_success(key, metadata = {})
+        log_translated(key,
+                      importance: :success,
+                      metadata: metadata)
       end
 
       # Additional methods to manage message system
