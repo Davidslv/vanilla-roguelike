@@ -9,3 +9,4 @@ group :test do
   gem 'rspec'
   gem 'simplecov', require: false
 end
+gem "i18n", "~> 1.14"
