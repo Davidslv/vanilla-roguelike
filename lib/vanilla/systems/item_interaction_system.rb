@@ -107,9 +107,8 @@ module Vanilla
                                       category: :item)
           else
             @message_system.log_message("items.picked_up.multiple",
-                                      { count: picked_up_count },
-                                      importance: :normal,
-                                      category: :item)
+                                      category: :item,
+                                      importance: :normal)
           end
         elsif picked_up_count == 0 && items.any? && @message_system
           @message_system.log_message("items.inventory_full",
