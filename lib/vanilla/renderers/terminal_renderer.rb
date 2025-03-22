@@ -87,6 +87,7 @@ module Vanilla
 
       def present
         return unless @grid
+        return unless @buffer
 
         # Print header
         puts @header
