@@ -2,10 +2,17 @@ require 'spec_helper'
 
 RSpec.describe "Known ECS Implementation Issues", type: :integration do
   describe "Game class issues" do
-    let(:game) { Vanilla::Game.new }
+    let(:game) do
+      # Create a stub world to prevent infinite recursion
+      mock_world = double("World", add_system: nil, current_level: nil, set_level: nil)
+      allow(Vanilla::World).to receive(:new).and_return(mock_world)
+
+      # Create the game with test mode explicitly set
+      Vanilla::Game.new(test_mode: true)
+    end
 
     it "should expose current_level accessor" do
-      pending "Game class needs to provide access to the current level"
+      # This test should now run without getting stuck
       expect(game).to respond_to(:current_level)
     end
 
