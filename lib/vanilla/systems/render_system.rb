@@ -6,6 +6,12 @@ module Vanilla
         @logger = Vanilla::Logger.instance
       end
 
+      # Clear the screen completely (for transitions, etc.)
+      # @return [void]
+      def clear_screen
+        @renderer.clear_screen
+      end
+
       def render(entities, grid)
         @logger.debug("Rendering scene with #{entities.size} entities")
 

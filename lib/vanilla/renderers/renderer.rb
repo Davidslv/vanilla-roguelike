@@ -5,6 +5,10 @@ module Vanilla
         raise NotImplementedError, "Renderers must implement #clear"
       end
 
+      def clear_screen
+        raise NotImplementedError, "Renderers must implement #clear_screen"
+      end
+
       def draw_grid(grid)
         raise NotImplementedError, "Renderers must implement #draw_grid"
       end

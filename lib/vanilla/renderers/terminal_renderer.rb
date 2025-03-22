@@ -13,6 +13,11 @@ module Vanilla
         system("clear")
       end
 
+      def clear_screen
+        # Clear the terminal
+        system("clear")
+      end
+
       def draw_grid(grid)
         @grid = grid
         # Initialize buffer with grid dimensions
