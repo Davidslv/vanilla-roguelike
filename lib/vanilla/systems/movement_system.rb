@@ -35,15 +35,25 @@ module Vanilla
     #   movement_system.move(entity, :north)
     class MovementSystem < System
       # Initialize a new movement system
-      # @param world [World] The world this system belongs to
-      def initialize(world)
-        super
+      # @param world_or_grid [World, Grid] The world or grid this system will use
+      def initialize(world_or_grid)
+        if world_or_grid.is_a?(Vanilla::World)
+          # New ECS style: initialize with world
+          super(world_or_grid)
+          @direct_grid = nil
+        else
+          # Legacy style: initialize with grid
+          @world = nil
+          @direct_grid = world_or_grid
+        end
         @logger = Vanilla::Logger.instance
       end
 
       # Update method called once per frame
       # @param delta_time [Float] Time since last update
       def update(delta_time)
+        return unless @world # Skip if initialized with direct grid
+
         # Get all entities with position and movement components
         movable_entities = entities_with(:position, :movement)
 
@@ -86,8 +96,12 @@ module Vanilla
         # Normalize the direction
         direction = normalize_direction(direction)
 
-        # Get the grid from the world
-        @grid = @world.current_level.grid
+        # Get the grid - either from world or direct grid
+        if @world
+          @grid = @world.current_level.grid
+        else
+          @grid = @direct_grid
+        end
         return false unless @grid
 
         # Get current grid cell
@@ -114,12 +128,14 @@ module Vanilla
         log_movement(entity, direction, old_position, { row: position.row, column: position.column })
 
         # Emit movement event for other systems
-        emit_event(:entity_moved, {
-          entity_id: entity.id,
-          old_position: old_position,
-          new_position: { row: position.row, column: position.column },
-          direction: direction
-        })
+        if @world
+          emit_event(:entity_moved, {
+            entity_id: entity.id,
+            old_position: old_position,
+            new_position: { row: position.row, column: position.column },
+            direction: direction
+          })
+        end
 
         true
       end
@@ -184,12 +200,16 @@ module Vanilla
           # Update the stairs component if the entity has one
           if entity.has_component?(:stairs)
             stairs_component = entity.get_component(:stairs)
-            stairs_component.found = true
-            @logger.debug("Updated stairs component - found: #{stairs_component.found}")
+            if stairs_component.respond_to?(:found=)
+              stairs_component.found = true
+            elsif stairs_component.respond_to?(:found_stairs=)
+              stairs_component.found_stairs = true
+            end
+            @logger.debug("Updated stairs component")
           end
 
           # Emit a stairs found event
-          emit_event(:stairs_found, { entity_id: entity.id })
+          emit_event(:stairs_found, { entity_id: entity.id }) if @world
         end
       end
 
@@ -212,6 +232,16 @@ module Vanilla
       # Log movement for debugging
       def log_movement(entity, direction, old_position, new_position)
         @logger.info("Entity moved #{direction} from [#{old_position[:row]}, #{old_position[:column]}] to [#{new_position[:row]}, #{new_position[:column]}]")
+      end
+
+      # Helper for using emit_event even when @world is nil
+      def emit_event(event_type, data = {})
+        if @world
+          super
+        else
+          # Log the event for legacy code
+          @logger.debug("Event: #{event_type} - #{data.inspect}")
+        end
       end
     end
   end

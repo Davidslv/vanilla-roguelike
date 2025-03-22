@@ -152,8 +152,11 @@ module Vanilla
 
     # Updates grid cells with entity information for backwards compatibility
     # with code that still uses the grid's tile properties directly
-    # @param entities [Array<Entity>] The entities to update the grid with
-    def update_grid_with_entities(entities)
+    # @param entities [Array<Entity>, nil] The entities to update the grid with (optional)
+    def update_grid_with_entities(entities = nil)
+      # If no entities provided, use legacy approach
+      entities ||= all_entities
+
       # First, reset all grid cells to their default state
       # This prevents "ghost" entities remaining on the grid
       @grid.rows.times do |row|
@@ -168,7 +171,9 @@ module Vanilla
 
       # Update entities on grid
       entities.each do |entity|
-        next unless entity.has_component?(:position) && entity.has_component?(:render)
+        next unless entity.respond_to?(:has_component?) &&
+                   entity.has_component?(:position) &&
+                   entity.has_component?(:render)
 
         pos = entity.get_component(:position)
         render_component = entity.get_component(:render)
@@ -180,10 +185,16 @@ module Vanilla
         next unless cell # Skip if no cell at this position
 
         # Handle special case for stairs
-        if entity.has_tag?(:stairs)
+        if entity.respond_to?(:has_tag?) && entity.has_tag?(:stairs)
           cell.tile = render_component.respond_to?(:char) ? render_component.char : Vanilla::Support::TileType::STAIRS
         else
-          char = render_component.respond_to?(:char) ? render_component.char : render_component.character
+          char = if render_component.respond_to?(:char)
+                   render_component.char
+                 elsif render_component.respond_to?(:character)
+                   render_component.character
+                 else
+                   '?'  # Fallback
+                 end
           cell.tile = char
         end
       end
