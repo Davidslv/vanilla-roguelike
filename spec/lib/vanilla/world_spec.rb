@@ -3,6 +3,7 @@ require 'spec_helper'
 RSpec.describe Vanilla::World do
   let(:world) { Vanilla::World.new }
   let(:entity) { Vanilla::Components::Entity.new }
+  let(:position_component) { Vanilla::Components::PositionComponent.new(row: 5, column: 10) }
   let(:system) { instance_double("Vanilla::Systems::System", update: nil) }
 
   describe '#initialize' do
@@ -14,6 +15,10 @@ RSpec.describe Vanilla::World do
     it 'initializes with keyboard and display handlers' do
       expect(world.keyboard).to be_a(Vanilla::KeyboardHandler)
       expect(world.display).to be_a(Vanilla::DisplayHandler)
+    end
+
+    it 'initializes with nil current level' do
+      expect(world.current_level).to be_nil
     end
   end
 
@@ -34,6 +39,10 @@ RSpec.describe Vanilla::World do
       world.remove_entity(entity.id)
       expect(world.entities).not_to include(entity.id => entity)
     end
+
+    it 'returns nil if entity not found' do
+      expect(world.remove_entity('nonexistent')).to be_nil
+    end
   end
 
   describe '#get_entity' do
@@ -48,9 +57,12 @@ RSpec.describe Vanilla::World do
   end
 
   describe '#find_entity_by_tag' do
-    it 'returns the first entity with the specified tag' do
+    before do
       entity.add_tag(:player)
       world.add_entity(entity)
+    end
+
+    it 'returns the first entity with the specified tag' do
       expect(world.find_entity_by_tag(:player)).to eq(entity)
     end
 
@@ -60,26 +72,50 @@ RSpec.describe Vanilla::World do
   end
 
   describe '#query_entities' do
-    let(:position_component) { instance_double("Vanilla::Components::PositionComponent") }
-    let(:render_component) { instance_double("Vanilla::Components::RenderComponent") }
+    let(:entity_with_position) { Vanilla::Components::Entity.new }
+    let(:entity_with_render) { Vanilla::Components::Entity.new }
+    let(:entity_with_both) { Vanilla::Components::Entity.new }
 
     before do
-      allow(entity).to receive(:has_component?).with(:position).and_return(true)
-      allow(entity).to receive(:has_component?).with(:render).and_return(true)
-      allow(entity).to receive(:has_component?).with(:input).and_return(false)
-      world.add_entity(entity)
+      entity_with_position.add_component(position_component)
+      entity_with_position.add_tag(:position_only)
+
+      render_component = Vanilla::Components::RenderComponent.new(character: '@', color: :white)
+      entity_with_render.add_component(render_component)
+      entity_with_render.add_tag(:render_only)
+
+      entity_with_both.add_component(position_component.dup)
+      entity_with_both.add_component(render_component.dup)
+      entity_with_both.add_tag(:both)
+
+      world.add_entity(entity_with_position)
+      world.add_entity(entity_with_render)
+      world.add_entity(entity_with_both)
     end
 
     it 'returns all entities with no component types specified' do
-      expect(world.query_entities([])).to eq([entity])
+      entities = world.query_entities([])
+      expect(entities.size).to eq(3)
+      expect(entities).to include(entity_with_position, entity_with_render, entity_with_both)
     end
 
-    it 'returns entities with specified component types' do
-      expect(world.query_entities([:position, :render])).to eq([entity])
+    it 'returns entities with specified single component type' do
+      entities = world.query_entities([:position])
+      expect(entities.size).to eq(2)
+      expect(entities).to include(entity_with_position, entity_with_both)
+      expect(entities).not_to include(entity_with_render)
+    end
+
+    it 'returns entities with all specified component types' do
+      entities = world.query_entities([:position, :render])
+      expect(entities.size).to eq(1)
+      expect(entities).to include(entity_with_both)
+      expect(entities).not_to include(entity_with_position, entity_with_render)
     end
 
     it 'returns empty array if no entities match the criteria' do
-      expect(world.query_entities([:position, :input])).to be_empty
+      entities = world.query_entities([:nonexistent])
+      expect(entities).to be_empty
     end
   end
 
@@ -95,19 +131,26 @@ RSpec.describe Vanilla::World do
     end
 
     it 'sorts systems by priority' do
-      system1 = instance_double("Vanilla::Systems::System", update: nil)
-      system2 = instance_double("Vanilla::Systems::System", update: nil)
+      system1 = instance_double("Vanilla::Systems::System1", update: nil)
+      system2 = instance_double("Vanilla::Systems::System2", update: nil)
 
       world.add_system(system1, 2)
       world.add_system(system2, 1)
 
       expect(world.systems.map(&:first)).to eq([system2, system1])
     end
+
+    it 'returns the added system' do
+      expect(world.add_system(system)).to eq(system)
+    end
   end
 
   describe '#update' do
-    it 'updates all systems' do
+    before do
       world.add_system(system)
+    end
+
+    it 'updates all systems' do
       world.update(0.1)
       expect(system).to have_received(:update).with(0.1)
     end
@@ -143,25 +186,41 @@ RSpec.describe Vanilla::World do
 
       expect(subscriber).not_to have_received(:handle_event)
     end
+
+    it 'allows unsubscribing from events' do
+      world.subscribe(event_type, subscriber)
+      world.unsubscribe(event_type, subscriber)
+      world.emit_event(event_type, event_data)
+      world.update(0.1) # Process events
+
+      expect(subscriber).not_to have_received(:handle_event)
+    end
   end
 
   describe '#queue_command' do
-    it 'processes commands in the update loop' do
-      entity_to_add = Vanilla::Components::Entity.new
+    it 'processes add_entity commands' do
+      new_entity = Vanilla::Components::Entity.new
 
-      world.queue_command(:add_entity, { entity: entity_to_add })
-      expect(world.entities).not_to include(entity_to_add.id => entity_to_add)
+      world.queue_command(:add_entity, { entity: new_entity })
+      expect(world.entities).not_to include(new_entity.id => new_entity)
 
       world.update(0.1) # Process commands
-      expect(world.entities).to include(entity_to_add.id => entity_to_add)
+      expect(world.entities).to include(new_entity.id => new_entity)
     end
 
-    it 'handles remove_entity commands' do
+    it 'processes remove_entity commands' do
       world.add_entity(entity)
       world.queue_command(:remove_entity, { entity_id: entity.id })
 
       world.update(0.1) # Process commands
       expect(world.entities).not_to include(entity.id => entity)
+    end
+
+    it 'handles unknown command types gracefully' do
+      expect {
+        world.queue_command(:nonexistent_command, { data: 'test' })
+        world.update(0.1)
+      }.not_to raise_error
     end
   end
 
