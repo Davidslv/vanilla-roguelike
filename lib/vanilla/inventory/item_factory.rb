@@ -15,15 +15,35 @@ module Vanilla
       def create_item(name, options = {})
         item = Vanilla::Components::Entity.new
 
-        # Add a render component
-        item.add_component(
-          Vanilla::Components::RenderComponent.new(
-            options[:character] || '?',
-            options[:color] || nil,
-            options[:layer] || 5,
-            options[:entity_type] || 'item'
-          )
+        # Add a render component - without validation
+        # We're creating a special version since item characters don't need to be valid TileTypes
+        character = options[:character] || '?'
+
+        # Create a custom render component class
+        render_component = Class.new(Vanilla::Components::Component) do
+          attr_reader :character, :color, :layer, :entity_type, :tile
+
+          def initialize(character, color, layer, entity_type)
+            super()
+            @character = character
+            @color = color
+            @layer = layer
+            @entity_type = entity_type
+            @tile = character # For compatibility
+          end
+
+          def type
+            :render
+          end
+        end.new(
+          character,
+          options[:color] || nil,
+          options[:layer] || 5,
+          options[:entity_type] || 'item'
         )
+
+        # Add the render component to the item
+        item.add_component(render_component)
 
         # Add an item component
         item.add_component(

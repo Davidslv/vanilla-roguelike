@@ -1,7 +1,7 @@
 module Vanilla
   module Components
     # Component for items that can be picked up, used, and stored in inventory
-    class ItemComponent
+    class ItemComponent < Component
       attr_reader :name, :description, :item_type, :weight, :value
       attr_accessor :stack_size
 
@@ -15,6 +15,7 @@ module Vanilla
       # @param stack_size [Integer] The current stack size for stackable items
       def initialize(name:, description: "", item_type: :misc, weight: 1,
                      value: 0, stackable: false, stack_size: 1)
+        super()
         @name = name
         @description = description
         @item_type = item_type
@@ -97,7 +98,7 @@ module Vanilla
       end
     end
 
-    # Register this component with the Component registry
-    Component.register_component(:item, ItemComponent)
+    # Register this component
+    Component.register(ItemComponent)
   end
 end

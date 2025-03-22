@@ -23,7 +23,7 @@ module Vanilla
         if result
           log_message("items.add", { item: item_name(item) })
         else
-          log_message("items.inventory_full", importance: :warning)
+          log_message("items.inventory_full", {}, importance: :warning)
         end
 
         result
@@ -149,7 +149,7 @@ module Vanilla
           # Add a position component if it doesn't have one
           pos = entity.get_component(:position)
           removed_item.add_component(
-            Vanilla::Components::PositionComponent.new(pos.row, pos.column)
+            Vanilla::Components::PositionComponent.new(row: pos.row, column: pos.column)
           )
         end
 
@@ -217,10 +217,11 @@ module Vanilla
         importance = options[:importance] || :normal
         category = options[:category] || :item
 
-        @message_system.log_message(key,
-                                  metadata: metadata,
-                                  importance: importance,
-                                  category: category)
+        @message_system.log_message(key, {
+          category: category,
+          importance: importance,
+          metadata: metadata
+        })
       end
     end
   end

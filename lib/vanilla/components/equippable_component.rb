@@ -1,18 +1,19 @@
 module Vanilla
   module Components
     # Component for items that can be equipped by entities
-    class EquippableComponent
+    class EquippableComponent < Component
       attr_reader :slot, :stat_modifiers
       attr_accessor :equipped
 
       # Valid equipment slots
-      SLOTS = [:head, :body, :left_hand, :right_hand, :both_hands, :neck, :feet, :ring]
+      SLOTS = [:head, :body, :left_hand, :right_hand, :both_hands, :neck, :feet, :ring, :hands]
 
       # Initialize a new equippable component
       # @param slot [Symbol] The equipment slot this item fits into
       # @param stat_modifiers [Hash] Stats this item modifies when equipped
       # @param equipped [Boolean] Whether the item is currently equipped
       def initialize(slot:, stat_modifiers: {}, equipped: false)
+        super()
         @slot = slot
         @stat_modifiers = stat_modifiers
         @equipped = equipped
@@ -101,8 +102,12 @@ module Vanilla
       # @param entity [Entity] The entity to check
       # @return [Boolean] Whether the slot is occupied
       def slot_occupied?(entity)
+        return false unless entity.has_component?(:inventory)
+
+        inventory = entity.get_component(:inventory)
+
         # Get all equipped items
-        equipped_items = entity.inventory.items.select do |item|
+        equipped_items = inventory.items.select do |item|
           item.has_component?(:equippable) &&
           item.get_component(:equippable).equipped? &&
           item.get_component(:equippable).slot == @slot
@@ -126,7 +131,7 @@ module Vanilla
       end
     end
 
-    # Register this component with the Component registry
-    Component.register_component(:equippable, EquippableComponent)
+    # Register this component
+    Component.register(EquippableComponent)
   end
 end

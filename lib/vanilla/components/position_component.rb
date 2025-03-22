@@ -12,6 +12,7 @@ module Vanilla
       # @param row [Integer] the row position
       # @param column [Integer] the column position
       def initialize(row: 0, column: 0)
+        super()
         @row = row
         @column = column
       end

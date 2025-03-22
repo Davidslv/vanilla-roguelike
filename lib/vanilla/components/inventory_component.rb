@@ -128,7 +128,7 @@ module Vanilla
       end
     end
 
-    # Register this component with the Component registry
-    Component.register_component(:inventory, InventoryComponent)
+    # Register this component
+    Component.register(InventoryComponent)
   end
 end

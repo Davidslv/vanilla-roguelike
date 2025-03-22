@@ -1,7 +1,7 @@
 module Vanilla
   module Components
     # Component for items that can be consumed/used and have effects
-    class ConsumableComponent
+    class ConsumableComponent < Component
       attr_reader :charges, :effects, :auto_identify
 
       # Initialize a new consumable component
@@ -9,6 +9,7 @@ module Vanilla
       # @param effects [Array<Hash>] Effects that occur when used
       # @param auto_identify [Boolean] Whether the item is identified on pickup
       def initialize(charges: 1, effects: [], auto_identify: false)
+        super()
         @charges = charges
         @effects = effects
         @auto_identify = auto_identify
@@ -66,8 +67,6 @@ module Vanilla
         )
       end
 
-      private
-
       # Apply the effects of the consumable to an entity
       # @param entity [Entity] The entity to apply effects to
       # @return [Boolean] Whether the effects were successfully applied
@@ -99,8 +98,8 @@ module Vanilla
           # Log the effect if successful and message system exists
           if applied && message_system
             message_system.log_message("items.effect.#{effect[:type]}",
-                                     {amount: effect[:amount], stat: effect[:stat]},
-                                     importance: :success)
+                                     {category: :item, importance: :success,
+                                      metadata: {amount: effect[:amount], stat: effect[:stat]}})
           end
         end
 
@@ -147,6 +146,6 @@ module Vanilla
     end
 
     # Register this component with the Component registry
-    Component.register_component(:consumable, ConsumableComponent)
+    Component.register(ConsumableComponent)
   end
 end
