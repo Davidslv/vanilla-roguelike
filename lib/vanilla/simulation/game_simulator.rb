@@ -1052,21 +1052,20 @@ module Vanilla
               @results[:successful_movements] ||= 0
               @results[:successful_movements] += 1 if moved
 
-              # Record the movement details
+              # Record movement data
               movement_result = {
                 direction: direction,
+                success: moved,
                 old_position: initial_position,
                 new_position: new_position,
-                moved: moved,
-                command: command.class.name
+                turn: @results[:actions_performed]
               }
 
               # Collect any messages that were generated during the movement
-              if @level.respond_to?(:message_manager) && @level.message_manager.respond_to?(:messages)
-                movement_result[:messages] = collect_messages
-              end
+              movement_result[:messages] = collect_messages
 
-              results << movement_result
+              # Store the movement info
+              @results[:movements] << movement_result
             end
           rescue => e
             debug_trace("Error in movement simulation",
@@ -1086,8 +1085,6 @@ module Vanilla
             # Add a failed movement result
             results << {
               direction: direction,
-              old_position: initial_position || "unknown",
-              new_position: "unknown",
               moved: false,
               error: e.class.name
             }
@@ -1099,21 +1096,28 @@ module Vanilla
 
       # Collect messages from the message system if available
       def collect_messages
-        return unless @game
+        # Get messages using the get_current_messages method
+        messages = get_current_messages
 
-        # Try to get the message manager
-        message_manager = if defined?(Vanilla::Messages::MessageManager)
-          Vanilla::Messages::MessageManager.instance rescue nil
-        end
-
-        # If message manager exists, collect messages
-        if message_manager && message_manager.respond_to?(:messages)
-          messages = message_manager.messages
-
-          if messages && !messages.empty?
-            @results[:messages] += messages
+        # Add to results if any messages found
+        if messages && !messages.empty?
+          @results[:messages] += messages.map do |msg|
+            # Convert Message objects to simple hashes if needed
+            if msg.is_a?(Hash)
+              msg
+            else
+              {
+                text: msg.respond_to?(:translated_text) ? msg.translated_text : msg.to_s,
+                importance: msg.respond_to?(:importance) ? msg.importance : :normal,
+                category: msg.respond_to?(:category) ? msg.category : :system,
+                turn: msg.respond_to?(:turn) ? msg.turn : @results[:actions_performed]
+              }
+            end
           end
         end
+
+        # Return recent messages for immediate use
+        @results[:messages].last(10)
       end
 
       # Verify that the player character is rendered correctly at its position
@@ -1456,6 +1460,33 @@ module Vanilla
         end
 
         results
+      end
+
+      # Get current messages from the game
+      # @return [Array<Hash>] Messages from the message log
+      def get_current_messages
+        return [] unless @level
+
+        # Try to get messages using Service Locator pattern first
+        message_system = Vanilla::Messages::MessageSystem.instance
+        if message_system
+          return message_system.get_recent_messages(100)
+        end
+
+        # Fallback to direct access if needed
+        message_manager = if defined?(Vanilla::Messages::MessageManager)
+          # Try to get from level if available
+          @level.respond_to?(:message_manager) ? @level.message_manager : nil
+        else
+          nil
+        end
+
+        if message_manager && message_manager.respond_to?(:get_recent_messages)
+          messages = message_manager.get_recent_messages(100)
+          return messages if messages
+        end
+
+        []
       end
     end
   end

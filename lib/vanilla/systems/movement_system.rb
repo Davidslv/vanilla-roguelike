@@ -66,6 +66,26 @@ module Vanilla
         # Handle special attributes
         handle_special_cell_attributes(entity, target_cell)
 
+        # Check if we're on stairs and update the stairs component
+        if target_cell.stairs? && entity.has_component?(:stairs) && !entity.get_component(:stairs).found_stairs
+          entity.get_component(:stairs).found_stairs = true
+
+          # Log a message about finding stairs
+          # Use the MessageSystem service if available
+          message_system = Vanilla::Messages::MessageSystem.instance
+
+          if message_system
+            # Log message using the facade
+            message_system.log_message("exploration.find_stairs",
+                                    category: :exploration,
+                                    importance: :success)
+          else
+            @logger.info("Player found stairs")
+          end
+
+          return false # Don't move further, stay on the stairs
+        end
+
         # Update position
         update_position(position, direction_symbol, movement.speed)
 
@@ -173,24 +193,15 @@ module Vanilla
         @logger.info("Entity moved #{direction} from #{old_position} to #{new_position}")
 
         # If this is a player entity, add a message to the message system
-        if entity.is_a?(Vanilla::Entities::Player) && defined?($game_instance) && $game_instance
-          message_manager = $game_instance.instance_variable_get(:@message_manager)
+        if entity.is_a?(Vanilla::Entities::Player)
+          # Get the message system using the service locator pattern
+          message_system = Vanilla::Messages::MessageSystem.instance
 
-          if message_manager
+          if message_system
             # Translate direction for user-friendly message
-            direction_name = case direction
-                            when :north then "north"
-                            when :south then "south"
-                            when :east then "east"
-                            when :west then "west"
-                            else direction.to_s
-                            end
-
-            # Add the movement message
-            message_manager.log_translated("exploration.move",
-                                          importance: :info,
-                                          category: :movement,
-                                          metadata: { direction: direction_name })
+            message_system.log_message("exploration.move",
+                                    category: :movement,
+                                    metadata: { direction: direction })
           end
         end
       end

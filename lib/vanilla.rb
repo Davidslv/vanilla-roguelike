@@ -58,7 +58,7 @@ module Vanilla
   require_relative 'vanilla/events'
 
   # message system
-  require_relative 'vanilla/messages'
+  require_relative 'vanilla/message_system'
 
   # I18n for localization
   require 'i18n'
