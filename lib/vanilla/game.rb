@@ -14,16 +14,23 @@ module Vanilla
       @running = false
       @last_update_time = Time.now
 
+      # Check for test mode
+      test_mode = ENV['VANILLA_TEST_MODE'] == 'true' || options[:test_mode]
+
       # Create the ECS world
       @world = Vanilla::World.new
 
-      # Register systems in priority order
-      register_systems
+      unless test_mode
+        # Register systems in priority order
+        register_systems
 
-      # Create initial level
-      initialize_level
+        # Create initial level
+        initialize_level
+      end
 
       # Register the game in the service registry for compatibility
+      # But first, clear any existing registration to prevent leaks
+      Vanilla::ServiceRegistry.clear if test_mode
       Vanilla::ServiceRegistry.register(:game, self)
       @logger.info("Game initialized with ECS architecture")
     end
@@ -76,6 +83,11 @@ module Vanilla
     # @return [Level] The current level
     def level
       @world.current_level
+    end
+
+    # Alias for level to maintain backward compatibility
+    def current_level
+      level
     end
 
     # Transition to the next level with increased difficulty
