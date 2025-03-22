@@ -26,7 +26,8 @@ module Vanilla
 
         # Sort by render layer
         renderables.sort_by! do |entity|
-          entity.get_component(:render).layer || 0
+          render = entity.get_component(:render)
+          render.respond_to?(:layer) ? render.layer || 0 : 0
         end
 
         # Draw entities
@@ -34,11 +35,14 @@ module Vanilla
           position = entity.get_component(:position)
           render = entity.get_component(:render)
 
+          character = render.respond_to?(:character) ? render.character : render.char
+          color = render.color
+
           @renderer.draw_character(
             position.row,
             position.column,
-            render.char,
-            render.color
+            character,
+            color
           )
         end
 

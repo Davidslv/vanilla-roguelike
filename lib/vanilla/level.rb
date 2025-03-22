@@ -1,7 +1,7 @@
 module Vanilla
   # Represents a game level
   class Level
-    attr_reader :grid, :difficulty, :entrance_row, :entrance_column, :exit_row, :exit_column
+    attr_reader :grid, :difficulty, :entrance_row, :entrance_column, :exit_row, :exit_column, :player, :stairs
 
     # Initialize a new level
     # @param seed [Integer, nil] Random seed for level generation
@@ -35,6 +35,21 @@ module Vanilla
       @exit_row = stairs_position[0]
       @exit_column = stairs_position[1]
 
+      # Create legacy player and stairs entities for backward compatibility
+      player_row = player_position[0]
+      player_column = player_position[1]
+      stairs_row = stairs_position[0]
+      stairs_column = stairs_position[1]
+
+      @player = Entities::Player.new(row: player_row, column: player_column)
+      logger.info("Player created at position [#{player_row}, #{player_column}]")
+
+      @stairs = Entities::Stairs.new(row: stairs_row, column: stairs_column)
+      logger.info("Stairs placed at position [#{stairs_row}, #{stairs_column}]")
+
+      # We don't call update_grid_with_entities here anymore as it's now the responsibility
+      # of the World class to do that with the actual entities it manages
+
       logger.info("Entrance set at position [#{@entrance_row}, #{@entrance_column}]")
       logger.info("Exit set at position [#{@exit_row}, #{@exit_column}]")
     end
@@ -59,39 +74,6 @@ module Vanilla
     # @param grid [Grid] The grid for this level
     def set_grid(grid)
       @grid = grid
-    end
-
-    attr_reader :player, :stairs
-
-    def initialize(seed: nil, rows: 10, columns: 10, difficulty: 1)
-      logger = Vanilla::Logger.instance
-
-      @difficulty = difficulty
-      logger.info("Creating new level with rows: #{rows}, columns: #{columns}, seed: #{seed || 'random'}, difficulty: #{difficulty}")
-      @grid = Vanilla::Map.create(rows: rows, columns: columns, algorithm: Vanilla::Algorithms::AVAILABLE.sample, seed: seed)
-      logger.debug("Grid created with algorithm: #{@grid.algorithm.name}")
-
-      start = start_position(grid: grid)
-      logger.debug("Start position selected: [#{start.row}, #{start.column}]")
-
-      positions = longest_path(grid: grid, start: start)
-      logger.debug("Path positions calculated - Start: #{positions[:start].inspect}, Goal: #{positions[:goal].inspect}")
-
-      player_position, stairs_position = positions[:start], positions[:goal]
-
-      player_row = player_position[0]
-      player_column = player_position[1]
-      stairs_row = stairs_position[0]
-      stairs_column = stairs_position[1]
-
-      @player = Entities::Player.new(row: player_row, column: player_column)
-      logger.info("Player created at position [#{player_row}, #{player_column}]")
-
-      @stairs = Entities::Stairs.new(row: stairs_row, column: stairs_column)
-      logger.info("Stairs placed at position [#{stairs_row}, #{stairs_column}]")
-
-      # Update grid cells with entity information (for backwards compatibility)
-      update_grid_with_entities
     end
 
     def self.random(difficulty: 1)
@@ -170,6 +152,7 @@ module Vanilla
 
     # Updates grid cells with entity information for backwards compatibility
     # with code that still uses the grid's tile properties directly
+    # @param entities [Array<Entity>] The entities to update the grid with
     def update_grid_with_entities(entities)
       # First, reset all grid cells to their default state
       # This prevents "ghost" entities remaining on the grid
@@ -198,9 +181,10 @@ module Vanilla
 
         # Handle special case for stairs
         if entity.has_tag?(:stairs)
-          cell.tile = render_component.char || Vanilla::Support::TileType::STAIRS
+          cell.tile = render_component.respond_to?(:char) ? render_component.char : Vanilla::Support::TileType::STAIRS
         else
-          cell.tile = render_component.char
+          char = render_component.respond_to?(:char) ? render_component.char : render_component.character
+          cell.tile = char
         end
       end
     end

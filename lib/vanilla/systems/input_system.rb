@@ -4,6 +4,13 @@ module Vanilla
   module Systems
     # System that processes keyboard input and updates input components
     class InputSystem < System
+      # Initialize a new input system
+      # @param world [World] The world this system belongs to
+      def initialize(world)
+        super
+        @logger = Vanilla::Logger.instance
+      end
+
       # Update method called once per frame
       # @param delta_time [Float] Time since last update
       def update(delta_time)
@@ -14,13 +21,21 @@ module Vanilla
         input_component = player.get_component(:input)
 
         # Process movement input
-        if @world.keyboard.key_pressed?(:up)
+        if @world.keyboard.key_pressed?(:up) || @world.keyboard.key_pressed?(:KEY_UP)
           input_component.set_move_direction(:north)
-        elsif @world.keyboard.key_pressed?(:down)
+        elsif @world.keyboard.key_pressed?(:down) || @world.keyboard.key_pressed?(:KEY_DOWN)
           input_component.set_move_direction(:south)
-        elsif @world.keyboard.key_pressed?(:left)
+        elsif @world.keyboard.key_pressed?(:left) || @world.keyboard.key_pressed?(:KEY_LEFT)
           input_component.set_move_direction(:west)
-        elsif @world.keyboard.key_pressed?(:right)
+        elsif @world.keyboard.key_pressed?(:right) || @world.keyboard.key_pressed?(:KEY_RIGHT)
+          input_component.set_move_direction(:east)
+        elsif @world.keyboard.key_pressed?(:k)
+          input_component.set_move_direction(:north)
+        elsif @world.keyboard.key_pressed?(:j)
+          input_component.set_move_direction(:south)
+        elsif @world.keyboard.key_pressed?(:h)
+          input_component.set_move_direction(:west)
+        elsif @world.keyboard.key_pressed?(:l)
           input_component.set_move_direction(:east)
         else
           input_component.set_move_direction(nil)

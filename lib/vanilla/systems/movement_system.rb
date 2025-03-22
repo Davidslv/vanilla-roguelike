@@ -1,3 +1,5 @@
+require_relative 'system'
+
 module Vanilla
   module Systems
     # The MovementSystem implements movement logic for entities in the game world.
@@ -31,186 +33,185 @@ module Vanilla
     #
     #   movement_system = MovementSystem.new(grid)
     #   movement_system.move(entity, :north)
-    class MovementSystem
+    class MovementSystem < System
       # Initialize a new movement system
-      # @param grid [Vanilla::MapUtils::Grid] The game grid
-      def initialize(grid)
-        @grid = grid
+      # @param world [World] The world this system belongs to
+      def initialize(world)
+        super
         @logger = Vanilla::Logger.instance
       end
 
-      # Move an entity in the specified direction
-      # @param entity [Vanilla::Components::Entity] The entity to move
+      # Update method called once per frame
+      # @param delta_time [Float] Time since last update
+      def update(delta_time)
+        # Get all entities with position and movement components
+        movable_entities = entities_with(:position, :movement)
+
+        movable_entities.each do |entity|
+          process_entity_movement(entity)
+        end
+      end
+
+      # Process movement for an entity
+      # @param entity [Entity] The entity to process
+      def process_entity_movement(entity)
+        # Skip if entity has no input component or no movement direction
+        return unless entity.has_component?(:input)
+
+        input = entity.get_component(:input)
+        direction = input.move_direction
+        return unless direction
+
+        # Process the movement
+        move(entity, direction)
+
+        # Clear movement direction after processing
+        input.set_move_direction(nil)
+      end
+
+      # Move an entity in a direction
+      # @param entity [Entity] The entity to move
       # @param direction [Symbol] The direction to move (:north, :south, :east, :west)
       # @return [Boolean] Whether the movement was successful
       def move(entity, direction)
         return false unless can_process?(entity)
 
+        # Get the position and movement components
         position = entity.get_component(:position)
         movement = entity.get_component(:movement)
 
-        # Check if entity can move in this direction
-        direction_symbol = normalize_direction(direction)
-        return false unless movement.can_move_directions.include?(direction_symbol)
+        # Skip if movement is not active
+        return false unless movement.active?
 
-        # Get cells
+        # Normalize the direction
+        direction = normalize_direction(direction)
+
+        # Get the grid from the world
+        @grid = @world.current_level.grid
+        return false unless @grid
+
+        # Get current grid cell
         current_cell = @grid[position.row, position.column]
         return false unless current_cell
 
-        target_cell = get_target_cell(current_cell, direction_symbol)
-        return false unless target_cell && can_move_to?(current_cell, target_cell, direction_symbol)
+        # Get target cell based on direction
+        target_cell = get_target_cell(current_cell, direction)
+        return false unless target_cell
 
-        # Store original position for logging
-        old_position = [position.row, position.column]
+        # Check if we can move to the target cell
+        return false unless can_move_to?(current_cell, target_cell, direction)
 
-        # Handle special attributes
+        # Save the old position for logging
+        old_position = { row: position.row, column: position.column }
+
+        # Update the entity's position
+        update_position(position, direction, movement.speed)
+
+        # Handle any special cell attributes
         handle_special_cell_attributes(entity, target_cell)
 
-        # Check if we're on stairs and update the stairs component
-        if target_cell.stairs? && entity.has_component?(:stairs) && !entity.get_component(:stairs).found_stairs
-          entity.get_component(:stairs).found_stairs = true
+        # Log the movement
+        log_movement(entity, direction, old_position, { row: position.row, column: position.column })
 
-          # Log a message about finding stairs
-          # Use the MessageSystem service if available
-          message_system = Vanilla::Messages::MessageSystem.instance
-
-          if message_system
-            # Log message using the facade
-            message_system.log_message("exploration.find_stairs",
-                                    category: :exploration,
-                                    importance: :success)
-          else
-            @logger.info("Player found stairs")
-          end
-
-          # Continue movement - don't return early
-        end
-
-        # Update position
-        update_position(position, direction_symbol, movement.speed)
-
-        # Log movement
-        log_movement(entity, direction_symbol, old_position, [position.row, position.column])
+        # Emit movement event for other systems
+        emit_event(:entity_moved, {
+          entity_id: entity.id,
+          old_position: old_position,
+          new_position: { row: position.row, column: position.column },
+          direction: direction
+        })
 
         true
       end
 
       private
 
-      # Check if the entity has the required components
-      # @param entity [Vanilla::Components::Entity] The entity to check
-      # @return [Boolean] Whether the entity can be processed
+      # Check if this system can process the entity
       def can_process?(entity)
         entity.has_component?(:position) && entity.has_component?(:movement)
       end
 
-      # Convert various direction formats to a standard symbol
-      # @param direction [Symbol, String] The direction to normalize
-      # @return [Symbol] The normalized direction
+      # Normalize the direction to a standard symbol
       def normalize_direction(direction)
         case direction.to_s.downcase
-        when 'up', 'north', ':north'
+        when 'n', 'north', 'up', 'u', 'key_up'
           :north
-        when 'down', 'south', ':south'
+        when 's', 'south', 'down', 'd', 'key_down'
           :south
-        when 'left', 'west', ':west'
-          :west
-        when 'right', 'east', ':east'
+        when 'e', 'east', 'right', 'r', 'key_right'
           :east
+        when 'w', 'west', 'left', 'l', 'key_left'
+          :west
         else
-          direction.to_sym
+          direction
         end
       end
 
-      # Get the target cell for movement
-      # @param cell [Vanilla::MapUtils::Cell] The current cell
-      # @param direction [Symbol] The direction to move
-      # @return [Vanilla::MapUtils::Cell, nil] The target cell or nil
+      # Get the target cell based on the current cell and direction
       def get_target_cell(cell, direction)
         case direction
         when :north
-          cell.north
+          @grid[cell.row - 1, cell.column] if cell.row > 0
         when :south
-          cell.south
+          @grid[cell.row + 1, cell.column] if cell.row < @grid.rows - 1
         when :east
-          cell.east
+          @grid[cell.row, cell.column + 1] if cell.column < @grid.columns - 1
         when :west
-          cell.west
+          @grid[cell.row, cell.column - 1] if cell.column > 0
         else
           nil
         end
       end
 
-      # Check if movement to the target cell is possible
-      # @param current_cell [Vanilla::MapUtils::Cell] The current cell
-      # @param target_cell [Vanilla::MapUtils::Cell] The target cell
-      # @param direction [Symbol] The movement direction
-      # @return [Boolean] Whether movement is possible
+      # Check if the entity can move to the target cell
       def can_move_to?(current_cell, target_cell, direction)
         # Check if cells are linked (i.e., no wall between them)
         current_cell.linked?(target_cell)
       end
 
-      # Handle special attributes of the target cell
-      # @param entity [Vanilla::Components::Entity] The entity moving
-      # @param target_cell [Vanilla::MapUtils::Cell] The target cell
+      # Handle special cell attributes (like stairs)
       def handle_special_cell_attributes(entity, target_cell)
         # Enhanced debugging for stairs
         @logger.debug("Checking if cell has special attributes: [#{target_cell.row}, #{target_cell.column}]")
-        @logger.debug("Cell is stairs? #{target_cell.stairs?}")
-        @logger.debug("Entity has stairs component? #{entity.has_component?(:stairs)}")
 
         # Check for stairs
-        if entity.has_component?(:stairs) && target_cell.stairs?
-          stairs_component = entity.get_component(:stairs)
-          old_value = stairs_component.found_stairs
-          stairs_component.found_stairs = true
-          @logger.info("STAIRS FOUND: Entity found stairs at [#{target_cell.row}, #{target_cell.column}]")
-          @logger.info("STAIRS FOUND: Changed found_stairs from #{old_value} to #{stairs_component.found_stairs}")
-        end
+        if defined?(Vanilla::Support::TileType) &&
+           Vanilla::Support::TileType.const_defined?(:STAIRS) &&
+           target_cell.tile == Vanilla::Support::TileType::STAIRS
 
-        # Additional special cell attributes can be handled here
+          @logger.info("Entity encountered stairs at [#{target_cell.row}, #{target_cell.column}]")
+
+          # Update the stairs component if the entity has one
+          if entity.has_component?(:stairs)
+            stairs_component = entity.get_component(:stairs)
+            stairs_component.found = true
+            @logger.debug("Updated stairs component - found: #{stairs_component.found}")
+          end
+
+          # Emit a stairs found event
+          emit_event(:stairs_found, { entity_id: entity.id })
+        end
       end
 
-      # Update the entity's position based on direction
-      # @param position [Vanilla::Components::PositionComponent] The position component
-      # @param direction [Symbol] The movement direction
-      # @param speed [Float] The movement speed
+      # Update the entity's position
       def update_position(position, direction, speed)
         # For grid-based movement, speed is typically 1 (move 1 cell)
         # But we include it for future time-based movement systems
         case direction
         when :north
-          position.row -= speed.to_i
+          position.set_position(position.row - 1, position.column)
         when :south
-          position.row += speed.to_i
+          position.set_position(position.row + 1, position.column)
         when :east
-          position.column += speed.to_i
+          position.set_position(position.row, position.column + 1)
         when :west
-          position.column -= speed.to_i
+          position.set_position(position.row, position.column - 1)
         end
       end
 
-      # Log the movement for debugging
-      # @param entity [Vanilla::Components::Entity] The entity that moved
-      # @param direction [Symbol] The movement direction
-      # @param old_position [Array<Integer>] The original position [row, col]
-      # @param new_position [Array<Integer>] The new position [row, col]
+      # Log movement for debugging
       def log_movement(entity, direction, old_position, new_position)
-        @logger.info("Entity moved #{direction} from #{old_position} to #{new_position}")
-
-        # If this is a player entity, add a message to the message system
-        if entity.is_a?(Vanilla::Entities::Player)
-          # Get the message system using the service locator pattern
-          message_system = Vanilla::Messages::MessageSystem.instance
-
-          if message_system
-            # Translate direction for user-friendly message
-            message_system.log_message("exploration.move",
-                                    category: :movement,
-                                    metadata: { direction: direction })
-          end
-        end
+        @logger.info("Entity moved #{direction} from [#{old_position[:row]}, #{old_position[:column]}] to [#{new_position[:row]}, #{new_position[:column]}]")
       end
     end
   end

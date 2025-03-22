@@ -30,15 +30,16 @@ module Vanilla
     D: :KEY_LEFT
   }.freeze
 
-  # Systems
-  require_relative 'vanilla/systems'
-
-  # World and ECS
+  # New ECS Framework
   require_relative 'vanilla/world'
-  require_relative 'vanilla/entity_factory'
   require_relative 'vanilla/keyboard_handler'
   require_relative 'vanilla/display_handler'
+  require_relative 'vanilla/entity_factory'
   require_relative 'vanilla/level_generator'
+  require_relative 'vanilla/game'
+
+  # Systems
+  require_relative 'vanilla/systems'
 
   # game
   require_relative 'vanilla/input_handler'
