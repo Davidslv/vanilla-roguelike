@@ -402,6 +402,17 @@ module Vanilla
       def player_position
         return nil unless @level
 
+        # Safety check to ensure @level is a Level object
+        unless @level.is_a?(Vanilla::Level)
+          puts "Error: @level is not a Level object, got #{@level.class.name}" if @display_rendering
+          @results[:errors] << {
+            error: "InvalidLevelType",
+            message: "Expected Vanilla::Level but got #{@level.class.name}",
+            context: "Getting player position"
+          }
+          return nil
+        end
+
         # Get player from the level
         player = @level.player
         return nil unless player
@@ -665,8 +676,36 @@ module Vanilla
         patch_game_for_testing
 
         # Get the level from the game
-        @level = @game.instance_variable_get(:@current_level) ||
+        level = @game.instance_variable_get(:@current_level) ||
                  initialize_test_level_if_needed
+
+        # Verify we have a valid Level object
+        if level.is_a?(Vanilla::Level)
+          @level = level
+        else
+          # Log the error and try to initialize a new level
+          puts "Error: Expected a Level object but got #{level.class.name}" if @display_rendering
+          @results[:errors] << {
+            error: "InvalidLevelType",
+            message: "Expected Vanilla::Level but got #{level.class.name}",
+            context: "Setting up game"
+          }
+
+          # Try to create a new level directly
+          begin
+            @level = Vanilla::Level.new(difficulty: 1)
+            # Register it with the game
+            @game.instance_variable_set(:@current_level, @level) if @game
+          rescue => e
+            puts "Failed to create a new level: #{e.message}" if @display_rendering
+            @results[:errors] << {
+              error: e.class.name,
+              message: e.message,
+              backtrace: e.backtrace&.first(3),
+              context: "Creating new level"
+            }
+          end
+        end
 
         # Store initial player position
         @results[:initial_player_position] = player_position
@@ -812,13 +851,60 @@ module Vanilla
           turns = action[:turns] || 1
           turns.times do
             @game.current_turn += 1
-            collect_messages
+            # Ensure this call doesn't modify @level
+            messages = collect_messages
+            # Store messages for debugging
+            @results[:turn_messages] ||= []
+            @results[:turn_messages] << messages
           end
         when :use_stairs
           find_and_use_stairs
         when :custom
           # Execute a custom block with this simulator as argument
-          action[:block].call(self) if action[:block]
+          # Save the level object before executing the custom block
+          original_level = @level
+
+          begin
+            # Execute the custom block
+            action[:block].call(self) if action[:block]
+
+            # Verify level is still a valid Level object after custom block execution
+            unless @level.is_a?(Vanilla::Level)
+              @results[:errors] ||= []
+              @results[:errors] << {
+                error: "InvalidLevelType",
+                message: "Custom block changed @level to #{@level.class.name}",
+                context: "process_action:custom"
+              }
+
+              # Restore the original level if it was valid
+              if original_level.is_a?(Vanilla::Level)
+                @level = original_level
+              else
+                # Try to create a new level as a last resort
+                begin
+                  @level = Vanilla::Level.new(difficulty: 1)
+                  @game.instance_variable_set(:@current_level, @level) if @game
+                rescue => e
+                  # Log the error but continue
+                  @results[:errors] << {
+                    error: e.class.name,
+                    message: e.message,
+                    context: "Creating new level after custom block"
+                  }
+                end
+              end
+            end
+          rescue => e
+            # Handle any exceptions in the custom block
+            @results[:errors] ||= []
+            @results[:errors] << {
+              error: e.class.name,
+              message: e.message,
+              backtrace: e.backtrace&.first(3),
+              context: "Custom block execution"
+            }
+          end
         else
           raise "Unknown action type: #{action[:type]}"
         end
@@ -886,6 +972,32 @@ module Vanilla
       # DO NOT change the parameter order or the command will fail with:
       # NoMethodError: undefined method 'to_sym' for #<Vanilla::MapUtils::Grid:...>
       def simulate_movement(direction, count = 1, caller_info: nil)
+        # Safety check: ensure @level is a valid Level object
+        unless @level.is_a?(Vanilla::Level)
+          # Log the error
+          @results[:errors] ||= []
+          @results[:errors] << {
+            error: "InvalidLevelType",
+            message: "Expected Vanilla::Level but got #{@level.class.name || 'nil'}",
+            context: "simulate_movement"
+          }
+
+          # Try to recover by recreating the level
+          puts "Error: @level is invalid, attempting to recreate it" if @display_rendering
+          begin
+            @level = Vanilla::Level.new(difficulty: 1)
+            @game.instance_variable_set(:@current_level, @level) if @game
+          rescue => e
+            puts "Failed to recreate level: #{e.message}" if @display_rendering
+            @results[:errors] << {
+              error: e.class.name,
+              message: e.message,
+              context: "Recreating level in simulate_movement"
+            }
+            return []
+          end
+        end
+
         return [] unless @game && @level
 
         # Track who's calling this method for better error reporting
@@ -1062,7 +1174,9 @@ module Vanilla
               }
 
               # Collect any messages that were generated during the movement
-              movement_result[:messages] = collect_messages
+              # Store them in the result without modifying @level
+              retrieved_messages = collect_messages
+              movement_result[:messages] = retrieved_messages
 
               # Store the movement info
               @results[:movements] << movement_result
@@ -1096,11 +1210,18 @@ module Vanilla
 
       # Collect messages from the message system if available
       def collect_messages
+        # Safety check to make sure @level is still valid
+        return [] unless @level && @level.is_a?(Vanilla::Level)
+
         # Get messages using the get_current_messages method
         messages = get_current_messages
 
+        # Ensure messages is always an array
+        messages = [messages] if messages && !messages.is_a?(Array)
+        messages ||= []
+
         # Add to results if any messages found
-        if messages && !messages.empty?
+        if !messages.empty?
           @results[:messages] += messages.map do |msg|
             # Convert Message objects to simple hashes if needed
             if msg.is_a?(Hash)
@@ -1465,7 +1586,8 @@ module Vanilla
       # Get current messages from the game
       # @return [Array<Hash>] Messages from the message log
       def get_current_messages
-        return [] unless @level
+        # Safety check to make sure @level is of the correct type
+        return [] unless @level && @level.is_a?(Vanilla::Level)
 
         # Try to get messages using Service Locator pattern first
         message_system = Vanilla::Messages::MessageSystem.instance
