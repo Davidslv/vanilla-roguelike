@@ -212,6 +212,50 @@ module Vanilla
                       metadata: metadata)
       end
 
+      # Add a set of selectable options for player choices
+      # @param prompt [String] The prompt to display
+      # @param options [Hash] A hash of option text => callback proc
+      def add_choices(prompt, options = {})
+        # Add the prompt first
+        log_translated(prompt)
+
+        # For tracking used shortcut keys
+        used_keys = []
+
+        # Add each option as a selectable message
+        options.each do |option_text, callback|
+          # Find a suitable shortcut key (first letter if possible)
+          first_char = option_text.downcase[0]
+          shortcut = if !used_keys.include?(first_char) && ('a'..'z').include?(first_char)
+                      first_char
+                    else
+                      # Find first unused letter
+                      ('a'..'z').find { |c| !used_keys.include?(c) }
+                    end
+
+          used_keys << shortcut if shortcut
+
+          # Create a selectable message
+          message = Message.new(
+            option_text,
+            category: :option,
+            importance: :normal,
+            selectable: true,
+            shortcut_key: shortcut,
+            metadata: {}
+          )
+
+          # Set the callback to run when selected
+          message.instance_variable_set(:@selection_callback, callback)
+
+          # Add the message to the log
+          @message_log.add_message(message)
+        end
+
+        # Toggle to selection mode if there are options
+        toggle_selection_mode if options.any? && !@selection_mode
+      end
+
       # Additional methods to manage message system
     end
   end
