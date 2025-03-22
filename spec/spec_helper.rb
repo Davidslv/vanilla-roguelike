@@ -1,6 +1,9 @@
 require 'simplecov'
 SimpleCov.start
 
+# Set test mode flag before requiring the game code
+ENV['VANILLA_TEST_MODE'] = 'true'
+
 require './lib/vanilla'
 require './lib/vanilla/events'
 require_relative 'support/game_state_helper'

@@ -149,39 +149,45 @@ module Vanilla
       @game_over = false
       @current_turn = 0
 
-      # Initialize render system
-      @render_system = Vanilla::Systems::RenderSystemFactory.create
+      # Skip UI initialization and display in test mode
+      test_mode = ENV['VANILLA_TEST_MODE'] == 'true' || options[:test_mode]
 
-      # Initialize message system using the facade
-      @message_system = Messages::MessageSystem.new(@logger, @render_system)
+      # Initialize systems
+      if !test_mode
+        # Initialize render system
+        @render_system = Vanilla::Systems::RenderSystemFactory.create
 
-      # Initialize inventory system
-      @inventory_system = Inventory::InventorySystemFacade.new(@logger, @render_system)
+        # Initialize message system using the facade
+        @message_system = Messages::MessageSystem.new(@logger, @render_system)
 
-      # Welcome message - use critical importance to make it more visible
-      @message_system.log_message("game.welcome",
-                                metadata: { difficulty: @difficulty },
-                                importance: :critical,
-                                category: :system)
+        # Initialize inventory system
+        @inventory_system = Inventory::InventorySystemFacade.new(@logger, @render_system)
 
-      # Add some additional messages to ensure the message panel is visible
-      @message_system.log_message("ui.prompt_move",
-                                metadata: {},
-                                importance: :info,
-                                category: :system)
+        # Welcome message - use critical importance to make it more visible
+        @message_system.log_message("game.welcome",
+                                  metadata: { difficulty: @difficulty },
+                                  importance: :critical,
+                                  category: :system)
 
-      @message_system.log_message("exploration.enter_room",
-                                metadata: { room: "entrance" },
-                                importance: :info,
-                                category: :exploration)
+        # Add some additional messages to ensure the message panel is visible
+        @message_system.log_message("ui.prompt_move",
+                                  metadata: {},
+                                  importance: :info,
+                                  category: :system)
 
-      # Make intro messages visible before the level is generated
-      clear_screen_with_space_for_messages
-      print_title_screen
-      puts "Hint: Look below the map for game messages!\n\n"
+        @message_system.log_message("exploration.enter_room",
+                                  metadata: { room: "entrance" },
+                                  importance: :info,
+                                  category: :exploration)
+
+        # Make intro messages visible before the level is generated
+        clear_screen_with_space_for_messages
+        print_title_screen
+        puts "Hint: Look below the map for game messages!\n\n"
+      end
 
       # Initialize the level
-      start_new_level
+      start_new_level unless test_mode
     end
 
     # Display game title
@@ -304,6 +310,9 @@ module Vanilla
 
     # Initialize a new level
     def start_new_level
+      # Check for test mode
+      test_mode = ENV['VANILLA_TEST_MODE'] == 'true'
+
       # Clear old services
       Vanilla::ServiceRegistry.clear
       @logger.debug("Cleared service registry")
@@ -317,6 +326,9 @@ module Vanilla
       @logger.debug("Created new level with difficulty: #{@difficulty}")
       @player = @level.player
       @logger.debug("Retrieved player from level")
+
+      # Skip monster and UI initialization in test mode
+      return if test_mode
 
       # Set up the monster system
       @monster_system = Vanilla::Systems::MonsterSystem.new(grid: @level.grid, player: @player, logger: @logger)
@@ -762,6 +774,9 @@ module Vanilla
   # Creates a new Game instance and manages its lifecycle
   # @return [void]
   def self.run
+    # Skip game initialization in test mode
+    return if ENV['VANILLA_TEST_MODE'] == 'true'
+
     game = Game.new
     begin
       game.start
