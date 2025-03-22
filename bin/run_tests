@@ -68,7 +68,7 @@ results = {
 }
 
 # Helper function to run a command and process its output
-def run_command(cmd, options, label, results)
+def run_command(cmd, options, label, results, direct_output = false)
   puts "\n#{'=' * 80}"
   puts "RUNNING: #{label}"
   puts "#{'=' * 80}"
@@ -79,29 +79,48 @@ def run_command(cmd, options, label, results)
   start_time = Time.now
   success = false
 
-  # Run the command and capture its output
-  Open3.popen3(cmd) do |stdin, stdout, stderr, wait_thread|
-    # Write output to both console (if verbose) and log file
-    File.open(output_file, 'w') do |f|
-      while stdout_line = stdout.gets
-        puts stdout_line if options[:verbose]
-        f.puts stdout_line
-      end
+  if direct_output
+    # Run with direct output to console for better visibility (especially for RSpec)
+    puts "\n" # Add some spacing
 
-      while stderr_line = stderr.gets
-        puts stderr_line if options[:verbose]
-        f.puts "ERROR: #{stderr_line}"
+    # Run the command and let the output go directly to the console
+    # while still capturing it for the log file
+    output = []
+    IO.popen(cmd) do |io|
+      while line = io.gets
+        puts line  # Direct output to console
+        output << line
       end
     end
+    success = $?.success?
 
-    # Check if command succeeded
-    success = wait_thread.value.success?
+    # Write the captured output to the log file
+    File.write(output_file, output.join)
+  else
+    # Run the command and capture its output
+    Open3.popen3(cmd) do |stdin, stdout, stderr, wait_thread|
+      # Write output to both console (if verbose) and log file
+      File.open(output_file, 'w') do |f|
+        while stdout_line = stdout.gets
+          puts stdout_line if options[:verbose]
+          f.puts stdout_line
+        end
+
+        while stderr_line = stderr.gets
+          puts stderr_line if options[:verbose]
+          f.puts "ERROR: #{stderr_line}"
+        end
+      end
+
+      # Check if command succeeded
+      success = wait_thread.value.success?
+    end
   end
 
   # Process result
   duration = Time.now - start_time
   status = success ? "PASSED" : "FAILED"
-  puts "#{label}: #{status} (#{duration.round(2)}s)"
+  puts "\n#{label}: #{status} (#{duration.round(2)}s)"
 
   # Store result
   if success
@@ -154,14 +173,7 @@ puts "Mode: #{options[:fast] ? 'Fast' : 'Normal'}"
 puts "Output directory: #{options[:output_dir]}"
 puts "==================================\n"
 
-# 1. Run RSpec tests
-unless options[:skip_rspec]
-  rspec_command = "bundle exec rspec"
-  rspec_command += " --format documentation" if options[:verbose]
-  run_command(rspec_command, options, "RSpec Tests", results)
-end
-
-# 2. Run the game simulator tests
+# 1. Run the game simulator tests first
 unless options[:skip_game_tests]
   # Basic movement test
   movement_test_cmd = "ruby bin/test_game -s #{options[:seed]}"
@@ -176,6 +188,21 @@ unless options[:skip_game_tests]
   stairs_test_cmd += " -o #{options[:output_dir]}/stairs_test_#{options[:timestamp]}.log"
   run_command(stairs_test_cmd, options, "Stairs Tests", results) if File.exist?('bin/test_game') &&
     File.read('bin/test_game').include?('--test-stairs')
+end
+
+# 2. Run RSpec tests last, with direct output to console
+unless options[:skip_rspec]
+  rspec_command = "bundle exec rspec"
+
+  # Add format documentation regardless of verbose flag
+  # This ensures the typical RSpec output that users are familiar with
+  rspec_command += " --format documentation"
+
+  # Use color output if not being redirected to a file
+  rspec_command += " --color"
+
+  # Pass the direct_output flag as true to display RSpec results directly
+  run_command(rspec_command, options, "RSpec Tests", results, true)
 end
 
 # 3. Write summary report
