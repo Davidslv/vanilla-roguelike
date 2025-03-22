@@ -2,7 +2,7 @@ module Vanilla
   # The main Game class that initializes and runs the game
   # This class has been refactored to follow the ECS architecture
   class Game
-    attr_reader :world, :running
+    attr_reader :world, :running, :movement_system, :render_system, :message_system
 
     # Initialize a new game
     # @param options [Hash] Configuration options

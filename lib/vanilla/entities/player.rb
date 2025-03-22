@@ -96,6 +96,37 @@ module Vanilla
         render_component&.character || Support::TileType::PLAYER
       end
 
+      # Position delegation methods
+      def row
+        position_component = get_component(:position)
+        position_component&.row
+      end
+
+      def column
+        position_component = get_component(:position)
+        position_component&.column
+      end
+
+      def coordinates
+        position_component = get_component(:position)
+        position_component&.coordinates
+      end
+
+      def move_to(new_row, new_column)
+        position_component = get_component(:position)
+        position_component&.move_to(new_row, new_column)
+      end
+
+      def found_stairs
+        stairs_component = get_component(:stairs)
+        stairs_component&.found_stairs
+      end
+
+      def found_stairs=(value)
+        stairs_component = get_component(:stairs)
+        stairs_component.found_stairs = value if stairs_component
+      end
+
       # For backward compatibility - check if stairs were found
       def found_stairs?
         stairs_component = get_component(:stairs)
