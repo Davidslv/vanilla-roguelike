@@ -1,9 +1,49 @@
+require_relative 'system'
+
 module Vanilla
   module Systems
-    class RenderSystem
-      def initialize(renderer)
-        @renderer = renderer
+    # System that handles rendering entities to the display
+    class RenderSystem < System
+      # Initialize a new render system
+      # @param world [World] The world this system belongs to
+      def initialize(world)
+        super
+        @renderer = Vanilla::Renderers::TerminalRenderer.new
         @logger = Vanilla::Logger.instance
+      end
+
+      # Update method called once per frame
+      # @param delta_time [Float] Time since last update
+      def update(delta_time)
+        # Clear screen
+        @renderer.clear
+
+        # Draw level grid
+        render_grid
+
+        # Get all entities with position and render components
+        renderables = entities_with(:position, :render)
+
+        # Sort by render layer
+        renderables.sort_by! do |entity|
+          entity.get_component(:render).layer || 0
+        end
+
+        # Draw entities
+        renderables.each do |entity|
+          position = entity.get_component(:position)
+          render = entity.get_component(:render)
+
+          @renderer.draw_character(
+            position.row,
+            position.column,
+            render.char,
+            render.color
+          )
+        end
+
+        # Update display
+        @renderer.present
       end
 
       # Clear the screen completely (for transitions, etc.)
@@ -12,38 +52,14 @@ module Vanilla
         @renderer.clear_screen
       end
 
-      def render(entities, grid)
-        @logger.debug("Rendering scene with #{entities.size} entities")
+      private
 
-        # Start with a fresh canvas
-        @renderer.clear
+      # Render the level grid
+      def render_grid
+        grid = @world.current_level&.grid
+        return unless grid
 
-        # Draw the grid first (background)
         @renderer.draw_grid(grid)
-
-        # Find entities with both position and render components
-        drawable_entities = entities.select do |entity|
-          entity.has_component?(:position) && entity.has_component?(:render)
-        end
-
-        # Sort by layer (z-index) for proper drawing order
-        drawable_entities.sort_by! { |e| e.get_component(:render).layer }
-
-        # Draw each entity
-        drawable_entities.each do |entity|
-          render_component = entity.get_component(:render)
-          position = entity.get_component(:position)
-
-          @renderer.draw_character(
-            position.row,
-            position.column,
-            render_component.character,
-            render_component.color
-          )
-        end
-
-        # Present the final rendered scene
-        @renderer.present
       end
     end
   end
