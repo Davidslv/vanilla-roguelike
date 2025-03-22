@@ -29,38 +29,53 @@ module Vanilla
         # Store position before movement
         position = @entity.get_component(:position)
         old_row, old_column = position.row, position.column
+        logger = Vanilla::Logger.instance
+        logger.debug("MoveCommand: Player position before movement: [#{old_row}, #{old_column}]")
 
         # Execute movement
         success = @movement_system.move(@entity, @direction)
+        logger.debug("MoveCommand: Movement successful: #{success}")
 
         # Update display if movement was successful
         if success
           # Get new position
           new_row, new_column = position.row, position.column
+          logger.debug("MoveCommand: Player position after movement: [#{new_row}, #{new_column}]")
 
-          # If player moved, clear the old position
-          if old_row != new_row || old_column != new_column
-            old_cell = @grid[old_row, old_column]
-            old_cell.tile = Vanilla::Support::TileType::EMPTY if old_cell
-          end
+          # IMPORTANT: We should NOT modify the grid cells directly
+          # This was causing the disappearing entities issue
+          # The grid should remain just a representation of walkable spaces and walls
 
-          # Update display
-          # Get all renderable entities and update the display
-          if @entity.is_a?(Vanilla::Level)
-            # If entity is a level
-            entities = @entity.all_entities
+          # Get the game instance
+          game = Vanilla::ServiceRegistry.get(:game)
+
+          # Update the grid representation with current entity positions
+          # This ensures the grid stays in sync with actual entity positions
+          game.level.update_grid_with_entities if game&.level&.respond_to?(:update_grid_with_entities)
+
+          # Use the level's all_entities method to get all entities to render
+          # This will include the player, stairs, and monsters
+          if game && game.level
+            entities = game.level.all_entities
           else
-            # If we just have a single entity
-            entities = [@entity]
-          end
+            # Fallback if game or level is not available
+            entities = []
 
-          # TODO: Monsters do not move yet
-          # Add monster entities if available
-          # if @grid.respond_to?(:monster_system) && @grid.monster_system.respond_to?(:monsters)
-          #   entities += @grid.monster_system.monsters
-          # end
+            # Add the current entity
+            entities << @entity
+
+            # Add monsters if available
+            monster_system = game&.monster_system
+            if monster_system && monster_system.respond_to?(:monsters)
+              entities += monster_system.monsters
+            end
+
+            # Add stairs if available
+            entities << game.level.stairs if game&.level&.stairs
+          end
 
           # Render the scene
+          # This will clear the renderer and redraw everything
           @render_system.render(entities, @grid)
 
           # Set executed flag
