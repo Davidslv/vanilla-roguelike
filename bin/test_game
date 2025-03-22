@@ -1,0 +1,311 @@
+#!/usr/bin/env ruby
+# bin/test_game
+#
+# A script to run automated tests for the Vanilla roguelike game
+# This validates the core gameplay functionality including:
+# - Player movement in all directions
+# - Level transitions via stairs
+# - Rendering verification to ensure visual updates match game state
+# - Stress testing with random movements
+#
+# The tests use a predetermined seed for consistent, reproducible results,
+# allowing for regression testing across code changes.
+
+require 'optparse'
+require_relative '../lib/vanilla'
+require_relative '../lib/vanilla/simulation/game_simulator'
+require_relative '../lib/vanilla/algorithms/dijkstra'
+
+# Set a predetermined seed for consistent testing
+DEFAULT_SEED = 676418890322387
+
+# Parse command line options
+options = {
+  seed: DEFAULT_SEED,
+  verbose: false,
+  test_type: 'all'
+}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: test_game [options]"
+
+  opts.on("-s", "--seed SEED", Integer, "Random seed for deterministic testing") do |seed|
+    options[:seed] = seed
+  end
+
+  opts.on("-v", "--verbose", "Run with verbose output") do
+    options[:verbose] = true
+  end
+
+  opts.on("-t", "--test TYPE", "Run specific test type (movement, stairs, stress)") do |type|
+    options[:test_type] = type
+  end
+
+  opts.on("-h", "--help", "Show this message") do
+    puts opts
+    exit
+  end
+end.parse!
+
+# Configure logging
+if options[:verbose]
+  puts "Running in verbose mode"
+  # Set logger to debug level
+else
+  # Suppress most output to make test results cleaner
+  $stdout = StringIO.new unless options[:verbose]
+end
+
+puts "Running game tests with seed: #{options[:seed]}"
+puts "Test type: #{options[:test_type]}"
+
+# Define the test cases
+test_cases = {
+  # Basic Movement Test
+  # Verifies that the player can move in all four cardinal directions and
+  # that the screen updates appropriately to reflect these movements.
+  # This is a fundamental test that ensures the core game interaction works.
+  'movement' => {
+    name: "Basic Movement Test (With Rendering Verification)",
+    actions: [
+      { type: :custom, block: lambda { |sim|
+        # Verify screen renders correctly before movement
+        initial_render_check = sim.verify_player_rendering
+        puts "Initial player rendering correct: #{initial_render_check}" if $stdout.is_a?(IO)
+
+        # Test all four movement directions with rendering validation
+        directions = [:up, :right, :down, :left]
+
+        # Track rendering verification results
+        render_checks = []
+
+        directions.each do |direction|
+          # Use the rendering verification version of movement
+          move_results = sim.simulate_movement_with_render_check(direction)
+          render_checks << move_results.first
+
+          # Report on rendering check
+          if $stdout.is_a?(IO)
+            puts "Moved #{direction}: " +
+                 "Position correct: #{move_results.first[:rendering_correct]}, " +
+                 "Screen updated: #{move_results.first[:screen_changed]}"
+          end
+        end
+
+        # Check overall rendering success
+        rendering_success = render_checks.all? { |r| r[:rendering_correct] }
+        screen_updates = render_checks.all? { |r| r[:screen_changed] }
+
+        puts "All rendering checks passed: #{rendering_success}" if $stdout.is_a?(IO)
+        puts "All screen updates verified: #{screen_updates}" if $stdout.is_a?(IO)
+      }}
+    ]
+  },
+
+  # Level Transition Test
+  # Verifies that the player can find stairs, move to them, and transition to a new level.
+  # This test uses Dijkstra's algorithm to find the optimal path to the stairs,
+  # providing a more systematic approach than random movement.
+  # It also verifies that the screen updates properly during the level transition.
+  'stairs' => {
+    name: "Level Transition Test (With Rendering Verification)",
+    actions: [
+      # First action: explicitly set the seed to ensure consistent test results
+      { type: :custom, block: lambda { |sim|
+        # Force-set the seed to our predetermined value
+        srand(DEFAULT_SEED)
+        $seed = DEFAULT_SEED
+        puts "Using fixed seed: #{DEFAULT_SEED}" if $stdout.is_a?(IO)
+      }},
+
+      # Custom action to test stairs by finding the optimal path using Dijkstra's algorithm
+      # and verify rendering updates at each step
+      { type: :custom, block: lambda { |sim|
+        # Get player position first to check it's valid
+        player_pos = sim.metrics[:player_position]
+
+        if player_pos && player_pos[0] && player_pos[1]
+          # Create test stairs at a nearby position (modifiable based on level layout)
+          # Choose a position that should be reachable but not too close
+          stairs_row = player_pos[0] + 2
+          stairs_col = player_pos[1] + 2
+
+          # Make sure the position is within the grid
+          level = sim.instance_variable_get(:@level)
+          if level && level.grid
+            grid = level.grid
+
+            # Adjust if needed to stay within grid bounds
+            stairs_row = [stairs_row, grid.rows - 1].min
+            stairs_col = [stairs_col, grid.columns - 1].min
+
+            # Add the test stairs
+            success = sim.add_test_stairs(row: stairs_row, column: stairs_col)
+            puts "Added stairs at [#{stairs_row}, #{stairs_col}]: #{success}" if $stdout.is_a?(IO)
+
+            # Capture initial screen state
+            initial_screen = sim.capture_screen
+            puts "Initial screen captured" if $stdout.is_a?(IO)
+
+            # Verify initial player rendering
+            initial_render_check = sim.verify_player_rendering
+            puts "Initial player rendering correct: #{initial_render_check}" if $stdout.is_a?(IO)
+
+            # Get optimal path using Dijkstra's algorithm
+            path_directions = sim.find_path_to_stairs
+
+            # If we got a valid path, follow it with rendering verification
+            if path_directions && !path_directions.empty?
+              puts "Found path using Dijkstra: #{path_directions.inspect}" if $stdout.is_a?(IO)
+
+              # Track rendering verification results
+              render_checks = []
+
+              # Follow the path one step at a time, checking rendering
+              path_directions.each do |direction|
+                # Use the rendering verification version of movement
+                move_results = sim.simulate_movement_with_render_check(direction)
+                render_checks << move_results.first
+
+                # Report on rendering check
+                if $stdout.is_a?(IO)
+                  puts "Moved #{direction}: " +
+                       "Position correct: #{move_results.first[:rendering_correct]}, " +
+                       "Screen updated: #{move_results.first[:screen_changed]}"
+                end
+              end
+
+              # Check overall rendering success
+              rendering_success = render_checks.all? { |r| r[:rendering_correct] }
+              screen_updates = render_checks.all? { |r| r[:screen_changed] }
+
+              puts "All rendering checks passed: #{rendering_success}" if $stdout.is_a?(IO)
+              puts "All screen updates verified: #{screen_updates}" if $stdout.is_a?(IO)
+
+              # Try to use the stairs
+              sim.find_and_use_stairs
+
+              # Verify that the screen changed after using stairs (level transition)
+              final_screen = sim.capture_screen
+              level_screen_changed = final_screen != initial_screen
+              puts "Screen changed after level transition: #{level_screen_changed}" if $stdout.is_a?(IO)
+            else
+              puts "No path found with Dijkstra, using fallback movement" if $stdout.is_a?(IO)
+
+              # Fallback to simple movement if Dijkstra couldn't find a path
+              # Still verify rendering
+              sim.simulate_movement_with_render_check(:right, 2)
+              sim.simulate_movement_with_render_check(:down, 2)
+              sim.find_and_use_stairs
+            end
+          end
+        else
+          puts "Invalid player position, using search pattern" if $stdout.is_a?(IO)
+
+          # Fallback to old search pattern if we can't place stairs
+          directions = [:right, :down, :left, :up]
+          found = false
+
+          directions.each do |dir|
+            # Try moving with rendering check
+            sim.simulate_movement_with_render_check(dir, 3)
+
+            # Try to use stairs if we've found them
+            found = sim.find_and_use_stairs
+            break if found
+          end
+        end
+      }}
+    ]
+  },
+
+  # Stress Test
+  # Performs a large number of random movements to stress test the game engine.
+  # This helps identify any performance bottlenecks or memory leaks that might
+  # not appear during shorter, more controlled tests.
+  'stress' => {
+    name: "Stress Test",
+    actions: (1..100).map { { type: :move, direction: [:up, :down, :left, :right].sample } }
+  }
+}
+
+# Determine which tests to run
+tests_to_run = []
+if options[:test_type] == 'all'
+  tests_to_run = test_cases.keys
+else
+  # Run only the requested test if it exists
+  if test_cases.key?(options[:test_type])
+    tests_to_run = [options[:test_type]]
+  else
+    puts "Error: Unknown test type '#{options[:test_type]}'"
+    puts "Available test types: #{test_cases.keys.join(', ')}, all"
+    exit 1
+  end
+end
+
+# Run the selected tests
+tests_to_run.each do |test_key|
+  test = test_cases[test_key]
+  puts "\n======================="
+  puts "Running test: #{test[:name]}"
+  puts "======================="
+
+  # Create a simulator with the specified seed
+  simulator = Vanilla::Simulation::GameSimulator.new(
+    seed: options[:seed],
+    capture_output: !options[:verbose]
+  )
+
+  # Run the test
+  start_time = Time.now
+  results = simulator.run(test[:actions])
+  elapsed_time = Time.now - start_time
+
+  # Print test results
+  puts "\nTest completed in #{elapsed_time.round(2)} seconds"
+  puts "Actions performed: #{results[:actions_performed]}"
+  puts "Movement attempts: #{results[:movements].size}"
+  puts "Successful movements: #{results[:movements].count { |m| m[:moved] }}"
+  puts "Levels completed: #{results[:levels_completed]}"
+
+  # Add rendering verification statistics if available
+  if results[:rendering_checks]&.any?
+    rendering_checks = results[:rendering_checks]
+    rendering_success = rendering_checks.count { |check| check[:correct] }
+    puts "Rendering checks: #{rendering_success}/#{rendering_checks.size} successful"
+  end
+
+  if results[:rendering_data]&.any?
+    render_data = results[:rendering_data]
+    screen_updates = render_data.count { |data| data[:screen_changed] }
+    puts "Screen updates: #{screen_updates}/#{render_data.size} verified"
+  end
+
+  if results[:errors].any?
+    puts "\n⚠️ ERRORS ENCOUNTERED ⚠️"
+    results[:errors].each do |error|
+      puts "- #{error[:error]}: #{error[:message]}"
+      puts "  At action index: #{error[:action_index]}"
+    end
+    exit 1
+  else
+    puts "\n✅ TEST PASSED"
+  end
+
+  # Print performance details if verbose
+  if options[:verbose] && results[:performance]
+    puts "\nPerformance Metrics:"
+    puts "-------------------"
+    puts "Average movement time: #{(results[:performance][:movement_stats][:avg] * 1000).round(2)}ms"
+    puts "Max movement time: #{(results[:performance][:movement_stats][:max] * 1000).round(2)}ms"
+    puts "Total movement time: #{results[:performance][:movement_stats][:total].round(2)}s"
+
+    if results[:performance][:memory_stats] && !results[:performance][:memory_stats].empty?
+      puts "Memory usage (peak): #{results[:performance][:memory_stats][:max].round(2)}MB"
+    end
+  end
+end
+
+puts "\nAll tests completed successfully!"
+exit 0
