@@ -11,10 +11,9 @@ module Vanilla
       def self.on(grid, start:)
         distances = start.distances
         new_start, distance = distances.max
-
         new_distances = new_start.distances
-        goal, distances = new_distances.max
 
+        goal, distances = new_distances.max
         grid.distances = new_distances.path_to(goal)
 
         grid

@@ -68,8 +68,6 @@ module Vanilla
     private
 
     def log(level, message)
-      return if LOG_LEVELS[level] < LOG_LEVELS[@level]
-
       timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S.%L')
       formatted_message = "[#{timestamp}] [#{level.to_s.upcase}] #{message}"
 
