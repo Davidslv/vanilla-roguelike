@@ -7,51 +7,36 @@ module Vanilla
       # Initialize a new input system
       # @param world [World] The world this system belongs to
       def initialize(world)
-        super
+        super(world)
         @logger = Vanilla::Logger.instance
+        @keyboard = Vanilla::KeyboardHandler.new
       end
 
       # Update method called once per frame
       # @param delta_time [Float] Time since last update
-      def update(delta_time)
+      def update(_delta_time)
         # Get player entity with input component
         player = @world.find_entity_by_tag(:player)
         return unless player && player.has_component?(:input)
 
         input_component = player.get_component(:input)
 
-        # Process movement input
-        if @world.keyboard.key_pressed?(:up) || @world.keyboard.key_pressed?(:KEY_UP)
-          input_component.set_move_direction(:north)
-        elsif @world.keyboard.key_pressed?(:down) || @world.keyboard.key_pressed?(:KEY_DOWN)
-          input_component.set_move_direction(:south)
-        elsif @world.keyboard.key_pressed?(:left) || @world.keyboard.key_pressed?(:KEY_LEFT)
-          input_component.set_move_direction(:west)
-        elsif @world.keyboard.key_pressed?(:right) || @world.keyboard.key_pressed?(:KEY_RIGHT)
-          input_component.set_move_direction(:east)
-        elsif @world.keyboard.key_pressed?(:k)
-          input_component.set_move_direction(:north)
-        elsif @world.keyboard.key_pressed?(:j)
-          input_component.set_move_direction(:south)
-        elsif @world.keyboard.key_pressed?(:h)
-          input_component.set_move_direction(:west)
-        elsif @world.keyboard.key_pressed?(:l)
-          input_component.set_move_direction(:east)
+        if @keyboard.key_pressed?(:q)
+          emit_event(:quit_requested) # Handle quit here
+        elsif direction = movement_key
+          input_component.set_move_direction(direction)
         else
           input_component.set_move_direction(nil)
         end
 
-        # Process action input
-        action_triggered = @world.keyboard.key_pressed?(:space)
-        input_component.set_action_triggered(action_triggered)
-
-        # Process inventory input
-        if @world.keyboard.key_pressed?(:i)
-          emit_event(:inventory_toggled, { entity_id: player.id })
-        end
-
         # Emit input processed event
         emit_event(:input_processed, { entity_id: player.id })
+      end
+
+      private
+
+      def movement_key
+        %i[up down left right k j h l].find { |key| @keyboard.key_pressed?(key) }
       end
     end
   end

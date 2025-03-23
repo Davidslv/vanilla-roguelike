@@ -1,14 +1,18 @@
 module Vanilla
   # The World class is the central container for all entities and systems.
   # It manages entities, systems, events, and commands.
+  # 
+  # World acts as a coordinator, not a decision-maker.
+  # It runs systems in order (update loop) and provides access to entities/components. 
+
   class World
-    attr_reader :entities, :systems, :keyboard, :display, :current_level
+    attr_reader :entities, :systems, :display, :current_level
 
     # Initialize a new world
     def initialize
       @entities = {}
       @systems = []
-      @keyboard = KeyboardHandler.new
+
       @display = DisplayHandler.new
       @current_level = nil
       @event_subscribers = Hash.new { |h, k| h[k] = [] }

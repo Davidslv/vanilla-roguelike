@@ -23,6 +23,9 @@ module Vanilla
       # Create initial level
       initialize_level
 
+      # Listen for quit event
+      @world.subscribe(:quit_requested, self)
+
       # Register the game in the service registry for compatibility
       Vanilla::ServiceRegistry.register(:game, self)
       @logger.info("Game initialized with ECS architecture")
@@ -48,9 +51,6 @@ module Vanilla
         # Update grid with entities for compatibility
         @world.current_level.update_grid_with_entities(@world.entities.values)
 
-        # Check for exit condition
-        @running = false if @world.keyboard.key_pressed?(:q)
-
         # Limit frame rate
         sleep_time = [0, (1.0 / 30) - delta_time].max
         sleep(sleep_time) if sleep_time > 0
@@ -58,6 +58,10 @@ module Vanilla
 
       # Clean up resources
       cleanup
+    end
+
+    def handle_event(event_type, _data)
+      @running = false if event_type == :quit_requested
     end
 
     # Clean up and exit the game
