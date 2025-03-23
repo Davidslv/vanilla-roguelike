@@ -24,8 +24,3 @@ module Vanilla
     require_relative 'systems/render_system_factory'
   end
 end
-
-# Require all system files
-require_relative 'systems/movement_system'
-require_relative 'systems/render_system'
-require_relative 'systems/render_system_factory'
