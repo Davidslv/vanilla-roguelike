@@ -21,14 +21,13 @@ module Vanilla
 
       def render_grid
         grid = @world.current_level&.grid
-        @renderer.draw_grid(grid) if grid
+        @renderer.draw_grid(grid, @world.current_level&.algorithm&.demodulize || "Unknown")
       end
 
       def render_messages
         message_system = Vanilla::ServiceRegistry.get(:message_system)
         game = Vanilla::ServiceRegistry.get(:game)
         turn = game&.turn || 0
-
         print "\n=== MESSAGES ===\n"
         if message_system
           print "Turn #{turn}: Player moved.\n"

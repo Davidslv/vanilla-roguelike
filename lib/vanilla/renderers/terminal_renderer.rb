@@ -5,21 +5,18 @@ module Vanilla
         system("clear")
       end
 
-      def draw_grid(grid)
-        output = ["Seed: #{$seed} | Rows: #{grid.rows} | Columns: #{grid.columns}", "-" * 35]
+      def draw_grid(grid, algorithm)
+        output = ["Vanilla Roguelike - Difficulty: 1 - Seed: #{$seed}",
+                  "Seed: #{$seed} | Rows: #{grid.rows} | Columns: #{grid.columns} | Algorithm: #{algorithm}",
+                  "-" * 35]
 
-        # Top border
         output << "+---+---+---+---+---+---+---+---+---+---+"
-
-        # Draw each row
         grid.rows.times do |row|
           row_cells = "|"
           row_walls = "+"
           grid.columns.times do |col|
             cell = grid[row, col]
-            # Cell content
             row_cells += " #{cell.tile || '.'} |"
-            # Bottom wall
             row_walls += cell.linked?(cell.south) ? "   +" : "---+"
           end
           output << row_cells
@@ -30,11 +27,10 @@ module Vanilla
       end
 
       def draw_title_screen(difficulty, seed)
-        print "Vanilla Roguelike - Difficulty: #{difficulty} - Seed: #{seed}\n"
+        # Moved to draw_grid
       end
 
       def present
-        # No-op
       end
     end
   end

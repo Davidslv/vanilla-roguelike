@@ -1,6 +1,6 @@
 module Vanilla
   class Level
-    attr_reader :grid, :difficulty, :entities, :stairs
+    attr_reader :grid, :difficulty, :entities, :stairs, :algorithm
 
     def initialize(rows:, columns:, difficulty:)
       @grid = Vanilla::MapUtils::Grid.new(rows, columns)
@@ -9,14 +9,15 @@ module Vanilla
     end
 
     def generate(algorithm)
+      @algorithm = algorithm
       algorithm.on(@grid)
       self
     end
 
-    def place_stairs
-      cell = @grid.random_cell
+    def place_stairs(row, column)
+      cell = @grid[row, column]
       cell.tile = Vanilla::Support::TileType::STAIRS
-      @stairs = Vanilla::EntityFactory.create_stairs(cell.row, cell.column)
+      @stairs = Vanilla::EntityFactory.create_stairs(row, column)
       add_entity(@stairs)
     end
 
@@ -43,7 +44,6 @@ module Vanilla
     end
 
     def update_grid_with_entities
-      @grid.each_cell { |cell| cell.tile = Vanilla::Support::TileType::EMPTY }
       @entities.each { |e| update_grid_with_entity(e) }
     end
   end
