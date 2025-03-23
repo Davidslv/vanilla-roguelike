@@ -171,8 +171,14 @@ module Vanilla
         entrance_row = new_level.respond_to?(:entrance_row) ? new_level.entrance_row : 0
         entrance_column = new_level.respond_to?(:entrance_column) ? new_level.entrance_column : 0
         position.set_position(entrance_row, entrance_column)
+        new_level.add_entity(player)  # Ensure player is added to new level's entities
       end
       set_level(new_level)
+
+      # Spawn monsters for the new level
+      monster_system = systems.find { |sys, _| sys.is_a?(Vanilla::Systems::MonsterSystem) }&.first
+      monster_system&.spawn_monsters(difficulty)
+
       emit_event(:level_transitioned, { difficulty: difficulty, player_id: player_id })
     end
 
