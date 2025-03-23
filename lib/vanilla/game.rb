@@ -1,189 +1,75 @@
 module Vanilla
-  # The main Game class that initializes and runs the game
-  # This class has been refactored to follow the ECS architecture
   class Game
-    attr_reader :world, :running
+    attr_reader :turn, :world
 
-    # Initialize a new game
-    # @param options [Hash] Configuration options
     def initialize(options = {})
-      # Set up configuration
-      @logger = options[:logger] || Vanilla::Logger.instance
-      @seed = options[:seed]
       @difficulty = options[:difficulty] || 1
-      @running = false
-      @last_update_time = Time.now
-
-      # Create the ECS world
-      @world = Vanilla::World.new
-
-      # Register systems in priority order
-      register_systems
-
-      # Create initial level
-      initialize_level
-
-      # Handle the quit event
-      @world.subscribe(:quit_requested, self)
-
-      # Register the game in the service registry for compatibility
+      @seed = options[:seed] || Random.new_seed
+      @logger = Vanilla::Logger.instance
+      @turn = 0
+      setup_world
       Vanilla::ServiceRegistry.register(:game, self)
-      @logger.info("Game initialized with ECS architecture")
     end
 
-    # Start the game loop
     def start
-      @running = true
-
-      # initial render
+      @logger.info("Starting game with seed: #{@seed}, difficulty: #{@difficulty}")
+      srand(@seed)
       render
-
-      # Main game loop
-      while @running
-        # No direct input handling, it relies on InputSystem
-        @world.update(nil)
-
-        # Update grid with entities for compatibility
-        @world.current_level.update_grid_with_entities(@world.entities.values)
-
-        # render once per turn
-        render
-      end
-
-      # Clean up resources
-      cleanup
+      game_loop
     end
 
-    def handle_event(event_type, _data)
-      @running = false if event_type == :quit_requested
-    end
-
-    # Get the current player entity
-    # @return [Entity] The player entity
-    def player
-      @world.find_entity_by_tag(:player)
-    end
-
-    # Get the current level
-    # @return [Level] The current level
-    def level
-      @world.current_level
-    end
-
-    # Transition to the next level with increased difficulty
-    def next_level
-      @difficulty += 1
-      @logger.info("Transitioning to level #{@difficulty}")
-
-      # Use the command queue for level transition
-      @world.queue_command(:change_level, {
-        difficulty: @difficulty,
-        player_id: player.id
-      })
-    end
-
-    # Clean up resources
     def cleanup
-      @logger.info("Cleaning up resources")
-      # Any cleanup needed
+      @logger.info("Game cleanup")
+      @display&.cleanup
+      Vanilla::ServiceRegistry.unregister(:game)
     end
 
     private
 
-    # Register all game systems in the correct order
-    def register_systems
-      # Input processing
+    def setup_world
+      @world = Vanilla::World.new
+      @display = Vanilla::DisplayHandler.new
+      level = LevelGenerator.new.generate(@difficulty, @seed)
+      @world.set_level(level)
+
+      @player = Vanilla::EntityFactory.create_player(0, 0)
+      @world.add_entity(@player)
+      level.add_entity(@player)
+
+      @monster_system = Vanilla::Systems::MonsterSystem.new(grid: level.grid, player: @player, logger: @logger)
+      @monster_system.spawn_monsters(@difficulty)
+
       @world.add_system(Vanilla::Systems::InputSystem.new(@world), 1)
-
-      # Game logic systems
       @world.add_system(Vanilla::Systems::MovementSystem.new(@world), 2)
-      @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
+      @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 3)
+      @world.add_system(@monster_system, 4)
 
-      # Rendering systems
-      @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 9)
-      @world.add_system(Vanilla::Systems::MessageSystem.new(@world), 10)
+      Vanilla::ServiceRegistry.register(:message_system, Vanilla::Systems::MessageSystem.new(@world))
+    end
 
-      @logger.debug("Systems registered with the world")
+    def game_loop
+      loop do
+        @turn += 1
+        input = @display.keyboard_handler.wait_for_input
+        break if input == "q"
+        @player.get_component(:input).set_move_direction(input_to_direction(input))
+        @world.update(nil)
+        render
+      end
     end
 
     def render
       @world.systems.find { |s, _| s.is_a?(Vanilla::Systems::RenderSystem) }[0].update(nil)
     end
 
-
-    # Initialize the first level
-    def initialize_level
-      level_generator = Vanilla::LevelGenerator.new
-      starting_level = level_generator.generate(@difficulty)
-      @world.set_level(starting_level)
-
-      # Create player entity
-      player = Vanilla::EntityFactory.create_player(
-        @world,
-        starting_level.entrance_row,
-        starting_level.entrance_column,
-        "Hero"
-      )
-
-      # Create stairs entity
-      Vanilla::EntityFactory.create_stairs(
-        @world,
-        starting_level.exit_row,
-        starting_level.exit_column
-      )
-
-      # Add some monsters based on difficulty
-      spawn_monsters
-
-      # Update grid with initial entities
-      @world.current_level.update_grid_with_entities(@world.entities.values)
-
-      @logger.info("Initial level created with difficulty #{@difficulty}")
-    end
-
-    # Spawn monsters based on current difficulty
-    def spawn_monsters
-      # Simple formula: 2 monsters + difficulty
-      monster_count = 2 + @difficulty
-
-      # Spawn monsters at random locations
-      monster_count.times do
-        # Find a valid position (not a wall, not occupied)
-        row, column = find_valid_spawn_position
-
-        # Create a monster
-        monster_type = [:goblin, :troll].sample
-        Vanilla::EntityFactory.create_monster(@world, row, column, monster_type)
+    def input_to_direction(input)
+      case input
+      when "h" then :west
+      when "j" then :south
+      when "k" then :north
+      when "l" then :east
+      else nil
       end
-
-      @logger.debug("Spawned #{monster_count} monsters")
-    end
-
-    # Find a valid position to spawn an entity
-    # @return [Array<Integer>] Row and column coordinates
-    def find_valid_spawn_position
-      grid = @world.current_level.grid
-      max_attempts = 100
-
-      max_attempts.times do
-        row = rand(grid.rows)
-        column = rand(grid.columns)
-
-        # Skip if it's a wall
-        next unless grid[row, column] && Vanilla::Support::TileType.walkable?(grid[row, column].tile)
-
-        # Skip if there's an entity at this position
-        entities_at_position = @world.query_entities([:position]).select do |entity|
-          pos = entity.get_component(:position)
-          pos.row == row && pos.column == column
-        end
-
-        # If no entities at this position, it's valid
-        return [row, column] if entities_at_position.empty?
-      end
-
-      # Fallback to a random position if we couldn't find a valid one
-      [rand(grid.rows), rand(grid.columns)]
     end
   end
 end

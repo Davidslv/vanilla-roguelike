@@ -1,27 +1,14 @@
 module Vanilla
-  # Generates game levels with appropriate difficulty scaling
   class LevelGenerator
-    # Generate a new level with appropriate difficulty
-    # @param difficulty [Integer] The difficulty level (higher = harder)
-    # @return [Level] The generated level
-    def generate(difficulty)
-      # Create level with appropriate size for difficulty
-      level = Level.random(difficulty: difficulty)
+    def generate(difficulty, seed = Random.new_seed)
+      $seed = seed
+      srand($seed)
+      level = Level.new(rows: 10, columns: 10, difficulty: difficulty)
+      algorithm = Vanilla::Algorithms::RecursiveBacktracker
 
-      # Populate level with entities based on difficulty
-      # This is done by the World class which will use the EntityFactory
-
+      level.generate(algorithm)
+      level.place_stairs
       level
-    end
-
-    # Create a level with a specific size and layout
-    # @param rows [Integer] Number of rows
-    # @param columns [Integer] Number of columns
-    # @param difficulty [Integer] The difficulty level
-    # @param seed [Integer, nil] Random seed for generation
-    # @return [Level] The generated level
-    def create_with_size(rows, columns, difficulty, seed = nil)
-      Level.new(rows: rows, columns: columns, difficulty: difficulty, seed: seed)
     end
   end
 end

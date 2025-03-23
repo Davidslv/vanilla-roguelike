@@ -1,3 +1,5 @@
+STDOUT.sync = true
+
 require 'pry'
 require 'logger'
 require 'set'
