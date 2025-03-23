@@ -52,7 +52,10 @@ module Vanilla
       loop do
         input = @display.keyboard_handler.wait_for_input
         @logger.debug("Game loop input: #{input.inspect}")
-        break if input == "q"
+
+        # Exit with "q" or CTRL+C
+        break if input == "q" || input == "\u0003"
+
         direction = input_to_direction(input)
         if direction
           @player.get_component(:input).set_move_direction(direction)
@@ -70,9 +73,9 @@ module Vanilla
     end
 
     def input_to_direction(input)
-      # Ignore escape sequences and control characters
-      # we should not escape CTRL+C
-      return nil if input =~ /\e/ || input =~ /\p{Cntrl}/
+      # Ignore escape sequences and control characters except Ctrl+C
+      return nil if input =~ /\e/ || (input =~ /\p{Cntrl}/ && input != "\u0003")
+
       case input
       when "h" then :west
       when "j" then :south
