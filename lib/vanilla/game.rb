@@ -190,6 +190,7 @@ module Vanilla
     end
 
     # Display game title
+    # TODO: This is not responsability of Game
     def print_title_screen
       puts ""
       puts "========================================================="
