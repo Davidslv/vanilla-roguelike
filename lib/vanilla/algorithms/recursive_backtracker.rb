@@ -18,11 +18,9 @@ module Vanilla
           end
         end
 
-        # Set walls for unlinked boundaries
+        # Set walls only where there are no links to neighbors
         grid.each_cell do |cell|
-          cell.tile = Vanilla::Support::TileType::WALL unless cell.links.any?
-          # Ensure linked cells are floors
-          cell.links.keys.each { |linked_cell| linked_cell.tile = Vanilla::Support::TileType::EMPTY }
+          cell.tile = Vanilla::Support::TileType::WALL if cell.links.empty?
         end
 
         grid

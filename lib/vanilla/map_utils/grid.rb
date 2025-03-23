@@ -7,6 +7,14 @@ module Vanilla
         @rows = rows
         @columns = columns
         @grid = Array.new(rows * columns) { |i| Cell.new(self, i / columns, i % columns) }
+        # Set neighbors for each cell
+        each_cell do |cell|
+          row, col = cell.row, cell.column
+          cell.north = self[row - 1, col] if row > 0
+          cell.south = self[row + 1, col] if row < @rows - 1
+          cell.east  = self[row, col + 1] if col < @columns - 1
+          cell.west  = self[row, col - 1] if col > 0
+        end
       end
 
       def [](row, col)
@@ -37,17 +45,17 @@ module Vanilla
         @row = row
         @column = column
         @links = {}
-        @tile = Vanilla::Support::TileType::EMPTY
+        @tile = Vanilla::Support::TileType::EMPTY # Default to walkable
       end
 
       def link(cell:, bidirectional: true)
         @links[cell] = true
-        cell.links[self] = true if bidirectional
+        cell.links[self] = true if bidirectional && cell
       end
 
       def unlink(cell:, bidirectional: true)
         @links.delete(cell)
-        cell.links.delete(self) if bidirectional
+        cell.links.delete(self) if bidirectional && cell
       end
 
       def linked?(cell)
@@ -63,7 +71,6 @@ module Vanilla
       end
 
       def distances
-        # Simplified for now
         Distances.new(self)
       end
     end

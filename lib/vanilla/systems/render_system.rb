@@ -28,11 +28,12 @@ module Vanilla
         message_system = Vanilla::ServiceRegistry.get(:message_system)
         game = Vanilla::ServiceRegistry.get(:game)
         turn = game&.turn || 0
-        print "Messages:\n"
+
+        print "\n=== MESSAGES ===\n"
         if message_system
           print "Turn #{turn}: Player moved.\n"
         else
-          print "Turn #{turn}: No message system available.\n"
+          print "No messages yet. Play the game to see messages here.\n"
         end
       end
     end

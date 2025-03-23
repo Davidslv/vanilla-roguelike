@@ -2,7 +2,7 @@ require_relative '../entities'
 
 module Vanilla
   module Systems
-    class MonsterSystem
+    class MonsterSystem < System
       MAX_MONSTERS = {
         1 => 2,
         2 => 4,
@@ -10,8 +10,8 @@ module Vanilla
         4 => 8
       }.freeze
 
-      def initialize(grid:, player:, logger: nil)
-        @grid = grid
+      def initialize(world, player:, logger: nil)
+        super(world)
         @player = player
         @monsters = []
         @logger = logger || Vanilla::Logger.instance
@@ -28,9 +28,7 @@ module Vanilla
       end
 
       def update(delta_time = nil)
-        # Remove dead monsters (placeholder for now, as alive? isn't implemented)
         @monsters.reject! { |m| !m.alive? }
-        # Future: Add monster movement logic here if needed
       end
 
       def monster_at(row, column)
@@ -53,7 +51,8 @@ module Vanilla
       end
 
       def spawn_monster(level)
-        cell = find_spawn_location
+        grid = @world.current_level.grid
+        cell = find_spawn_location(grid)
         return nil unless cell
 
         health = 10 + (level * 2)
@@ -80,18 +79,17 @@ module Vanilla
           damage += 3
         end
 
-        # Use EntityFactory for consistency with ECS
         monster = Vanilla::EntityFactory.create_monster(monster_type, cell.row, cell.column, health, damage)
         cell.tile = Vanilla::Support::TileType::MONSTER
         @monsters << monster
-        @grid.grid.level.add_entity(monster) # Sync with level entities
+        @world.current_level.add_entity(monster) # Sync with level entities
         @logger.info("Spawned #{monster_type} at [#{cell.row}, #{cell.column}] with #{health} HP and #{damage} damage")
         monster
       end
 
-      def find_spawn_location
+      def find_spawn_location(grid)
         walkable_cells = []
-        @grid.each_cell do |cell|
+        grid.each_cell do |cell|
           next unless cell.tile == Vanilla::Support::TileType::EMPTY
           player_pos = @player.get_component(:position)
           distance = (cell.row - player_pos.row).abs + (cell.column - player_pos.column).abs
@@ -104,7 +102,6 @@ module Vanilla
           next if has_nearby_monster
           walkable_cells << cell
         end
-
         walkable_cells.empty? ? nil : walkable_cells.sample(random: @rng)
       end
 
@@ -120,7 +117,8 @@ module Vanilla
       end
 
       def valid_move?(row, column)
-        cell = @grid[row, column]
+        grid = @world.current_level.grid
+        cell = grid[row, column]
         return false unless cell
         return false unless Vanilla::Support::TileType.walkable?(cell.tile)
         @monsters.none? do |other|

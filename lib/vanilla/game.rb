@@ -1,6 +1,6 @@
 module Vanilla
   class Game
-    attr_reader :turn, :world
+    attr_reader :turn, :world, :level
 
     def initialize(options = {})
       @difficulty = options[:difficulty] || 1
@@ -29,14 +29,14 @@ module Vanilla
     def setup_world
       @world = Vanilla::World.new
       @display = Vanilla::DisplayHandler.new
-      level = LevelGenerator.new.generate(@difficulty, @seed)
-      @world.set_level(level)
+      @level = LevelGenerator.new(logger: @logger).generate(@difficulty, @seed)
+      @world.set_level(@level)
 
       @player = Vanilla::EntityFactory.create_player(0, 0)
       @world.add_entity(@player)
-      level.add_entity(@player)
+      @level.add_entity(@player)
 
-      @monster_system = Vanilla::Systems::MonsterSystem.new(grid: level.grid, player: @player, logger: @logger)
+      @monster_system = Vanilla::Systems::MonsterSystem.new(@world, player: @player, logger: @logger)
       @monster_system.spawn_monsters(@difficulty)
 
       @world.add_system(Vanilla::Systems::InputSystem.new(@world), 1)

@@ -6,26 +6,35 @@ module Vanilla
       end
 
       def draw_grid(grid)
-        grid_output = ["Level Map:"]
+        output = ["Seed: #{$seed} | Rows: #{grid.rows} | Columns: #{grid.columns}", "-" * 35]
+
+        # Top border
+        output << "+---+---+---+---+---+---+---+---+---+---+"
+
+        # Draw each row
         grid.rows.times do |row|
-          row_str = ""
+          row_cells = "|"
+          row_walls = "+"
           grid.columns.times do |col|
             cell = grid[row, col]
-            row_str += cell.tile || "."
+            # Cell content
+            row_cells += " #{cell.tile || '.'} |"
+            # Bottom wall
+            row_walls += cell.linked?(cell.south) ? "   +" : "---+"
           end
-          grid_output << row_str
+          output << row_cells
+          output << row_walls unless row == grid.rows - 1
         end
-        # Print all lines at once to avoid extra spacing
-        print grid_output.join("\n") + "\n"
+
+        print output.join("\n") + "\n"
       end
 
       def draw_title_screen(difficulty, seed)
         print "Vanilla Roguelike - Difficulty: #{difficulty} - Seed: #{seed}\n"
-        print "-" * 40 + "\n"
       end
 
       def present
-        # No-op for puts-based rendering
+        # No-op
       end
     end
   end
