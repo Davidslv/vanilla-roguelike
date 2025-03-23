@@ -5,12 +5,11 @@ module Vanilla
         @buffer = nil
         @grid = nil
         @header = ""
-
         @message_buffer = {}
         @color_buffer = {}
         @title_lines = []
-
         @logger = Vanilla::Logger.instance
+        @output = ""
       end
 
       def clear
@@ -19,7 +18,7 @@ module Vanilla
         @color_buffer = {}
         @title_lines = []
 
-        print "\e[H\e[2J" # Clear and move cursor to top-left
+        @output = "\e[H\e[2J" # Start with clear
       end
 
       def draw_grid(grid)
@@ -27,10 +26,9 @@ module Vanilla
         @buffer = Array.new(grid.rows) { Array.new(grid.columns, '.') }
         grid.each_cell do |cell|
           pos = cell.position
-          @buffer[pos[0]][pos[1]] = cell.tile || '.' # Use tile (e.g., '#')
+          @buffer[pos[0]][pos[1]] = cell.tile || '.'
         end
-
-        @header = "Seed: #{$seed} | Rows: #{grid.rows} | Columns: #{grid.columns}"
+        @logger.debug("Grid buffer:\n#{@buffer.map(&:join).join("\n")}") # Log to file, not STDOUT
       end
 
       def draw_character(row, column, character, color = nil)
@@ -40,7 +38,7 @@ module Vanilla
         else
           @message_buffer[[row, column]] = character
           @color_buffer[[row, column]] = color if color
-          @logger.debug("Drawing '#{character}' outside grid at [#{row},#{column}]") if $DEBUG
+          @logger.debug("Outside grid: '#{character}' at [#{row},#{column}]")
         end
       end
 
@@ -58,10 +56,50 @@ module Vanilla
         ]
       end
 
+      def present
+        return unless @grid && @buffer
+
+        @title_lines.each { |line| @output << "#{line}\n" }
+        @output << "\n"
+
+        # Render grid
+        @output << "+" + "---+" * @grid.columns + "\n"
+        @grid.rows.times do |row|
+          top = "|"
+          bottom = "+"
+          @grid.columns.times do |col|
+            char = @buffer[row][col]
+            color = @color_buffer[[row, col]]
+            body = color ? "#{color_code(color)}#{char}#{reset_color}" : char
+            body = " #{body} " if body.size == 1
+            east_boundary = col + 1 < @grid.columns ? "|" : "|"
+            south_boundary = row + 1 < @grid.rows ? "---" : "---"
+            top << body << east_boundary
+            bottom << south_boundary << "+"
+          end
+          @output << top << "\n" << bottom << "\n"
+        end
+
+        # Messages
+        @output << "\n=== MESSAGES ===\n"
+        message_system = Vanilla::Messages::MessageSystem.instance
+        messages = message_system&.get_recent_messages(10) || []
+        if messages.empty?
+          @output << "No messages yet.\n"
+        else
+          @output << "Latest messages:\n" << "-" * 40 << "\n"
+          messages.each { |msg| @output << "#{msg.importance.to_s.upcase}: #{msg.translated_text}\n" }
+        end
+
+        print @output
+        $stdout.flush
+      end
+
       # Get ANSI color code for the given color symbol
       # @param color_sym [Symbol] The color symbol
       # @return [String] The ANSI color code
       def color_code(color_sym)
+        return ""
         case color_sym
         when :red
           "\e[31m"
@@ -86,45 +124,6 @@ module Vanilla
       # @return [String] The ANSI reset code
       def reset_color
         "\e[0m"
-      end
-
-      def present
-        return unless @grid && @buffer
-
-        # Render title
-        @title_lines.each { |line| puts line }
-        puts "\n"
-
-        # Render grid
-        output = "+" + "---+" * @grid.columns + "\n"
-        @grid.rows.times do |row|
-          top = "|"
-          bottom = "+"
-          @grid.columns.times do |col|
-            char = @buffer[row][col]
-            color = @color_buffer[[row, col]]
-            body = color ? "#{color_code(color)}#{char}#{reset_color}" : char
-            body = " #{body} " if body.size == 1
-            east_boundary = col + 1 < @grid.columns ? " " : "|" # Simplified for now
-            south_boundary = row + 1 < @grid.rows ? "   " : "---"
-            top << body << east_boundary
-            bottom << south_boundary << "+"
-          end
-          output << top << "\n" << bottom << "\n"
-        end
-        puts output
-
-        # Messages
-        puts "\n=== MESSAGES ===\n"
-        message_system = Vanilla::Messages::MessageSystem.instance
-        messages = message_system&.get_recent_messages(10) || []
-        if messages.empty?
-          puts "No messages yet."
-        else
-          puts "Latest messages:"
-          puts "-" * 40
-          messages.each { |msg| puts "#{msg.importance.to_s.upcase}: #{msg.translated_text}" }
-        end
       end
     end
   end

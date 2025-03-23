@@ -82,6 +82,12 @@ module Vanilla
       })
     end
 
+    # Clean up resources
+    def cleanup
+      @logger.info("Cleaning up resources")
+      # Any cleanup needed
+    end
+
     private
 
     # Register all game systems in the correct order
@@ -178,12 +184,6 @@ module Vanilla
 
       # Fallback to a random position if we couldn't find a valid one
       [rand(grid.rows), rand(grid.columns)]
-    end
-
-    # Clean up resources
-    def cleanup
-      @logger.info("Cleaning up resources")
-      # Any cleanup needed
     end
   end
 end
