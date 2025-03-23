@@ -7,45 +7,21 @@ module Vanilla
       # Initialize a new render system
       # @param world [World] The world this system belongs to
       def initialize(world)
-        super
+        super(world)
         @renderer = Vanilla::Renderers::TerminalRenderer.new
         @logger = Vanilla::Logger.instance
       end
 
       # Update method called once per frame
       # @param delta_time [Float] Time since last update
-      def update(delta_time)
+      def update(_unused)
         # Clear screen
         @renderer.clear
 
-        # Draw level grid
         render_grid
+        render_entities
 
-        # Get all entities with position and render components
-        renderables = entities_with(:position, :render)
-
-        # Sort by render layer
-        renderables.sort_by! do |entity|
-          render = entity.get_component(:render)
-          render.respond_to?(:layer) ? render.layer || 0 : 0
-        end
-
-        # Draw entities
-        renderables.each do |entity|
-          position = entity.get_component(:position)
-          render = entity.get_component(:render)
-
-          character = render.respond_to?(:character) ? render.character : render.char
-          color = render.color
-
-          @renderer.draw_character(
-            position.row,
-            position.column,
-            character,
-            color
-          )
-        end
-
+        @renderer.draw_title_screen(1, 1)
         # Update display
         @renderer.present
       end
@@ -58,12 +34,26 @@ module Vanilla
 
       private
 
-      # Render the level grid
       def render_grid
         grid = @world.current_level&.grid
         return unless grid
-
         @renderer.draw_grid(grid)
+      end
+
+      def render_entities
+        renderables = entities_with(:position, :render)
+        renderables.sort_by! { |e| e.get_component(:render).layer || 0 }
+
+        renderables.each do |entity|
+          position = entity.get_component(:position)
+          render = entity.get_component(:render)
+          @renderer.draw_character(
+            position.row,
+            position.column,
+            render.character,
+            render.color
+          )
+        end
       end
     end
   end

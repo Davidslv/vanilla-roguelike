@@ -37,7 +37,7 @@ module Vanilla
       @last_update_time = Time.now
 
       # initial render
-      print_title_screen
+      render
 
       # Main game loop
       while @running
@@ -185,22 +185,6 @@ module Vanilla
     def cleanup
       @logger.info("Cleaning up resources")
       # Any cleanup needed
-    end
-
-    # Display game title
-    # TODO: This is not responsability of Game
-    def print_title_screen
-      puts ""
-      puts "========================================================="
-      puts "===             VANILLA ROGUELIKE GAME               ==="
-      puts "===            (ECS Architecture Edition)            ==="
-      puts "========================================================="
-      puts "===  Use arrow keys to move                          ==="
-      puts "===  Press 'q' to quit                               ==="
-      puts "===  Difficulty: #{@difficulty.to_s.ljust(35)}  ==="
-      puts "===  Seed: #{@seed.to_s.ljust(40)}  ==="
-      puts "========================================================="
-      puts ""
     end
   end
 end
