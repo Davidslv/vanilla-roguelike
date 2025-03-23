@@ -34,15 +34,15 @@ module Vanilla
       # Configure based on monster type
       case type
       when :goblin
-        entity.add_component(Components::RenderComponent.new(character: 'g', color: :green))
+        entity.add_component(Components::RenderComponent.new(character: 'M', color: :green))
         entity.add_component(Components::MovementComponent.new(1))
         entity.name = "Goblin"
       when :troll
-        entity.add_component(Components::RenderComponent.new(character: 'T', color: :red))
+        entity.add_component(Components::RenderComponent.new(character: 'M', color: :red))
         entity.add_component(Components::MovementComponent.new(0.5))
         entity.name = "Troll"
       else
-        entity.add_component(Components::RenderComponent.new(character: 'm', color: :yellow))
+        entity.add_component(Components::RenderComponent.new(character: 'M', color: :yellow))
         entity.add_component(Components::MovementComponent.new(1))
         entity.name = "Unknown Monster"
       end
@@ -98,21 +98,15 @@ module Vanilla
     # @param world [World] The world to add the entity to
     # @param row [Integer] The row position
     # @param column [Integer] The column position
-    # @param up [Boolean] Whether these are stairs going up
+    # @param up [Boolean] Whether these are stairs going up [DEPRECATED]
     # @return [Entity] The created stairs entity
     def self.create_stairs(world, row, column, up = false)
       entity = Components::Entity.new
       entity.add_component(Components::PositionComponent.new(row: row, column: column))
 
-      if up
-        entity.add_component(Components::RenderComponent.new(character: '<', color: :magenta))
-        entity.add_component(Components::StairsComponent.new(:up))
-        entity.name = "Stairs Up"
-      else
-        entity.add_component(Components::RenderComponent.new(character: '>', color: :magenta))
-        entity.add_component(Components::StairsComponent.new(:down))
-        entity.name = "Stairs Down"
-      end
+      entity.add_component(Components::RenderComponent.new(character: '%', color: :magenta))
+      entity.add_component(Components::StairsComponent.new(found_stairs: false))
+      entity.name = "Stairs"
 
       entity.add_tag(:stairs)
 
