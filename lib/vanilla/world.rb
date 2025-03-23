@@ -72,13 +72,13 @@ module Vanilla
 
     # Update all systems and process events and commands
     # @param delta_time [Float] The time since the last update
-    def update(delta_time)
+    def update(_unused)
       # Process queued commands
       process_commands
 
       # Update all systems
       @systems.each do |system, _|
-        system.update(delta_time)
+        system.update(nil)
       end
 
       # Process events after systems have updated

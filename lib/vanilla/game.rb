@@ -23,7 +23,7 @@ module Vanilla
       # Create initial level
       initialize_level
 
-      # Listen for quit event
+      # Handle the quit event
       @world.subscribe(:quit_requested, self)
 
       # Register the game in the service registry for compatibility
@@ -36,24 +36,19 @@ module Vanilla
       @running = true
       @last_update_time = Time.now
 
+      # initial render
       print_title_screen
 
       # Main game loop
       while @running
-        # Calculate delta time
-        current_time = Time.now
-        delta_time = current_time - @last_update_time
-        @last_update_time = current_time
-
-        # Process input and update world
-        @world.update(delta_time)
+        # No direct input handling, it relies on InputSystem
+        @world.update(nil)
 
         # Update grid with entities for compatibility
         @world.current_level.update_grid_with_entities(@world.entities.values)
 
-        # Limit frame rate
-        sleep_time = [0, (1.0 / 30) - delta_time].max
-        sleep(sleep_time) if sleep_time > 0
+        # render once per turn
+        render
       end
 
       # Clean up resources
@@ -62,12 +57,6 @@ module Vanilla
 
     def handle_event(event_type, _data)
       @running = false if event_type == :quit_requested
-    end
-
-    # Clean up and exit the game
-    def exit_game
-      @running = false
-      cleanup
     end
 
     # Get the current player entity
@@ -111,6 +100,11 @@ module Vanilla
 
       @logger.debug("Systems registered with the world")
     end
+
+    def render
+      @world.systems.find { |s, _| s.is_a?(Vanilla::Systems::RenderSystem) }[0].update(nil)
+    end
+
 
     # Initialize the first level
     def initialize_level
