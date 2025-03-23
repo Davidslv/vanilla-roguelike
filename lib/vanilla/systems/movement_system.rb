@@ -1,22 +1,17 @@
+# lib/vanilla/systems/movement_system.rb
 require_relative 'system'
 
 module Vanilla
   module Systems
     class MovementSystem < System
       def initialize(world_or_grid)
-        if world_or_grid.is_a?(Vanilla::World)
-          super(world_or_grid)
-          @direct_grid = nil
-        else
-          @world = nil
-          @direct_grid = world_or_grid
-        end
+        super(world_or_grid)
         @logger = Vanilla::Logger.instance
       end
 
       def update(delta_time)
-        return unless @world
         movable_entities = entities_with(:position, :movement)
+        @logger.debug("Found #{movable_entities.size} movable entities")
         movable_entities.each { |entity| process_entity_movement(entity) }
       end
 
@@ -24,27 +19,37 @@ module Vanilla
         return unless entity.has_component?(:input)
         input = entity.get_component(:input)
         direction = input.move_direction
+        @logger.debug("Entity #{entity.id} direction: #{direction}")
         return unless direction
-        @logger.debug("Processing movement for direction: #{direction}")
         success = move(entity, direction)
         @logger.debug("Movement success: #{success}")
         input.set_move_direction(nil) if success
       end
 
       def move(entity, direction)
+        @logger.debug("Starting move for entity #{entity.id}")
         return false unless can_process?(entity)
+
         position = entity.get_component(:position)
+        @logger.debug("Position: [#{position.row}, #{position.column}]")
+
         movement = entity.get_component(:movement)
-        return false unless movement.active?
+        @logger.debug("Movement active: #{movement.active?}")
+        return false unless movement&.active?
 
         direction = normalize_direction(direction)
-        grid = @world ? @world.current_level.grid : @direct_grid
+        @logger.debug("Normalized direction: #{direction}")
+
+        grid = @world.current_level.grid
+        @logger.debug("Grid rows: #{grid.rows}, columns: #{grid.columns}")
         return false unless grid
 
         current_cell = grid[position.row, position.column]
+        @logger.debug("Current cell: #{current_cell ? "[#{current_cell.row}, #{current_cell.column}] Tile: #{current_cell.tile}" : 'nil'}")
         return false unless current_cell
 
         target_cell = get_target_cell(current_cell, direction)
+        @logger.debug("Target cell: #{target_cell ? "[#{target_cell.row}, #{target_cell.column}] Tile: #{target_cell.tile}" : 'nil'}")
         return false unless target_cell
 
         return false unless can_move_to?(current_cell, target_cell, direction)
@@ -59,15 +64,23 @@ module Vanilla
           old_position: old_position,
           new_position: { row: position.row, column: position.column },
           direction: direction
-        }) if @world
+        })
+
+        grid[old_position[:row], old_position[:column]].tile = Vanilla::Support::TileType::EMPTY
+        grid[position.row, position.column].tile = entity.get_component(:render).character
 
         true
+      rescue StandardError => e
+        @logger.error("Error in move: #{e.message}\n#{e.backtrace.join("\n")}")
+        false
       end
 
       private
 
       def can_process?(entity)
-        entity.has_component?(:position) && entity.has_component?(:movement)
+        result = entity.has_component?(:position) && entity.has_component?(:movement) && entity.has_component?(:render)
+        @logger.debug("Can process entity #{entity.id}? #{result}")
+        result
       end
 
       def normalize_direction(direction)
@@ -101,7 +114,7 @@ module Vanilla
         @logger.debug("Checking cell: [#{target_cell.row}, #{target_cell.column}]")
         if target_cell.tile == Vanilla::Support::TileType::STAIRS
           @logger.info("Stairs at [#{target_cell.row}, #{target_cell.column}]")
-          emit_event(:stairs_found, { entity_id: entity.id }) if @world
+          emit_event(:stairs_found, { entity_id: entity.id })
         end
       end
 
@@ -116,10 +129,6 @@ module Vanilla
 
       def log_movement(entity, direction, old_position, new_position)
         @logger.info("Entity moved #{direction} from [#{old_position[:row]}, #{old_position[:column]}] to [#{new_position[:row]}, #{new_position[:column]}]")
-      end
-
-      def emit_event(event_type, data = {})
-        @world ? super : @logger.debug("Event: #{event_type} - #{data.inspect}")
       end
     end
   end

@@ -1,3 +1,4 @@
+# lib/vanilla/game.rb
 module Vanilla
   class Game
     attr_reader :turn, :world, :level
@@ -39,22 +40,26 @@ module Vanilla
       @monster_system = Vanilla::Systems::MonsterSystem.new(@world, player: @player, logger: @logger)
       @monster_system.spawn_monsters(@difficulty)
 
-      @world.add_system(Vanilla::Systems::InputSystem.new(@world), 1)
-      @world.add_system(Vanilla::Systems::MovementSystem.new(@world), 2)
-      @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 3)
-      @world.add_system(@monster_system, 4)
+      # Note: InputSystem is referenced but not provided; using game loop for now
+      @world.add_system(Vanilla::Systems::MovementSystem.new(@world), 1)
+      @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 2)
+      @world.add_system(@monster_system, 3)
 
       Vanilla::ServiceRegistry.register(:message_system, Vanilla::Systems::MessageSystem.new(@world))
     end
 
     def game_loop
       loop do
-        @turn += 1
         input = @display.keyboard_handler.wait_for_input
+        @logger.debug("Game loop input: #{input.inspect}")
         break if input == "q"
-        @player.get_component(:input).set_move_direction(input_to_direction(input))
-        @world.update(nil)
-        render
+        direction = input_to_direction(input)
+        if direction
+          @player.get_component(:input).set_move_direction(direction)
+          @world.update(nil)
+          @turn += 1
+          render
+        end
       end
     end
 

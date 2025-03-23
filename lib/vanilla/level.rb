@@ -1,3 +1,4 @@
+# lib/vanilla/level.rb
 module Vanilla
   class Level
     attr_reader :grid, :difficulty, :entities, :stairs, :algorithm
@@ -44,6 +45,11 @@ module Vanilla
     end
 
     def update_grid_with_entities
+      # Reset grid to base state (walls and empty spaces)
+      @grid.each_cell do |cell|
+        cell.tile = cell.links.empty? ? Vanilla::Support::TileType::WALL : Vanilla::Support::TileType::EMPTY
+      end
+      # Overlay entities
       @entities.each { |e| update_grid_with_entity(e) }
     end
   end
