@@ -23,6 +23,7 @@ OptionParser.new do |opts|
     options[:seed] = seed
   end
 
+  # TODO: revisit difficulty system
   opts.on("--difficulty=LEVEL", Integer, "Set difficulty level (1-5)") do |level|
     if level.between?(1, 5)
       options[:difficulty] = level
