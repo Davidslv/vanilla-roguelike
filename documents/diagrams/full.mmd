@@ -1,0 +1,984 @@
+classDiagram
+  subgraph Core
+    class Component {
+      -component_classes
+      +register()
+      +from_hash()
+      +initialize()
+      +type()
+      +to_hash()
+      +data()
+      +update()
+    }
+    class Entity {
+      -id
+      -components
+      -component_map
+      +initialize()
+      +add_component()
+      +remove_component()
+      +has_component?()
+      +get_component()
+      +update()
+      +to_hash()
+      +method_missing()
+      +respond_to_missing?()
+    }
+  end
+  subgraph Components
+    class Component {
+      -component_classes
+      +register()
+      +from_hash()
+      +initialize()
+      +type()
+      +to_hash()
+      +data()
+      +update()
+    }
+    style Component fill:#ffcccc
+    class ConsumableComponent {
+      -charges
+      -effects
+      -auto_identify
+      +initialize()
+      +type()
+      +has_charges?()
+      +consume()
+      +to_hash()
+      +apply_effects()
+      +heal_entity()
+      +damage_entity()
+      +apply_buff()
+      +teleport_entity()
+    }
+    Component <|-- ConsumableComponent
+    style ConsumableComponent fill:#ffcccc
+    class CurrencyComponent {
+      -value
+      -currency_type
+      +initialize()
+      +type()
+      +combine()
+      +split()
+      +display_string()
+      +standard_value()
+      +to_hash()
+    }
+    style CurrencyComponent fill:#ffcccc
+    class DurabilityComponent {
+      -max_durability
+      -current_durability
+      +initialize()
+      +type()
+      +decrease()
+      +repair()
+      +full_repair()
+      +usable?()
+      +percentage()
+      +status()
+      +needs_repair?()
+      +to_hash()
+      +notify_low_durability()
+      +notify_repair()
+    }
+    style DurabilityComponent fill:#ffcccc
+    class EffectComponent {
+      -active_effects
+      +initialize()
+      +type()
+      +add_effect()
+      +remove_effect()
+      +remove_effects_by_source()
+      +remove_expired_effects()
+      +get_effects_by_type()
+      +has_active_effects?()
+      +get_stat_modifier()
+      +update()
+      +to_hash()
+    }
+    style EffectComponent fill:#ffcccc
+    class EquippableComponent {
+      -slot
+      -stat_modifiers
+      -equipped
+      +initialize()
+      +type()
+      +equipped?()
+      +equip()
+      +unequip()
+      +to_hash()
+      +validate_slot()
+      +slot_occupied?()
+      +apply_stat_modifiers()
+      +remove_stat_modifiers()
+    }
+    Component <|-- EquippableComponent
+    style EquippableComponent fill:#ffcccc
+    class InventoryComponent {
+      -items
+      -max_size
+      +initialize()
+      +type()
+      +full?()
+      +add()
+      +remove()
+      +has?()
+      +count()
+      +find_by_id()
+      +to_hash()
+      +find_stackable_item()
+    }
+    style InventoryComponent fill:#ffcccc
+    class ItemComponent {
+      -name
+      -description
+      -item_type
+      -weight
+      -value
+      -stackable
+      -stack_size
+      +initialize()
+      +type()
+      +stackable?()
+      +increase_stack()
+      +decrease_stack()
+      +use()
+      +to_hash()
+      +display_string()
+    }
+    Component <|-- ItemComponent
+    style ItemComponent fill:#ffcccc
+    class KeyComponent {
+      -key_id
+      -lock_type
+      -one_time_use
+      +initialize()
+      +type()
+      +matches?()
+      +unlock()
+      +description()
+      +to_hash()
+    }
+    style KeyComponent fill:#ffcccc
+    class MovementComponent {
+      -speed
+      -can_move_directions
+      +initialize()
+      +type()
+      +data()
+    }
+    Component <|-- MovementComponent
+    style MovementComponent fill:#ffcccc
+    class PositionComponent {
+      -row
+      -column
+      +initialize()
+      +type()
+      +coordinates()
+      +move_to()
+      +move_by()
+      +data()
+    }
+    Component <|-- PositionComponent
+    style PositionComponent fill:#ffcccc
+    class RenderComponent {
+      -character
+      -color
+      -layer
+      -entity_type
+      +initialize()
+      +type()
+      +tile()
+      +data()
+    }
+    Component <|-- RenderComponent
+    style RenderComponent fill:#ffcccc
+    class StairsComponent {
+      -found_stairs
+      +initialize()
+      +type()
+      +data()
+    }
+    Component <|-- StairsComponent
+    style StairsComponent fill:#ffcccc
+    class TileComponent {
+      -tile
+      +initialize()
+      +type()
+      +change_tile()
+      +data()
+    }
+    Component <|-- TileComponent
+    style TileComponent fill:#ffcccc
+    class TestPositionComponent {
+      -row
+      -column
+      +initialize()
+      +type()
+    }
+    Component <|-- TestPositionComponent
+    style TestPositionComponent fill:#ffcccc
+  end
+  subgraph Systems
+    class MessageSystem {
+      -logger
+      -manager
+      +initialize()
+      +setup_panel()
+      +render()
+      +log_message()
+      +log_success()
+      +log_warning()
+      +log_critical()
+      +get_recent_messages()
+      +handle_input()
+      +toggle_selection_mode()
+      +selection_mode?()
+      +cleanup()
+    }
+    class InventoryRenderSystem {
+      -renderer
+      -logger
+      -message_system
+      -currently_selected_item_index
+      -item_action_mode
+      +initialize()
+      +render_inventory()
+      +render_equipment_section()
+      +select_item()
+      +show_item_actions()
+      +handle_input()
+      +draw_text()
+      +draw_panel_border()
+      +get_item_color()
+      +get_item_display_string()
+      +show_item_details()
+    }
+    class InventorySystem {
+      -logger
+      -message_system
+      +initialize()
+      +add_item()
+      +remove_item()
+      +use_item()
+      +equip_item()
+      +unequip_item()
+      +drop_item()
+      +item_name()
+      +use_consumable()
+      +toggle_equip()
+      +log_message()
+    }
+    class ItemInteractionSystem {
+      -inventory_system
+      -message_system
+      +initialize()
+      +process_items_at_location()
+      +pickup_item()
+      +pickup_all_items()
+      +find_items_at_position()
+    }
+    class MonsterSystem {
+      -grid
+      -player
+      -monsters
+      -logger
+      -rng
+      +initialize()
+      +spawn_monsters()
+      +update()
+      +monster_at()
+      +player_collision?()
+      +determine_monster_count()
+      +spawn_monster()
+      +find_spawn_location()
+      +select_weighted_monster_type()
+      +valid_move?()
+    }
+    class MovementSystem {
+      -grid
+      -logger
+      +initialize()
+      +move()
+      +can_process?()
+      +normalize_direction()
+      +get_target_cell()
+      +can_move_to?()
+      +handle_special_cell_attributes()
+      +update_position()
+      +log_movement()
+    }
+    class RenderSystem {
+      -renderer
+      -logger
+      +initialize()
+      +clear_screen()
+      +render()
+    }
+  end
+  subgraph Others
+    class AbstractAlgorithm {
+    }
+    class AldousBroder {
+    }
+    AbstractAlgorithm <|-- AldousBroder
+    class BinaryTree {
+    }
+    AbstractAlgorithm <|-- BinaryTree
+    class Dijkstra {
+    }
+    AbstractAlgorithm <|-- Dijkstra
+    class LongestPath {
+    }
+    AbstractAlgorithm <|-- LongestPath
+    class RecursiveBacktracker {
+    }
+    AbstractAlgorithm <|-- RecursiveBacktracker
+    class RecursiveDivision {
+      -grid
+      +initialize()
+      +process()
+      +divide()
+      +divide_horizontally()
+      +divide_vertically()
+    }
+    AbstractAlgorithm <|-- RecursiveDivision
+    class Command {
+      -executed
+      +initialize()
+      +execute()
+    }
+    class ExitCommand {
+      -logger
+      +initialize()
+      +execute()
+    }
+    Command <|-- ExitCommand
+    class MoveCommand {
+      -entity
+      -direction
+      -grid
+      -movement_system
+      -render_system
+      -executed
+      +initialize()
+      +execute()
+    }
+    Command <|-- MoveCommand
+    class NoOpCommand {
+      -logger
+      -reason
+      +initialize()
+      +execute()
+    }
+    class NullCommand {
+      -executed
+      +execute()
+    }
+    Command <|-- NullCommand
+    class Monster {
+      -monster_type
+      -health
+      -damage
+      +initialize()
+      +alive?()
+      +take_damage()
+      +attack()
+      +to_hash()
+      +tile()
+    }
+    Entity <|-- Monster
+    class Player {
+      -name
+      -level
+      -experience
+      -inventory
+      +initialize()
+      +gain_experience()
+      +level_up()
+      +add_to_inventory()
+      +remove_from_inventory()
+      +to_hash()
+      +tile()
+      +found_stairs?()
+      +check_for_level_ups()
+      +experience_to_next_level()
+    }
+    Entity <|-- Player
+    class Stairs {
+      +initialize()
+    }
+    Entity <|-- Stairs
+    class Event {
+      -id
+      -type
+      -source
+      -data
+      -timestamp
+      +initialize()
+      +to_s()
+      +to_h()
+      +to_json()
+      +safe_serialize()
+    }
+    class EventManager {
+      -subscribers
+      -logger
+      -event_store
+      +initialize()
+      +subscribe()
+      +unsubscribe()
+      +publish()
+      +publish_event()
+      +query_events()
+      +current_session()
+      +close()
+    }
+    class EventVisualization {
+      -event_store
+      +initialize()
+      +generate_timeline()
+      +latest_session_id()
+      +generate_html()
+    }
+    class EventStore {
+      +store()
+      +query()
+      +load_session()
+      +list_sessions()
+      +close()
+    }
+    class FileEventStore {
+      -directory
+      -storage_path
+      -current_session
+      -current_file
+      +initialize()
+      +store()
+      +query()
+      +load_session()
+      +list_sessions()
+      +close()
+      +ensure_file_open()
+    }
+    EventStore <|-- FileEventStore
+    class InputHandler {
+      -logger
+      -event_manager
+      -render_system
+      +initialize()
+      +handle_input()
+      +create_command()
+    }
+    class Item {
+      -entity
+      +initialize()
+      +item_component()
+      +name()
+      +description()
+      +stackable?()
+      +type()
+      +weight()
+      +value()
+      +stack_size()
+      +equippable?()
+      +equippable_component()
+      +consumable?()
+      +consumable_component()
+      +use()
+      +to_s()
+    }
+    class ItemFactory {
+      -logger
+      -character
+      -color
+      -layer
+      -entity_type
+      -tile
+      +initialize()
+      +create_item()
+      +type()
+      +create_weapon()
+      +create_armor()
+      +create_potion()
+      +create_scroll()
+      +determine_armor_slot()
+    }
+    class ItemRegistry {
+      -logger
+      -item_templates
+      -item_factory
+      +initialize()
+      +register_template()
+      +get_template()
+      +create_item()
+      +available_templates()
+      +random_template_key()
+      +create_random_item()
+      +create_weapon_from_data()
+      +create_armor_from_data()
+      +create_potion_from_data()
+      +create_scroll_from_data()
+      +create_key_from_data()
+      +create_currency_from_data()
+      +create_misc_from_data()
+      +load_default_templates()
+    }
+    class InventorySystemFacade {
+      -logger
+      -render_system
+      -inventory_system
+      -item_interaction_system
+      -item_factory
+      -item_registry
+      -inventory_render_system
+      -inventory_visible
+      +initialize()
+      +add_item_to_entity()
+      +remove_item_from_entity()
+      +use_item()
+      +equip_item()
+      +unequip_item()
+      +drop_item()
+      +check_for_items_at_position()
+      +display_inventory()
+      +hide_inventory()
+      +inventory_visible?()
+      +toggle_inventory_view()
+      +handle_inventory_input()
+      +cleanup()
+    }
+    class Level {
+      -difficulty
+      -grid
+      -player
+      -stairs
+      +initialize()
+      +all_entities()
+      +player_at_stairs?()
+      +update_grid_with_entities()
+      +start_position()
+      +longest_path()
+    }
+    class Logger {
+      -level
+      -log_env
+      -log_dir
+      -log_file
+      -file
+      +initialize()
+      +debug()
+      +info()
+      +warn()
+      +error()
+      +fatal()
+      +close()
+      +log()
+    }
+    class Map {
+      -logger
+      -rows
+      -columns
+      -algorithm
+      +initialize()
+      +create()
+    }
+    class Cell {
+      -row
+      -column
+      -links
+      -type_factory
+      -cell_type
+      +initialize()
+      +position()
+      +link()
+      +unlink()
+      +links()
+      +linked?()
+      +dead_end?()
+      +player?()
+      +stairs?()
+      +neighbors()
+      +tile=()
+      +tile()
+      +distances()
+    }
+    class CellType {
+      -key
+      -tile_character
+      -properties
+      +initialize()
+      +walkable?()
+      +stairs?()
+      +player?()
+      +to_s()
+    }
+    class CellTypeFactory {
+      -types
+      +initialize()
+      +get_cell_type()
+      +get_by_character()
+      +register()
+      +setup_standard_types()
+    }
+    class DistanceBetweenCells {
+      -root
+      -cells
+      +initialize()
+      +[]()
+      +[]=()
+      +cells()
+      +path_to()
+      +max()
+    }
+    class Grid {
+      -cell_type_factory
+      -rows
+      -columns
+      -grid
+      +initialize()
+      +[]()
+      +random_cell()
+      +size()
+      +contents_of()
+      +dead_ends()
+      +each_row()
+      +each_cell()
+      +prepare_grid()
+      +configure_cells()
+    }
+    class Message {
+      -content
+      -category
+      -importance
+      -turn
+      -timestamp
+      -metadata
+      -selectable
+      -shortcut_key
+      -selection_callback
+      +initialize()
+      +selectable?()
+      +select()
+      +has_shortcut?()
+      +translated_text()
+    }
+    class MessageLog {
+      -logger
+      -messages
+      -history_size
+      -formatters
+      -current_selection_index
+      -observers
+      +initialize()
+      +add_observer()
+      +remove_observer()
+      +notify_observers()
+      +current_game_turn()
+      +add()
+      +add_message()
+      +get_by_category()
+      +get_by_importance()
+      +get_recent()
+      +get_selectable_messages()
+      +register_formatter()
+      +clear()
+      +register_default_formatters()
+      +apply_formatters()
+    }
+    class MessageManager {
+      -logger
+      -render_system
+      -message_log
+      -panel
+      -selection_mode
+      -selection_index
+      +initialize()
+      +log_message()
+      +log_translated()
+      +add_message()
+      +toggle_selection_mode()
+      +handle_input()
+      +currently_selected_message()
+      +select_current_message()
+      +setup_panel()
+      +render()
+      +get_recent_messages()
+      +get_messages_by_category()
+      +clear_messages()
+      +log_combat()
+      +log_movement()
+      +log_item()
+      +log_exploration()
+      +log_warning()
+      +log_critical()
+      +log_success()
+      +navigate_selection()
+    }
+    class MessagePanel {
+      -x
+      -y
+      -width
+      -height
+      -message_log
+      -scroll_offset
+      +initialize()
+      +update()
+      +cleanup()
+      +render()
+      +scroll_up()
+      +scroll_down()
+      +render_message_object()
+      +render_hash_message()
+      +get_color_for_hash_message()
+      +format_message_object()
+      +format_hash_message()
+      +draw_separator_line()
+      +draw_message_count()
+      +get_color_for_message()
+    }
+    class Renderer {
+      +clear()
+      +clear_screen()
+      +draw_grid()
+      +draw_character()
+      +present()
+    }
+    class TerminalRenderer {
+      -buffer
+      -grid
+      -header
+      -message_buffer
+      -color_buffer
+      +initialize()
+      +clear()
+      +clear_screen()
+      +draw_grid()
+      +draw_character()
+      +color_code()
+      +reset_color()
+      +present()
+    }
+    Renderer <|-- TerminalRenderer
+    class GameSimulator {
+      -seed
+      -capture_output
+      -performance_monitor
+      -results
+      -display_rendering
+      -game
+      -level
+      +initialize()
+      +add_test_stairs()
+      +fix_coordinates()
+      +create_guaranteed_stairs()
+      +use_guaranteed_stairs()
+      +guaranteed_level_transition()
+      +player_position()
+      +find_and_use_stairs()
+      +setup_game()
+      +initialize_test_level_if_needed()
+      +patch_game_for_testing()
+      +run()
+      +process_action()
+      +debug_trace()
+      +simulate_movement()
+      +collect_messages()
+      +verify_player_rendering()
+      +capture_screen()
+      +simulate_movement_with_render_check()
+      +get_current_messages()
+    }
+    class TileType {
+    }
+    class RenderSystemFactory {
+    }
+    class ServiceRegistry {
+    }
+    class Game {
+      -logger
+      -screen_transition_delay
+      -seed
+      -difficulty
+      -scheduler
+      -game_over
+      -current_turn
+      -render_system
+      -message_system
+      -inventory_system
+      -level
+      -player
+      -monster_system
+      +initialize()
+      +print_title_screen()
+      +exit_game()
+      +start()
+      +cleanup()
+      +setup_message_panel()
+      +render()
+      +clear_screen_with_space_for_messages()
+      +clear_screen()
+      +start_new_level()
+      +add_starter_items_to_player()
+      +next_level()
+      +handle_input()
+      +check_for_monster_collisions()
+      +transition_to_next_level()
+      +try_handle_with_message_system()
+      +wait_for_keypress()
+      +move_player()
+    }
+    class Scheduler {
+      -entities
+      +initialize()
+      +register()
+      +unregister()
+      +update()
+    }
+    class ClassInfo {
+      -name
+      -parent
+      -methods
+      -instance_vars
+      -dependencies
+      -has_behavior
+      -file
+      +initialize()
+    }
+    class LogMonitor {
+      -current_log
+      -last_position
+      -issues_detected
+      -fixed_issues
+      +initialize()
+      +run()
+      +find_latest_log()
+      +read_new_log_entries()
+      +analyze_log_content()
+      +check_for_stack_trace()
+      +display_status()
+      +suggest_fix_for_event_serialization()
+      +suggest_fix_for_level_transition()
+    }
+  end
+  %% Relationships
+  ConsumableComponent --> Component : uses
+  CurrencyComponent --> Component : uses
+  DurabilityComponent --> Component : uses
+  EffectComponent --> Component : uses
+  Entity --> Component : uses
+  EquippableComponent --> Component : uses
+  InventoryComponent --> Component : uses
+  ItemComponent --> Component : uses
+  KeyComponent --> Component : uses
+  MovementComponent --> Entity : uses
+  MovementComponent --> MovementComponent : uses
+  MovementComponent --> Component : uses
+  PositionComponent --> Component : uses
+  RenderComponent --> Component : uses
+  StairsComponent --> Component : uses
+  TileComponent --> Component : uses
+  Monster --> PositionComponent : uses
+  Monster --> MovementComponent : uses
+  Monster --> RenderComponent : uses
+  Player --> PositionComponent : uses
+  Player --> MovementComponent : uses
+  Player --> TileComponent : uses
+  Player --> StairsComponent : uses
+  Player --> RenderComponent : uses
+  Stairs --> PositionComponent : uses
+  Stairs --> RenderComponent : uses
+  EventManager --> Event : uses
+  FileEventStore --> Event : uses
+  InputHandler --> MoveCommand : uses
+  InputHandler --> ExitCommand : uses
+  InputHandler --> NullCommand : uses
+  ItemFactory --> Entity : uses
+  ItemFactory --> ItemComponent : uses
+  ItemFactory --> EquippableComponent : uses
+  ItemFactory --> ConsumableComponent : uses
+  ItemRegistry --> ItemFactory : uses
+  ItemRegistry --> KeyComponent : uses
+  ItemRegistry --> CurrencyComponent : uses
+  InventorySystemFacade --> ItemFactory : uses
+  InventorySystemFacade --> ItemRegistry : uses
+  Level --> Player : uses
+  Level --> Stairs : uses
+  Logger --> Logger : uses
+  Map --> Logger : uses
+  Cell --> Cell : uses
+  CellTypeFactory --> CellType : uses
+  DistanceBetweenCells --> DistanceBetweenCells : uses
+  Grid --> CellTypeFactory : uses
+  Grid --> Cell : uses
+  MessageLog --> Message : uses
+  MessageManager --> MessageLog : uses
+  MessageManager --> Message : uses
+  TerminalRenderer --> MessageSystem : uses
+  GameSimulator --> CellType : uses
+  GameSimulator --> Level : uses
+  GameSimulator --> MoveCommand : uses
+  GameSimulator --> MessageSystem : uses
+  InventorySystem --> PositionComponent : uses
+  MonsterSystem --> Logger : uses
+  MonsterSystem --> Monster : uses
+  MonsterSystem --> TileType : uses
+  MovementSystem --> Entity : uses
+  MovementSystem --> PositionComponent : uses
+  MovementSystem --> MovementComponent : uses
+  MovementSystem --> MovementSystem : uses
+  MovementSystem --> Logger : uses
+  MovementSystem --> MessageSystem : uses
+  RenderSystem --> Logger : uses
+  RenderSystemFactory --> TerminalRenderer : uses
+  RenderSystemFactory --> RenderSystem : uses
+  ServiceRegistry --> ServiceRegistry : uses
+  ServiceRegistry --> Logger : uses
+  ServiceRegistry --> RenderSystemFactory : uses
+  ServiceRegistry --> MessageSystem : uses
+  ServiceRegistry --> InventorySystemFacade : uses
+  ServiceRegistry --> Level : uses
+  ServiceRegistry --> MonsterSystem : uses
+  ServiceRegistry --> InventoryComponent : uses
+  ServiceRegistry --> Entity : uses
+  ServiceRegistry --> ItemComponent : uses
+  ServiceRegistry --> RenderComponent : uses
+  ServiceRegistry --> CurrencyComponent : uses
+  ServiceRegistry --> InputHandler : uses
+  ServiceRegistry --> MovementSystem : uses
+  Game --> ServiceRegistry : uses
+  Game --> Logger : uses
+  Game --> RenderSystemFactory : uses
+  Game --> MessageSystem : uses
+  Game --> InventorySystemFacade : uses
+  Game --> Level : uses
+  Game --> MonsterSystem : uses
+  Game --> InventoryComponent : uses
+  Game --> Entity : uses
+  Game --> ItemComponent : uses
+  Game --> RenderComponent : uses
+  Game --> CurrencyComponent : uses
+  Game --> InputHandler : uses
+  Game --> Game : uses
+  Game --> MovementSystem : uses
+  Scheduler --> ServiceRegistry : uses
+  Scheduler --> Logger : uses
+  Scheduler --> Scheduler : uses
+  Scheduler --> RenderSystemFactory : uses
+  Scheduler --> MessageSystem : uses
+  Scheduler --> InventorySystemFacade : uses
+  Scheduler --> Level : uses
+  Scheduler --> MonsterSystem : uses
+  Scheduler --> InventoryComponent : uses
+  Scheduler --> Entity : uses
+  Scheduler --> ItemComponent : uses
+  Scheduler --> RenderComponent : uses
+  Scheduler --> CurrencyComponent : uses
+  Scheduler --> InputHandler : uses
+  Scheduler --> Game : uses
+  Scheduler --> MovementSystem : uses
+  ClassInfo --> ClassInfo : uses
+  LogMonitor --> LogMonitor : uses
+  TestPositionComponent --> Component : uses
+  Entity o--> "many" Component : contains

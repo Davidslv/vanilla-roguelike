@@ -1,0 +1,224 @@
+classDiagram
+  subgraph Core
+    class Component {
+      -component_classes
+      +register()
+      +from_hash()
+      +initialize()
+      +type()
+      +to_hash()
+      +data()
+      +update()
+    }
+  end
+  subgraph Components
+    class Component {
+      -component_classes
+      +register()
+      +from_hash()
+      +initialize()
+      +type()
+      +to_hash()
+      +data()
+      +update()
+    }
+    style Component fill:#ffcccc
+    class ConsumableComponent {
+      -charges
+      -effects
+      -auto_identify
+      +initialize()
+      +type()
+      +has_charges?()
+      +consume()
+      +to_hash()
+      +apply_effects()
+      +heal_entity()
+      +damage_entity()
+      +apply_buff()
+      +teleport_entity()
+    }
+    Component <|-- ConsumableComponent
+    style ConsumableComponent fill:#ffcccc
+    class CurrencyComponent {
+      -value
+      -currency_type
+      +initialize()
+      +type()
+      +combine()
+      +split()
+      +display_string()
+      +standard_value()
+      +to_hash()
+    }
+    style CurrencyComponent fill:#ffcccc
+    class DurabilityComponent {
+      -max_durability
+      -current_durability
+      +initialize()
+      +type()
+      +decrease()
+      +repair()
+      +full_repair()
+      +usable?()
+      +percentage()
+      +status()
+      +needs_repair?()
+      +to_hash()
+      +notify_low_durability()
+      +notify_repair()
+    }
+    style DurabilityComponent fill:#ffcccc
+    class EffectComponent {
+      -active_effects
+      +initialize()
+      +type()
+      +add_effect()
+      +remove_effect()
+      +remove_effects_by_source()
+      +remove_expired_effects()
+      +get_effects_by_type()
+      +has_active_effects?()
+      +get_stat_modifier()
+      +update()
+      +to_hash()
+    }
+    style EffectComponent fill:#ffcccc
+    class EquippableComponent {
+      -slot
+      -stat_modifiers
+      -equipped
+      +initialize()
+      +type()
+      +equipped?()
+      +equip()
+      +unequip()
+      +to_hash()
+      +validate_slot()
+      +slot_occupied?()
+      +apply_stat_modifiers()
+      +remove_stat_modifiers()
+    }
+    Component <|-- EquippableComponent
+    style EquippableComponent fill:#ffcccc
+    class InventoryComponent {
+      -items
+      -max_size
+      +initialize()
+      +type()
+      +full?()
+      +add()
+      +remove()
+      +has?()
+      +count()
+      +find_by_id()
+      +to_hash()
+      +find_stackable_item()
+    }
+    style InventoryComponent fill:#ffcccc
+    class ItemComponent {
+      -name
+      -description
+      -item_type
+      -weight
+      -value
+      -stackable
+      -stack_size
+      +initialize()
+      +type()
+      +stackable?()
+      +increase_stack()
+      +decrease_stack()
+      +use()
+      +to_hash()
+      +display_string()
+    }
+    Component <|-- ItemComponent
+    style ItemComponent fill:#ffcccc
+    class KeyComponent {
+      -key_id
+      -lock_type
+      -one_time_use
+      +initialize()
+      +type()
+      +matches?()
+      +unlock()
+      +description()
+      +to_hash()
+    }
+    style KeyComponent fill:#ffcccc
+    class MovementComponent {
+      -speed
+      -can_move_directions
+      +initialize()
+      +type()
+      +data()
+    }
+    Component <|-- MovementComponent
+    style MovementComponent fill:#ffcccc
+    class PositionComponent {
+      -row
+      -column
+      +initialize()
+      +type()
+      +coordinates()
+      +move_to()
+      +move_by()
+      +data()
+    }
+    Component <|-- PositionComponent
+    style PositionComponent fill:#ffcccc
+    class RenderComponent {
+      -character
+      -color
+      -layer
+      -entity_type
+      +initialize()
+      +type()
+      +tile()
+      +data()
+    }
+    Component <|-- RenderComponent
+    style RenderComponent fill:#ffcccc
+    class StairsComponent {
+      -found_stairs
+      +initialize()
+      +type()
+      +data()
+    }
+    Component <|-- StairsComponent
+    style StairsComponent fill:#ffcccc
+    class TileComponent {
+      -tile
+      +initialize()
+      +type()
+      +change_tile()
+      +data()
+    }
+    Component <|-- TileComponent
+    style TileComponent fill:#ffcccc
+    class TestPositionComponent {
+      -row
+      -column
+      +initialize()
+      +type()
+    }
+    Component <|-- TestPositionComponent
+    style TestPositionComponent fill:#ffcccc
+  end
+  %% Relationships
+  ConsumableComponent --> Component : uses
+  CurrencyComponent --> Component : uses
+  DurabilityComponent --> Component : uses
+  EffectComponent --> Component : uses
+  EquippableComponent --> Component : uses
+  InventoryComponent --> Component : uses
+  ItemComponent --> Component : uses
+  KeyComponent --> Component : uses
+  MovementComponent --> MovementComponent : uses
+  MovementComponent --> Component : uses
+  PositionComponent --> Component : uses
+  RenderComponent --> Component : uses
+  StairsComponent --> Component : uses
+  TileComponent --> Component : uses
+  TestPositionComponent --> Component : uses

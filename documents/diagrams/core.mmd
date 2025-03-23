@@ -1,0 +1,43 @@
+classDiagram
+  subgraph Core
+    class Component {
+      -component_classes
+      +register()
+      +from_hash()
+      +initialize()
+      +type()
+      +to_hash()
+      +data()
+      +update()
+    }
+    class Entity {
+      -id
+      -components
+      -component_map
+      +initialize()
+      +add_component()
+      +remove_component()
+      +has_component?()
+      +get_component()
+      +update()
+      +to_hash()
+      +method_missing()
+      +respond_to_missing?()
+    }
+  end
+  subgraph Components
+    class Component {
+      -component_classes
+      +register()
+      +from_hash()
+      +initialize()
+      +type()
+      +to_hash()
+      +data()
+      +update()
+    }
+    style Component fill:#ffcccc
+  end
+  %% Relationships
+  Entity --> Component : uses
+  Entity o--> "many" Component : contains
