@@ -16,3 +16,8 @@ end
 group :test, :development do
   gem 'pry'
 end
+group :development do
+  gem 'ast'
+  gem 'solargraph', require: false
+  gem 'solargraph-rspec', require: false
+end
