@@ -6,10 +6,13 @@ module Vanilla
     class RenderSystem < System
       # Initialize a new render system
       # @param world [World] The world this system belongs to
-      def initialize(world)
+      def initialize(world, difficulty, seed)
         super(world)
         @renderer = Vanilla::Renderers::TerminalRenderer.new
         @logger = Vanilla::Logger.instance
+
+        @difficulty = difficulty
+        @seed = seed
       end
 
       # Update method called once per frame
@@ -21,15 +24,9 @@ module Vanilla
         render_grid
         render_entities
 
-        @renderer.draw_title_screen(1, 1)
+        @renderer.draw_title_screen(@difficulty, @seed)
         # Update display
         @renderer.present
-      end
-
-      # Clear the screen completely (for transitions, etc.)
-      # @return [void]
-      def clear_screen
-        @renderer.clear_screen
       end
 
       private

@@ -34,7 +34,6 @@ module Vanilla
     # Start the game loop
     def start
       @running = true
-      @last_update_time = Time.now
 
       # initial render
       render
@@ -95,7 +94,7 @@ module Vanilla
       @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
 
       # Rendering systems
-      @world.add_system(Vanilla::Systems::RenderSystem.new(@world), 9)
+      @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 9)
       @world.add_system(Vanilla::Systems::MessageSystem.new(@world), 10)
 
       @logger.debug("Systems registered with the world")
