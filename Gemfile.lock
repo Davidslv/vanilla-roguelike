@@ -7,6 +7,7 @@ GEM
     docile (1.4.1)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
+    logger (1.6.6)
     method_source (1.1.0)
     pry (0.15.2)
       coderay (~> 1.1)
@@ -38,6 +39,7 @@ PLATFORMS
 
 DEPENDENCIES
   i18n (~> 1.14)
+  logger
   pry
   rspec
   simplecov

@@ -1,12 +1,18 @@
 source 'https://rubygems.org'
 
-gem 'pry'
-
 # documentation
 gem 'yard'
+
+# Locatization
+gem "i18n", "~> 1.14"
+
+gem 'logger'
 
 group :test do
   gem 'rspec'
   gem 'simplecov', require: false
 end
-gem "i18n", "~> 1.14"
+
+group :test, :development do
+  gem 'pry'
+end

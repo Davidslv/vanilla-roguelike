@@ -3,6 +3,7 @@ require 'logger'
 require 'set'
 require 'securerandom'
 require 'io/console'
+require 'i18n'
 
 module Vanilla
   # required to use STDIN.getch
@@ -75,8 +76,6 @@ module Vanilla
   # inventory system
   require_relative 'vanilla/inventory'
 
-  # I18n for localization
-  require 'i18n'
 
   # Setup I18n if it hasn't been set up already (like in tests)
   if I18n.load_path.empty?
