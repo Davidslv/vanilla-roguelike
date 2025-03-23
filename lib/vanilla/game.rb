@@ -56,9 +56,11 @@ module Vanilla
         direction = input_to_direction(input)
         if direction
           @player.get_component(:input).set_move_direction(direction)
-          @world.update(nil)
+          @world.update(nil)  # Process movement and queued commands
           @turn += 1
           render
+          @world.update(nil)  # Ensure any post-movement commands (e.g., level change) are processed
+          render  # Redraw after potential level change
         end
       end
     end
@@ -68,6 +70,9 @@ module Vanilla
     end
 
     def input_to_direction(input)
+      # Ignore escape sequences and control characters
+      # we should not escape CTRL+C
+      return nil if input =~ /\e/ || input =~ /\p{Cntrl}/
       case input
       when "h" then :west
       when "j" then :south

@@ -162,30 +162,18 @@ module Vanilla
       end
     end
 
-    # Change the current level
-    # @param difficulty [Integer] The difficulty of the new level
-    # @param player_id [String] The ID of the player entity
     def change_level(difficulty, player_id)
-      # Create new level
       level_generator = LevelGenerator.new
       new_level = level_generator.generate(difficulty)
-
-      # Transfer player to new level
       player = get_entity(player_id)
       if player
-        # Place player at entrance
         position = player.get_component(:position)
-        position.set_position(new_level.entrance_row, new_level.entrance_column)
+        entrance_row = new_level.respond_to?(:entrance_row) ? new_level.entrance_row : 0
+        entrance_column = new_level.respond_to?(:entrance_column) ? new_level.entrance_column : 0
+        position.set_position(entrance_row, entrance_column)
       end
-
-      # Set new level
       set_level(new_level)
-
-      # Notify systems of level change
-      emit_event(:level_transitioned, {
-        difficulty: difficulty,
-        player_id: player_id
-      })
+      emit_event(:level_transitioned, { difficulty: difficulty, player_id: player_id })
     end
 
     # Add an item to a player's inventory

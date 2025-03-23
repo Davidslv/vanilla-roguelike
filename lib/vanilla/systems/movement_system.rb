@@ -113,8 +113,9 @@ module Vanilla
       def handle_special_cell_attributes(entity, target_cell)
         @logger.debug("Checking cell: [#{target_cell.row}, #{target_cell.column}]")
         if target_cell.tile == Vanilla::Support::TileType::STAIRS
-          @logger.info("Stairs at [#{target_cell.row}, #{target_cell.column}]")
+          @logger.info("Stairs at [#{target_cell.row}, #{target_cell.column}] reached by entity #{entity.id}")
           emit_event(:stairs_found, { entity_id: entity.id })
+          queue_command(:change_level, { difficulty: @world.current_level.difficulty + 1, player_id: entity.id })
         end
       end
 
