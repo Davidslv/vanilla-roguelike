@@ -25,8 +25,10 @@ module Vanilla
         input = entity.get_component(:input)
         direction = input.move_direction
         return unless direction
-        move(entity, direction)
-        input.set_move_direction(nil)
+        @logger.debug("Processing movement for direction: #{direction}")
+        success = move(entity, direction)
+        @logger.debug("Movement success: #{success}")
+        input.set_move_direction(nil) if success
       end
 
       def move(entity, direction)
@@ -89,7 +91,10 @@ module Vanilla
       end
 
       def can_move_to?(current_cell, target_cell, direction)
-        current_cell.linked?(target_cell) && Vanilla::Support::TileType.walkable?(target_cell.tile)
+        linked = current_cell.linked?(target_cell)
+        walkable = Vanilla::Support::TileType.walkable?(target_cell.tile)
+        @logger.debug("Can move to [#{target_cell.row}, #{target_cell.column}]? Linked: #{linked}, Walkable: #{walkable}")
+        linked && walkable
       end
 
       def handle_special_cell_attributes(entity, target_cell)

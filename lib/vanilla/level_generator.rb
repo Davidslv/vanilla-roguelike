@@ -27,10 +27,12 @@ module Vanilla
           (cell.row - goal_cell.row).abs + (cell.column - goal_cell.column).abs
         end
         if next_cell
-          current.link(cell: next_cell)
+          current.link(cell: next_cell, bidirectional: true)
           next_cell.tile = Vanilla::Support::TileType::EMPTY unless next_cell == goal_cell
+          current = next_cell
+        else
+          break # Fallback if no valid next cell
         end
-        current = next_cell
       end
     end
   end

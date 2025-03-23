@@ -10,17 +10,17 @@ module Vanilla
                   "Seed: #{$seed} | Rows: #{grid.rows} | Columns: #{grid.columns} | Algorithm: #{algorithm}",
                   "-" * 35]
 
-        output << "+---+---+---+---+---+---+---+---+---+---+"
         grid.rows.times do |row|
           row_cells = "|"
           row_walls = "+"
           grid.columns.times do |col|
             cell = grid[row, col]
-            row_cells += " #{cell.tile || '.'} |"
+            row_cells += " #{cell.tile || '.'} "
+            row_cells += cell.linked?(cell.east) ? " " : "|"
             row_walls += cell.linked?(cell.south) ? "   +" : "---+"
           end
           output << row_cells
-          output << row_walls unless row == grid.rows - 1
+          output << row_walls
         end
 
         print output.join("\n") + "\n"
