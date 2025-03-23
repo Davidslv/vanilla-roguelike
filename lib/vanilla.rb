@@ -2,7 +2,6 @@ require 'pry'
 require 'logger'
 require 'set'
 require 'securerandom'
-require 'io/console'
 require 'i18n'
 
 module Vanilla

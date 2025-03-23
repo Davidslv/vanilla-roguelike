@@ -1,5 +1,17 @@
+require 'io/console'
+
 module Vanilla
   # Handles keyboard input for the game
+
+  # TODO: DO NOT MonkeyPatch!
+  # Patch STDIN with a ready? method if it doesn't exist
+  unless STDIN.respond_to?(:ready?)
+    def STDIN.ready?
+      ready_status = IO.select([STDIN], nil, nil, 0)
+      ready_status && ready_status[0].include?(STDIN)
+    end
+  end
+
   class KeyboardHandler
     # Initialize a new keyboard handler
     def initialize
