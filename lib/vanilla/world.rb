@@ -188,6 +188,9 @@ module Vanilla
       end
     end
 
+    # TODO: Consider refactoring it into smaller methods to improve maintainability.
+    # Setting the flag (@level_changed) after level transition ensures the rendering system knows when to refresh the display, which is essential for the game loop.
+    # The change_level method is quite long and handles multiple responsibilities.
     def change_level(difficulty, player_id)
       level_generator = LevelGenerator.new
       new_level = level_generator.generate(difficulty)
