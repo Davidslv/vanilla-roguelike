@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Vanilla
   module Components
     # Component for tracking an entity's visual representation

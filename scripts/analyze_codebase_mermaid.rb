@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+
 # analyze_codebase_mermaid.rb
 #
 # This script analyzes the codebase and generates a Mermaid class diagram.
@@ -12,7 +13,6 @@
 # ruby scripts/analyze_codebase_mermaid.rb Components > vanilla_ecs_components.mmd
 #
 # ruby scripts/analyze_codebase_mermaid.rb Core > vanilla_ecs_core.mmd
-
 
 require 'set'
 require 'parser/current' # gem install parser

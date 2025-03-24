@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Vanilla
   module Commands
     # A command that does nothing when executed

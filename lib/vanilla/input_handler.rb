@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require_relative 'commands/move_command'
 require_relative 'commands/exit_command'
 require_relative 'commands/null_command'

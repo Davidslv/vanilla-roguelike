@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Vanilla
   module Components
     # RenderComponent stores visual representation data for entities.

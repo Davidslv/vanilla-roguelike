@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 STDOUT.sync = true
 
 require 'pry'
@@ -52,7 +53,6 @@ module Vanilla
 
   # inventory system
   require_relative 'vanilla/inventory'
-
 
   # Setup I18n if it hasn't been set up already (like in tests)
   if I18n.load_path.empty?

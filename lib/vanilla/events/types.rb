@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Vanilla
   module Events
     # Constants for all event types used in the system

@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Vanilla
   module Inventory
     # Wrapper class for entities with item components

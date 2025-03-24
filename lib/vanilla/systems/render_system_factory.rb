@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Vanilla
   module Systems
     # Factory for creating render systems

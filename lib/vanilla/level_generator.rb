@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 # lib/vanilla/level_generator.rb
 module Vanilla
   class LevelGenerator

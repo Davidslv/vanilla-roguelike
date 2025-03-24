@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 # lib/vanilla/level.rb
 module Vanilla
   class Level

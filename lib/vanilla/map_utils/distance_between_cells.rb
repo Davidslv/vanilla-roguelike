@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Vanilla
   module MapUtils
     # We will use this class to record the distance of each cell from the starting point (@root)

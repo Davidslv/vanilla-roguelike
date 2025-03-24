@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Vanilla
   module Inventory
     # Factory for creating different types of items

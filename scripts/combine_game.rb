@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 # Combines all files in a lib directory into a single file
 
 output_file = "combined_game.rb"

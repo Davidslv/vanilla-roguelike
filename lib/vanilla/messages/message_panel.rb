@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Vanilla
   module Messages
     # Panel for displaying messages beneath the map

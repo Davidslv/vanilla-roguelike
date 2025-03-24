@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 # lib/vanilla/systems/movement_system.rb
 require_relative 'system'
 

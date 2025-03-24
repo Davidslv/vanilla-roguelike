@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Vanilla
   module Systems
     # System for handling interactions between entities and items in the game world

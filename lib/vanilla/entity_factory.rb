@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Vanilla
   class EntityFactory
     def self.create_player(row, column)

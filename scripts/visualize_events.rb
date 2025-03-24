@@ -8,7 +8,6 @@
 # Open a specific session
 # ./scripts/visualize_events.rb <session_id>
 
-
 require_relative '../lib/vanilla/events/event'
 require_relative '../lib/vanilla/events/storage/event_store'
 require_relative '../lib/vanilla/events/storage/file_event_store'
