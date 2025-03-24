@@ -15,6 +15,7 @@ module Vanilla
         :position
       end
 
+      # FIX: Movement mechanic is depending on this.
       def set_position(row, column)
         @row = row
         @column = column

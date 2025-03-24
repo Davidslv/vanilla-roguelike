@@ -3,7 +3,7 @@
 module Vanilla
   module Components
     class MovementComponent < Component
-      attr_reader :speed
+      attr_reader :speed, :active
 
       def initialize(active: true, speed: 1)
         super()
@@ -16,7 +16,7 @@ module Vanilla
       end
 
       def active?
-        @active
+        !!@active
       end
 
       def to_hash
@@ -24,7 +24,9 @@ module Vanilla
       end
 
       def self.from_hash(hash)
-        new(active: hash[:active], speed: hash[:speed])
+        active = hash.key?(:active) ? hash[:active] : true
+        speed  = hash.key?(:speed) ? hash[:speed] : 1
+        new(active: active, speed: speed)
       end
     end
 

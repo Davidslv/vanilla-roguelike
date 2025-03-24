@@ -15,8 +15,13 @@ module Vanilla
       # @param value [Integer] The value of the item in currency
       # @param stackable [Boolean] Whether the item can be stacked
       # @param stack_size [Integer] The current stack size for stackable items
-      def initialize(name:, description: "", item_type: :misc, weight: 1,
-                     value: 0, stackable: false, stack_size: 1)
+      def initialize(name:,
+                     description: "",
+                     item_type: :misc,
+                     weight: 1,
+                     value: 0,
+                     stackable: false,
+                     stack_size: 1)
         super()
         @name = name
         @description = description
@@ -31,34 +36,6 @@ module Vanilla
       # @return [Symbol] The component type
       def type
         :item
-      end
-
-      # Check if the item is stackable
-      # @return [Boolean] Whether the item can be stacked
-      def stackable?
-        @stackable
-      end
-
-      # Increase the stack size by 1
-      # @return [Integer] The new stack size
-      def increase_stack
-        @stack_size += 1 if stackable?
-        @stack_size
-      end
-
-      # Decrease the stack size by 1
-      # @return [Integer] The new stack size
-      def decrease_stack
-        @stack_size -= 1 if stackable? && @stack_size > 0
-        @stack_size
-      end
-
-      # Use the item on a target entity
-      # @param entity [Entity] The entity using the item
-      # @return [Boolean] Whether the item was successfully used
-      def use(_entity)
-        # Base implementation does nothing - subclasses should override
-        false
       end
 
       # Convert to hash for serialization
@@ -89,14 +66,6 @@ module Vanilla
           stackable: hash[:stackable] || false,
           stack_size: hash[:stack_size] || 1
         )
-      end
-
-      # Get a display string for the item
-      # @return [String] A formatted string representation of the item
-      def display_string
-        base = @name
-        base += " (#{@stack_size})" if stackable? && @stack_size > 1
-        base
       end
     end
 

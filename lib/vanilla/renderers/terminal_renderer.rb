@@ -9,9 +9,11 @@ module Vanilla
       end
 
       def draw_grid(grid, algorithm)
-        output = ["Vanilla Roguelike - Difficulty: 1 - Seed: #{$seed}",
-                  "Seed: #{$seed} | Rows: #{grid.rows} | Columns: #{grid.columns} | Algorithm: #{algorithm}",
-                  "-" * 35]
+        output = [
+          "Vanilla Roguelike - Difficulty: 1 - Seed: #{$seed}",
+          "Rows: #{grid.rows} | Columns: #{grid.columns} | Algorithm: #{algorithm}",
+          "\n"
+        ]
 
         # Add top border
         top_border = "+"

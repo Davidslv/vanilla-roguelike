@@ -4,7 +4,7 @@ require 'spec_helper'
 
 RSpec.describe Vanilla::World do
   let(:world) { Vanilla::World.new }
-  let(:entity) { Vanilla::Components::Entity.new }
+  let(:entity) { Vanilla::Entities::Entity.new }
   let(:system) { instance_double("Vanilla::Systems::System", update: nil) }
 
   describe '#initialize' do
@@ -149,7 +149,7 @@ RSpec.describe Vanilla::World do
 
   describe '#queue_command' do
     it 'processes commands in the update loop' do
-      entity_to_add = Vanilla::Components::Entity.new
+      entity_to_add = Vanilla::Entities::Entity.new
 
       world.queue_command(:add_entity, { entity: entity_to_add })
       expect(world.entities).not_to include(entity_to_add.id => entity_to_add)

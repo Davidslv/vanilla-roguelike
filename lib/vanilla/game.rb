@@ -42,7 +42,8 @@ module Vanilla
       @monster_system = Vanilla::Systems::MonsterSystem.new(@world, player: @player, logger: @logger)
       @monster_system.spawn_monsters(@difficulty)
 
-      # Note: InputSystem is referenced but not provided; using game loop for now
+      # Note: InputSystem must have the highest priority (zero)
+      @world.add_system(Vanilla::Systems::InputSystem.new(@world), 0)
       @world.add_system(Vanilla::Systems::MovementSystem.new(@world), 1)
       @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 2)
       @world.add_system(@monster_system, 3)
@@ -51,40 +52,17 @@ module Vanilla
     end
 
     def game_loop
+      @turn = 0
       loop do
-        input = @display.keyboard_handler.wait_for_input
-        @logger.debug("Game loop input: #{input.inspect}")
-
-        # Exit with "q" or CTRL+C
-        break if input == "q" || input == "\u0003"
-
-        direction = input_to_direction(input)
-        if direction
-          @player.get_component(:input).set_move_direction(direction)
-          @world.update(nil)  # Process movement and queued commands
-          @turn += 1
-          render
-          @world.update(nil)  # Ensure any post-movement commands (e.g., level change) are processed
-          render # Redraw after potential level change
-        end
+        @world.update(nil)  # Input, Movement, Commands (level change), Render
+        render              # Shows new level immediately
+        @turn += 1
+        break if @world.quit?
       end
     end
 
     def render
       @world.systems.find { |s, _| s.is_a?(Vanilla::Systems::RenderSystem) }[0].update(nil)
-    end
-
-    def input_to_direction(input)
-      # Ignore escape sequences and control characters except Ctrl+C
-      return nil if input =~ /\e/ || (input =~ /\p{Cntrl}/ && input != "\u0003")
-
-      case input
-      when "h" then :west
-      when "j" then :south
-      when "k" then :north
-      when "l" then :east
-      else nil
-      end
     end
   end
 end

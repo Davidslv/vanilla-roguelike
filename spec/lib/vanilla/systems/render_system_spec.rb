@@ -15,15 +15,15 @@ RSpec.describe Vanilla::Systems::RenderSystem do
   describe '#render' do
     it 'draws entities with position and render components' do
       # Setup test entities
-      entity1 = Vanilla::Components::Entity.new
+      entity1 = Vanilla::Entities::Entity.new
       entity1.add_component(Vanilla::Components::PositionComponent.new(row: 1, column: 2))
       entity1.add_component(Vanilla::Components::RenderComponent.new(character: '@', layer: 1))
 
-      entity2 = Vanilla::Components::Entity.new
+      entity2 = Vanilla::Entities::Entity.new
       entity2.add_component(Vanilla::Components::PositionComponent.new(row: 3, column: 4))
       entity2.add_component(Vanilla::Components::RenderComponent.new(character: 'M', layer: 0))
 
-      entity3 = Vanilla::Components::Entity.new # No render component
+      entity3 = Vanilla::Entities::Entity.new # No render component
       entity3.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 6))
 
       # Expectations
@@ -42,15 +42,15 @@ RSpec.describe Vanilla::Systems::RenderSystem do
 
     it 'skips entities without position or render components' do
       # Entity without position
-      entity1 = Vanilla::Components::Entity.new
+      entity1 = Vanilla::Entities::Entity.new
       entity1.add_component(Vanilla::Components::RenderComponent.new(character: '@', layer: 1))
 
       # Entity without render
-      entity2 = Vanilla::Components::Entity.new
+      entity2 = Vanilla::Entities::Entity.new
       entity2.add_component(Vanilla::Components::PositionComponent.new(row: 3, column: 4))
 
       # Complete entity
-      entity3 = Vanilla::Components::Entity.new
+      entity3 = Vanilla::Entities::Entity.new
       entity3.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 6))
       entity3.add_component(Vanilla::Components::RenderComponent.new(character: '%', layer: 0)) # Stairs
 

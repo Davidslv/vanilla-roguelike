@@ -6,9 +6,8 @@ RSpec.describe Vanilla::Commands::MoveCommand do
   let(:grid) { instance_double('Vanilla::MapUtils::Grid') }
   let(:cell) { instance_double('Vanilla::MapUtils::Cell') }
   let(:entity) do
-    entity = Vanilla::Components::Entity.new
+    entity = Vanilla::Entities::Entity.new
     entity.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 5))
-    entity.add_component(Vanilla::Components::TileComponent.new(tile: '@'))
     entity
   end
   let(:movement_system) { instance_double('Vanilla::Systems::MovementSystem') }
@@ -95,9 +94,8 @@ RSpec.describe Vanilla::Commands::MoveCommand do
 
     context 'when entity has all_entities method' do
       let(:level_entity) do
-        entity = Vanilla::Components::Entity.new
+        entity = Vanilla::Entities::Entity.new
         entity.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 5))
-        entity.add_component(Vanilla::Components::TileComponent.new(tile: '@'))
         entity
       end
       let(:entities_collection) { [level_entity] }

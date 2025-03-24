@@ -6,22 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 35
-# This cop supports safe autocorrection (--autocorrect).
-ECS/ComponentBehavior:
-  Exclude:
-    - 'lib/vanilla/components/consumable_component.rb'
-    - 'lib/vanilla/components/equippable_component.rb'
-    - 'lib/vanilla/components/input_component.rb'
-    - 'lib/vanilla/components/item_component.rb'
-    - 'lib/vanilla/components/movement_component.rb'
-    - 'lib/vanilla/components/position_component.rb'
-    - 'lib/vanilla/components/render_component.rb'
-    - 'lib/vanilla/components/stairs_component.rb'
-    - 'lib/vanilla/components/tile_component.rb'
-    - 'spec/lib/vanilla/components/component_spec.rb'
-
-
 # Offense count: 44
 # Configuration parameters: AllowedMethods, AllowedPatterns, CountRepeatedAttributes.
 Metrics/AbcSize:

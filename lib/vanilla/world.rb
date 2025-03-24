@@ -16,10 +16,28 @@ module Vanilla
       @systems = []
 
       @display = DisplayHandler.new
+      @logger = Vanilla::Logger.instance
+
       @current_level = nil
+      @level_changed = false
+
       @event_subscribers = Hash.new { |h, k| h[k] = [] }
       @event_queue = Queue.new
       @command_queue = Queue.new
+    end
+
+    # Works by delegating it to InputSystem
+    def quit?
+      input_system, _priority = @systems.find { |system, _priority| system.is_a?(Vanilla::Systems::InputSystem) }
+
+      input_system&.quit? || false
+    end
+
+    # Check if the level changed this frame (resets after checking)
+    def level_changed?
+      changed = @level_changed
+      @level_changed = false # Reset after querying
+      changed
     end
 
     # Add an entity to the world
@@ -77,13 +95,17 @@ module Vanilla
     # Update all systems and process events and commands
     # @param delta_time [Float] The time since the last update
     def update(_unused)
-      # Process queued commands
-      process_commands
-
       # Update all systems
       @systems.each do |system, _| # rubocop:disable Style/HashEachMethods
         system.update(nil)
       end
+
+      # IMPORTANT:
+      # Commands are processed before events to ensure any events triggered by commands
+      # are handled in the same update cycle
+
+      # Process queued commands
+      process_commands
 
       # Process events after systems have updated
       process_events
@@ -166,6 +188,9 @@ module Vanilla
       end
     end
 
+    # TODO: Consider refactoring it into smaller methods to improve maintainability.
+    # Setting the flag (@level_changed) after level transition ensures the rendering system knows when to refresh the display, which is essential for the game loop.
+    # The change_level method is quite long and handles multiple responsibilities.
     def change_level(difficulty, player_id)
       level_generator = LevelGenerator.new
       new_level = level_generator.generate(difficulty)
@@ -184,6 +209,9 @@ module Vanilla
       monster_system&.spawn_monsters(difficulty)
 
       emit_event(:level_transitioned, { difficulty: difficulty, player_id: player_id })
+
+      # Flag to inform world that there's a new level to be rendered
+      @level_changed = true
     end
 
     # Add an item to a player's inventory

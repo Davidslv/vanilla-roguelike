@@ -5,7 +5,7 @@ require 'spec_helper'
 RSpec.describe Vanilla::Systems::MovementSystem do
   let(:world) { Vanilla::World.new }
   let(:grid) { instance_double("Vanilla::Grid") }
-  let(:entity) { Vanilla::Components::Entity.new }
+  let(:entity) { Vanilla::Entities::Entity.new }
   let(:position_component) { Vanilla::Components::PositionComponent.new(row: 5, column: 10) }
   let(:movement_component) { Vanilla::Components::MovementComponent.new }
   let(:input_component) { Vanilla::Components::InputComponent.new }
@@ -46,10 +46,10 @@ RSpec.describe Vanilla::Systems::MovementSystem do
     let(:system) { Vanilla::Systems::MovementSystem.new(world) }
 
     it 'processes movement for entities with input directions' do
-      input_component.set_move_direction(:north)
+      input_component.move_direction = :north
 
       expect(system).to receive(:process_entity_movement).with(entity)
-      system.update(0.1)
+      system.update(1)
     end
 
     it 'does nothing when initialized with direct grid' do
@@ -80,7 +80,7 @@ RSpec.describe Vanilla::Systems::MovementSystem do
     end
 
     it 'does nothing if entity has no input component' do
-      entity_without_input = Vanilla::Components::Entity.new
+      entity_without_input = Vanilla::Entities::Entity.new
       entity_without_input.add_component(position_component.dup)
       entity_without_input.add_component(movement_component.dup)
 
@@ -112,7 +112,7 @@ RSpec.describe Vanilla::Systems::MovementSystem do
     end
 
     it 'returns false if entity cannot be processed' do
-      entity_without_position = Vanilla::Components::Entity.new
+      entity_without_position = Vanilla::Entities::Entity.new
       entity_without_position.add_component(movement_component.dup)
 
       expect(system.move(entity_without_position, :north)).to be false
@@ -195,14 +195,14 @@ RSpec.describe Vanilla::Systems::MovementSystem do
     end
 
     it 'returns false if position component is missing' do
-      entity_without_position = Vanilla::Components::Entity.new
+      entity_without_position = Vanilla::Entities::Entity.new
       entity_without_position.add_component(movement_component.dup)
 
       expect(system.send(:can_process?, entity_without_position)).to be false
     end
 
     it 'returns false if movement component is missing' do
-      entity_without_movement = Vanilla::Components::Entity.new
+      entity_without_movement = Vanilla::Entities::Entity.new
       entity_without_movement.add_component(position_component.dup)
 
       expect(system.send(:can_process?, entity_without_movement)).to be false

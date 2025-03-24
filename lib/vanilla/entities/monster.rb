@@ -12,7 +12,7 @@ module Vanilla
     # * RenderComponent - For visual representation and rendering
     #
     # Monsters can move around the map and interact with the player.
-    class Monster < Components::Entity
+    class Monster < Entities::Entity
       # @return [String] the monster's type
       attr_accessor :monster_type
 
