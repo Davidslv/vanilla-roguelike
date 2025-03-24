@@ -79,7 +79,7 @@ module Vanilla
           end
 
           if message_with_shortcut
-            result = message_with_shortcut.select
+            message_with_shortcut.select
             return true
           end
         end
@@ -166,8 +166,7 @@ module Vanilla
         log_translated(key,
                        category: :combat,
                        importance: importance,
-                       metadata: metadata
-        )
+                       metadata: metadata)
       end
 
       # Log a movement message
@@ -175,8 +174,7 @@ module Vanilla
         log_translated(key,
                        category: :movement,
                        importance: :normal,
-                       metadata: metadata
-        )
+                       metadata: metadata)
       end
 
       # Log an item-related message
@@ -184,8 +182,7 @@ module Vanilla
         log_translated(key,
                        category: :item,
                        importance: importance,
-                       metadata: metadata
-        )
+                       metadata: metadata)
       end
 
       # Log an exploration message
@@ -193,8 +190,7 @@ module Vanilla
         log_translated(key,
                        category: :exploration,
                        importance: importance,
-                       metadata: metadata
-        )
+                       metadata: metadata)
       end
 
       # Log a warning message
@@ -202,8 +198,7 @@ module Vanilla
         log_translated(key,
                        category: :system,
                        importance: :warning,
-                       metadata: metadata
-        )
+                       metadata: metadata)
       end
 
       # Log a critical message
@@ -211,8 +206,7 @@ module Vanilla
         log_translated(key,
                        category: :system,
                        importance: :critical,
-                       metadata: metadata
-        )
+                       metadata: metadata)
       end
 
       # Log a success message
@@ -220,8 +214,7 @@ module Vanilla
         log_translated(key,
                        category: :system,
                        importance: :success,
-                       metadata: metadata
-        )
+                       metadata: metadata)
       end
 
       private

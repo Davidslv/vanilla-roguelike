@@ -53,7 +53,7 @@ module Vanilla
 
           # Update the grid representation with current entity positions
           # This ensures the grid stays in sync with actual entity positions
-          game.level.update_grid_with_entities if game&.level&.respond_to?(:update_grid_with_entities)
+          game.level.update_grid_with_entities if game&.level.respond_to?(:update_grid_with_entities)
 
           # Use the level's all_entities method to get all entities to render
           # This will include the player, stairs, and monsters

@@ -5,7 +5,7 @@
 # Select one of the available sessions
 # ./scripts/visualize_events.rb
 
-# Open a specific session
+#  Open a specific session
 # ./scripts/visualize_events.rb <session_id>
 
 require_relative '../lib/vanilla/events/event'
@@ -19,7 +19,7 @@ def list_sessions
   sessions = files.map { |f| File.basename(f, '.jsonl').gsub(/^events_/, '') }.uniq.sort
 
   puts "Available sessions:"
-  sessions.each_with_index { |s, i| puts "#{i+1}. #{s}" }
+  sessions.each_with_index { |s, i| puts "#{i + 1}. #{s}" }
   return sessions
 end
 

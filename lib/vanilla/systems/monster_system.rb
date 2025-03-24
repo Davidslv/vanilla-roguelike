@@ -29,7 +29,7 @@ module Vanilla
         count.times { spawn_monster(level) }
       end
 
-      def update(delta_time = nil)
+      def update(_delta_time = nil)
         @monsters.reject! { |m| !m.alive? }
       end
 

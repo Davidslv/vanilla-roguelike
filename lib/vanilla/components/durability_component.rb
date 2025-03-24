@@ -124,7 +124,7 @@ module Vanilla
       def notify_low_durability
         # Get the item's name if possible
         item_name = "Unknown"
-        if entity = Component.get_entity(self)
+        if (entity = Component.get_entity(self))
           if entity.has_component?(:item)
             item_name = entity.get_component(:item).name
           end
@@ -144,7 +144,7 @@ module Vanilla
       def notify_repair(amount)
         # Get the item's name if possible
         item_name = "Unknown"
-        if entity = Component.get_entity(self)
+        if (entity = Component.get_entity(self))
           if entity.has_component?(:item)
             item_name = entity.get_component(:item).name
           end

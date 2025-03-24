@@ -7,14 +7,14 @@ RSpec.describe Vanilla::Support::TileType do
     it 'returns all the defined tile values' do
       expect(described_class.values).to eq([
                                              ' ', # EMPTY
-        '#',  # WALL
-        '/',  # DOOR
-        '.',  # FLOOR
-        '@',  # PLAYER
-        'M',  # MONSTER
-        '%',  # STAIRS
-        '|',  # VERTICAL_WALL
-        '$'   # GOLD
+                                             '#',  # WALL
+                                             '/',  # DOOR
+                                             '.',  # FLOOR
+                                             '@',  # PLAYER
+                                             'M',  # MONSTER
+                                             '%',  # STAIRS
+                                             '|',  # VERTICAL_WALL
+                                             '$'   # GOLD
                                            ])
     end
   end

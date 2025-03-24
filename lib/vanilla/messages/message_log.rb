@@ -38,7 +38,7 @@ module Vanilla
       end
 
       # Add a message using a translation key
-      def add(key, options = {}, turn_provider = method(:current_game_turn))
+      def add(key, options = {}, _turn_provider = method(:current_game_turn))
         # Extract category and importance from options
         category = options.delete(:category) || :system
         importance = options.delete(:importance) || :normal

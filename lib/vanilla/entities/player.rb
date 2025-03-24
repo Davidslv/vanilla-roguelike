@@ -51,7 +51,7 @@ module Vanilla
                         character: Support::TileType::PLAYER,
                         entity_type: Support::TileType::PLAYER,
                         layer: 10 # Player is usually drawn on top
-        ))
+                      ))
       end
 
       # Gain experience points

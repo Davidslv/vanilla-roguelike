@@ -95,8 +95,8 @@ RSpec.describe Vanilla::Components::InputComponent do
 
       expect(component.data).to eq({
                                      move_direction: :east,
-        action_triggered: true,
-        action_params: { target: 'door' }
+                                     action_triggered: true,
+                                     action_params: { target: 'door' }
                                    })
     end
   end

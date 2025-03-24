@@ -11,7 +11,7 @@ module Vanilla
         @logger = Vanilla::Logger.instance
       end
 
-      def update(delta_time)
+      def update(_delta_time)
         movable_entities = entities_with(:position, :movement)
         @logger.debug("Found #{movable_entities.size} movable entities")
         movable_entities.each { |entity| process_entity_movement(entity) }
@@ -65,9 +65,9 @@ module Vanilla
 
         emit_event(:entity_moved, {
                      entity_id: entity.id,
-          old_position: old_position,
-          new_position: { row: position.row, column: position.column },
-          direction: direction
+                     old_position: old_position,
+                     new_position: { row: position.row, column: position.column },
+                     direction: direction
                    })
 
         grid[old_position[:row], old_position[:column]].tile = Vanilla::Support::TileType::EMPTY
@@ -107,7 +107,7 @@ module Vanilla
         end
       end
 
-      def can_move_to?(current_cell, target_cell, direction)
+      def can_move_to?(current_cell, target_cell, _direction)
         linked = current_cell.linked?(target_cell)
         walkable = Vanilla::Support::TileType.walkable?(target_cell.tile)
         @logger.debug("Can move to [#{target_cell.row}, #{target_cell.column}]? Linked: #{linked}, Walkable: #{walkable}")
@@ -123,7 +123,7 @@ module Vanilla
         end
       end
 
-      def update_position(position, direction, speed)
+      def update_position(position, direction, _speed)
         case direction
         when :north then position.set_position(position.row - 1, position.column)
         when :south then position.set_position(position.row + 1, position.column)
@@ -132,7 +132,7 @@ module Vanilla
         end
       end
 
-      def log_movement(entity, direction, old_position, new_position)
+      def log_movement(_entity, direction, old_position, new_position)
         @logger.info("Entity moved #{direction} from [#{old_position[:row]}, #{old_position[:column]}] to [#{new_position[:row]}, #{new_position[:column]}]")
       end
     end

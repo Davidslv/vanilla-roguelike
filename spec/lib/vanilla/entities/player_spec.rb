@@ -158,7 +158,7 @@ RSpec.describe Vanilla::Entities::Player do
       puts "Components: #{original_hash[:components].inspect}"
 
       # Create a new player with basic info so we can deserialize
-      minimal_hash = {
+      {
         id: original_hash[:id],
         name: original_hash[:name],
         level: original_hash[:level],

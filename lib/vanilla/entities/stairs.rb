@@ -23,7 +23,7 @@ module Vanilla
         add_component(Components::RenderComponent.new(
                         character: Support::TileType::STAIRS,
                         layer: 2 # Above floor, below monsters
-        ))
+                      ))
       end
     end
   end

@@ -15,13 +15,13 @@ RSpec.describe Vanilla::Algorithms::RecursiveBacktracker do
 
     it 'creates a fully connected maze' do
       result = described_class.on(grid)
-      
+
       # Choose a starting cell
       start = result[0, 0]
-      
+
       # Use distances to verify connectivity
       distances = start.distances
-      
+
       # Every cell should be reachable from the starting cell
       result.each_cell do |cell|
         expect(distances[cell]).not_to be_nil
@@ -30,7 +30,7 @@ RSpec.describe Vanilla::Algorithms::RecursiveBacktracker do
 
     it 'ensures all cells have at least one link' do
       result = described_class.on(grid)
-      
+
       result.each_cell do |cell|
         expect(cell.links).not_to be_empty
       end
@@ -42,7 +42,7 @@ RSpec.describe Vanilla::Algorithms::RecursiveBacktracker do
 
     it 'creates paths with correct neighbor relationships' do
       result = described_class.on(grid)
-      
+
       result.each_cell do |cell|
         cell.links.each do |linked_cell|
           # Each linked cell should be a neighbor of the current cell

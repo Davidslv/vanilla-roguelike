@@ -91,13 +91,13 @@ module Vanilla
           it "doesn't increase stack size" do
             expect {
               item.increase_stack
-            }.not_to change { item.stack_size }
+            }.not_to(change { item.stack_size })
           end
 
           it "doesn't decrease stack size" do
             expect {
               item.decrease_stack
-            }.not_to change { item.stack_size }
+            }.not_to(change { item.stack_size })
           end
         end
       end

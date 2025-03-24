@@ -56,7 +56,7 @@ module Vanilla
       # Use the item on a target entity
       # @param entity [Entity] The entity using the item
       # @return [Boolean] Whether the item was successfully used
-      def use(entity)
+      def use(_entity)
         # Base implementation does nothing - subclasses should override
         false
       end

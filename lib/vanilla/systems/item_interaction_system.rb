@@ -134,9 +134,9 @@ module Vanilla
         # 2. Have an item component
         level.all_entities.select do |entity|
           entity.has_component?(:position) &&
-          entity.has_component?(:item) &&
-          entity.get_component(:position).row == row &&
-          entity.get_component(:position).column == column
+            entity.has_component?(:item) &&
+            entity.get_component(:position).row == row &&
+            entity.get_component(:position).column == column
         end
       end
     end

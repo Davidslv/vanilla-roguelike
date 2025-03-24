@@ -44,7 +44,7 @@ module Vanilla
                         character: Support::TileType::MONSTER,
                         entity_type: @monster_type,
                         layer: 5 # Monsters are below player
-        ))
+                      ))
       end
 
       # Check if the monster is alive
@@ -111,8 +111,6 @@ module Vanilla
         render_component = get_component(:render)
         render_component&.character || Support::TileType::MONSTER
       end
-
-      private
 
       # Extract position information from serialized components
       # @param components [Array<Hash>] serialized components

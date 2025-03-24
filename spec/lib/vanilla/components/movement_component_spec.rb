@@ -76,9 +76,9 @@ RSpec.describe Vanilla::Components::MovementComponent do
 
       expect(component.data).to eq({
                                      speed: 1.5,
-        can_move_directions: [:north, :east],
-        active: false,
-        direction: :north
+                                     can_move_directions: [:north, :east],
+                                     active: false,
+                                     direction: :north
                                    })
     end
   end

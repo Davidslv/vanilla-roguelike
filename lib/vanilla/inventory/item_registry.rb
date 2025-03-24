@@ -204,9 +204,9 @@ module Vanilla
         # Add key component
         key.add_component(Vanilla::Components::KeyComponent.new(
                             data[:key_id] || SecureRandom.uuid,
-          data[:lock_type] || :door,
-          data[:one_time_use].nil? ? true : data[:one_time_use]
-        ))
+                            data[:lock_type] || :door,
+                            data[:one_time_use].nil? ? true : data[:one_time_use]
+                          ))
 
         key
       end
@@ -229,8 +229,8 @@ module Vanilla
         # Add currency component
         currency.add_component(Vanilla::Components::CurrencyComponent.new(
                                  data[:value] || 1,
-          data[:currency_type] || :gold
-        ))
+                                 data[:currency_type] || :gold
+                               ))
 
         currency
       end
@@ -255,119 +255,119 @@ module Vanilla
         # Weapons
         register_template(:short_sword, {
                             name: "Short Sword",
-          description: "A simple but effective weapon.",
-          item_type: :weapon,
-          damage: 5,
-          slot: :right_hand,
-          character: '/',
-          color: :white,
-          weight: 3
+                            description: "A simple but effective weapon.",
+                            item_type: :weapon,
+                            damage: 5,
+                            slot: :right_hand,
+                            character: '/',
+                            color: :white,
+                            weight: 3
                           })
 
         register_template(:dagger, {
                             name: "Dagger",
-          description: "A small, quick blade.",
-          item_type: :weapon,
-          damage: 3,
-          slot: :right_hand,
-          character: '†',
-          color: :cyan,
-          weight: 1
+                            description: "A small, quick blade.",
+                            item_type: :weapon,
+                            damage: 3,
+                            slot: :right_hand,
+                            character: '†',
+                            color: :cyan,
+                            weight: 1
                           })
 
         # Armors
         register_template(:leather_armor, {
                             name: "Leather Armor",
-          description: "Basic protection made of hardened leather.",
-          item_type: :armor,
-          defense: 2,
-          slot: :body,
-          character: '[',
-          color: :brown,
-          weight: 5
+                            description: "Basic protection made of hardened leather.",
+                            item_type: :armor,
+                            defense: 2,
+                            slot: :body,
+                            character: '[',
+                            color: :brown,
+                            weight: 5
                           })
 
         register_template(:helmet, {
                             name: "Helmet",
-          description: "A metal helmet that protects your head.",
-          item_type: :armor,
-          defense: 1,
-          slot: :head,
-          character: '^',
-          color: :gray,
-          weight: 2
+                            description: "A metal helmet that protects your head.",
+                            item_type: :armor,
+                            defense: 1,
+                            slot: :head,
+                            character: '^',
+                            color: :gray,
+                            weight: 2
                           })
 
         # Potions
         register_template(:healing_potion, {
                             name: "Healing Potion",
-          description: "A small vial of red liquid that restores health.",
-          item_type: :potion,
-          effect_type: :heal,
-          effect_amount: 15,
-          character: '!',
-          color: :red,
-          weight: 1
+                            description: "A small vial of red liquid that restores health.",
+                            item_type: :potion,
+                            effect_type: :heal,
+                            effect_amount: 15,
+                            character: '!',
+                            color: :red,
+                            weight: 1
                           })
 
         register_template(:strength_potion, {
                             name: "Strength Potion",
-          description: "A potion that temporarily boosts your strength.",
-          item_type: :potion,
-          effect_type: :buff,
-          effect_amount: 3,
-          stat: :strength,
-          duration: 10,
-          character: '!',
-          color: :green,
-          weight: 1
+                            description: "A potion that temporarily boosts your strength.",
+                            item_type: :potion,
+                            effect_type: :buff,
+                            effect_amount: 3,
+                            stat: :strength,
+                            duration: 10,
+                            character: '!',
+                            color: :green,
+                            weight: 1
                           })
 
         # Scrolls
         register_template(:scroll_of_identify, {
                             name: "Scroll of Identify",
-          description: "Reveals the true nature of an item.",
-          item_type: :scroll,
-          effect_type: :identify,
-          effect_amount: 1,
-          character: '?',
-          color: :yellow,
-          weight: 0.5
+                            description: "Reveals the true nature of an item.",
+                            item_type: :scroll,
+                            effect_type: :identify,
+                            effect_amount: 1,
+                            character: '?',
+                            color: :yellow,
+                            weight: 0.5
                           })
 
         # Keys
         register_template(:rusty_key, {
                             name: "Rusty Key",
-          description: "An old, rusty key. It might unlock something.",
-          item_type: :key,
-          key_id: "dungeon_1",
-          lock_type: :door,
-          one_time_use: true,
-          character: 'k',
-          color: :brown,
-          weight: 0.5
+                            description: "An old, rusty key. It might unlock something.",
+                            item_type: :key,
+                            key_id: "dungeon_1",
+                            lock_type: :door,
+                            one_time_use: true,
+                            character: 'k',
+                            color: :brown,
+                            weight: 0.5
                           })
 
         # Currency
         register_template(:gold_coins, {
                             name: "Gold Coins",
-          description: "Standard currency for trade.",
-          item_type: :currency,
-          value: 10,
-          currency_type: :gold,
-          character: '$',
-          color: :yellow,
-          weight: 0.01
+                            description: "Standard currency for trade.",
+                            item_type: :currency,
+                            value: 10,
+                            currency_type: :gold,
+                            character: '$',
+                            color: :yellow,
+                            weight: 0.01
                           })
 
         # Misc items
         register_template(:mysterious_artifact, {
                             name: "Mysterious Artifact",
-          description: "A strange object of unknown purpose.",
-          item_type: :misc,
-          character: '*',
-          color: :magenta,
-          weight: 1
+                            description: "A strange object of unknown purpose.",
+                            item_type: :misc,
+                            character: '*',
+                            color: :magenta,
+                            weight: 1
                           })
       end
     end

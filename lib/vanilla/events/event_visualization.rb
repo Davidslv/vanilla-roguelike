@@ -130,16 +130,17 @@ module Vanilla
 
             <script>
               // Event data
-              const events = #{events.map { |e| {
-                id: e.id,
-                type: e.type,
-                source: e.source.to_s,
-                timestamp: e.timestamp,
-                time_offset: (e.timestamp - start_time).round(3),
-                position_percent: duration > 0 ? (e.timestamp - start_time) / duration : 0,
-                data: e.data || {}
-              }
-}.to_json};
+              const events = #{events.map { |e| # {' '}
+                               {
+                                 id: e.id,
+                                 type: e.type,
+                                 source: e.source.to_s,
+                                 timestamp: e.timestamp,
+                                 time_offset: (e.timestamp - start_time).round(3),
+                                 position_percent: duration > 0 ? (e.timestamp - start_time) / duration : 0,
+                                 data: e.data || {}
+                               }
+                             }.to_json};
 
               const eventTypes = #{event_types.to_json};
               const duration = #{duration};

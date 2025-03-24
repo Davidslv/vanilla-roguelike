@@ -8,13 +8,12 @@
 # USAGE:
 # ruby scripts/analyze_codebase_mermaid.rb > vanilla_ecs.mmd
 #
-# ruby scripts/analyze_codebase_mermaid.rb Systems > vanilla_ecs_systems.mmd
+#  ruby scripts/analyze_codebase_mermaid.rb Systems > vanilla_ecs_systems.mmd
 #
-# ruby scripts/analyze_codebase_mermaid.rb Components > vanilla_ecs_components.mmd
+#  ruby scripts/analyze_codebase_mermaid.rb Components > vanilla_ecs_components.mmd
 #
-# ruby scripts/analyze_codebase_mermaid.rb Core > vanilla_ecs_core.mmd
+#  ruby scripts/analyze_codebase_mermaid.rb Core > vanilla_ecs_core.mmd
 
-require 'set'
 require 'parser/current' # gem install parser
 
 # Class to store class info

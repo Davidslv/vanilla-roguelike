@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# USAGE:
+#  USAGE:
 # .scripts/log_monitor.rb
 
 require 'json'

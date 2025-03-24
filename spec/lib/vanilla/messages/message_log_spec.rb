@@ -47,7 +47,7 @@ module Vanilla
 
       describe "#get_recent" do
         before do
-          5.times { |i| message_log.add("Message #{i+1}") }
+          5.times { |i| message_log.add("Message #{i + 1}") }
         end
 
         it "returns the specified number of recent messages" do
@@ -98,7 +98,7 @@ module Vanilla
 
       describe "#clear" do
         before do
-          3.times { |i| message_log.add("Message #{i+1}") }
+          3.times { |i| message_log.add("Message #{i + 1}") }
         end
 
         it "removes all messages from the log" do

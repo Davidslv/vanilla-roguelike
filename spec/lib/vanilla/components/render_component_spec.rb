@@ -54,9 +54,9 @@ RSpec.describe Vanilla::Components::RenderComponent do
       component = described_class.new(character: '@', color: :blue, layer: 3, entity_type: 'player')
       expect(component.data).to eq({
                                      character: '@',
-        color: :blue,
-        layer: 3,
-        entity_type: 'player'
+                                     color: :blue,
+                                     layer: 3,
+                                     entity_type: 'player'
                                    })
     end
   end

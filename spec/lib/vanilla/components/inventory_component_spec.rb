@@ -16,7 +16,7 @@ module Vanilla
         item.add_component(ItemComponent.new(
                              name: "Stackable Item",
                              stackable: true
-        ))
+                           ))
         item
       end
 
@@ -78,7 +78,7 @@ module Vanilla
                                          name: "Stackable Item",
                                          stackable: true,
                                          item_type: :potion
-            ))
+                                       ))
 
             # Both should have the same item_type
             stackable_item.get_component(:item).instance_variable_set(:@item_type, :potion)
@@ -86,7 +86,7 @@ module Vanilla
             # Add the similar item
             expect {
               inventory.add(similar_item)
-            }.not_to change { inventory.items.count }
+            }.not_to(change { inventory.items.count })
 
             # But the stack size should increase
             expect(stackable_item.get_component(:item).stack_size).to eq(2)
@@ -121,7 +121,7 @@ module Vanilla
           it "decreases stack size for stackable items with multiple stacks" do
             expect {
               inventory.remove(stackable_item)
-            }.not_to change { inventory.items.count }
+            }.not_to(change { inventory.items.count })
 
             expect(stackable_item.get_component(:item).stack_size).to eq(1)
           end
@@ -142,7 +142,7 @@ module Vanilla
           weapon.add_component(ItemComponent.new(
                                  name: "Sword",
                                  item_type: :weapon
-          ))
+                               ))
           inventory.add(weapon)
         end
 
@@ -164,13 +164,13 @@ module Vanilla
                                   item_type: :potion,
                                   stackable: true,
                                   stack_size: 2
-          ))
+                                ))
 
           potion2 = Entity.new
           potion2.add_component(ItemComponent.new(
                                   name: "Mana Potion",
                                   item_type: :potion
-          ))
+                                ))
 
           inventory.add(potion1)
           inventory.add(potion2)

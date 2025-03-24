@@ -88,7 +88,7 @@ module Vanilla
         @cells[cell]
       end
 
-      def path_to(goal)
+      def path_to(_goal)
         self # Placeholder
       end
 

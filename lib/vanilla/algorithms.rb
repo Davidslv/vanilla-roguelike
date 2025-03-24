@@ -10,7 +10,7 @@ module Vanilla
     require_relative 'algorithms/recursive_backtracker'
     require_relative 'algorithms/recursive_division'
 
-    # Available Algorithms for the map
+    #  Available Algorithms for the map
     AVAILABLE = [
       Vanilla::Algorithms::AldousBroder,
       Vanilla::Algorithms::BinaryTree,

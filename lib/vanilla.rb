@@ -4,7 +4,6 @@ STDOUT.sync = true
 
 require 'pry'
 require 'logger'
-require 'set'
 require 'securerandom'
 require 'i18n'
 
@@ -145,5 +144,4 @@ module Vanilla
       game.cleanup
     end
   end
-
 end

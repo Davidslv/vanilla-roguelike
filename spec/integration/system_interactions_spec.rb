@@ -43,7 +43,7 @@ RSpec.describe "System Interactions", type: :integration do
       # Verify grid responds to expected methods
       expect(level).to respond_to(:update_grid_with_entities)
 
-      initial_position = player.get_component(:position)
+      player.get_component(:position)
 
       # This could be a private method we need to address
       expect {
@@ -70,8 +70,8 @@ RSpec.describe "System Interactions", type: :integration do
                          Vanilla::ServiceRegistry.get(:message_system)
                        else
                          pending "Cannot access message system for testing"
-        next
-      end
+                         next
+                       end
 
       # Test various ways of calling log_message to ensure they all work
       expect {
@@ -101,8 +101,8 @@ RSpec.describe "System Interactions", type: :integration do
                         Vanilla::ServiceRegistry.get(:render_system)
                       else
                         pending "Cannot access render system for testing"
-        next
-      end
+                        next
+                      end
 
       # Mock the renderer to avoid actual display updates during tests
       allow(render_system).to receive(:render)
@@ -123,7 +123,7 @@ RSpec.describe "System Interactions", type: :integration do
       player = game.player
 
       # Skip state capture since we don't have access to current_level yet
-      #initial_state = capture_game_state(game)
+      # initial_state = capture_game_state(game)
 
       # This test simulates what happens when a player moves:
       # 1. Input is processed
@@ -135,7 +135,6 @@ RSpec.describe "System Interactions", type: :integration do
 
       expect {
         # Simulate input handling
-        direction = :east
 
         # Directly move player
         position = player.get_component(:position)

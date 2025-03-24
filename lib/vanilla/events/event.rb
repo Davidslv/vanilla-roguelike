@@ -82,7 +82,7 @@ module Vanilla
           # For complex objects, convert to string representation
           value.to_s
         end
-      rescue => e
+      rescue
         # If any error occurs during serialization, return a safe fallback
         "#<#{value.class} - non-serializable>"
       end

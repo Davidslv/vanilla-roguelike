@@ -26,7 +26,7 @@ module Vanilla
 
       # Update method called once per frame
       # @param delta_time [Float] Time since last update
-      def update(delta_time)
+      def update(_delta_time)
         # Process any queued messages
         process_message_queue
       end
@@ -80,7 +80,7 @@ module Vanilla
 
         when :entity_died
           entity = @world.get_entity(data[:entity_id])
-          killer = @world.get_entity(data[:killer_id])
+          @world.get_entity(data[:killer_id])
 
           if entity&.has_tag?(:monster)
             add_message("combat.monster_died", { monster: entity.name || "monster" }, importance: :normal)

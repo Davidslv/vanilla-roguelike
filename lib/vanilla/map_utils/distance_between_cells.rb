@@ -11,13 +11,13 @@ module Vanilla
         @cells[@root] = 0
       end
 
-      # We also add an array accessor method, [](cell),
-      # so that we can query the distance of a given cell from the root
+      #  We also add an array accessor method, [](cell),
+      #  so that we can query the distance of a given cell from the root
       def [](cell)
         @cells[cell]
       end
 
-      # And a corresponding setter, to record the distance of a given cell.
+      #  And a corresponding setter, to record the distance of a given cell.
       def []=(cell, distance)
         @cells[cell] = distance
       end
@@ -61,6 +61,5 @@ module Vanilla
         [max_cell, max_distance]
       end
     end
-
   end
 end

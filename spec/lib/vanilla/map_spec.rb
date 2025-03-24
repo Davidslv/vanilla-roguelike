@@ -33,7 +33,7 @@ RSpec.describe Vanilla::Map do
       # Use a higher-order mock to capture the random seed
       allow(Random).to receive(:new).and_call_original
 
-      map_with_random_seed = described_class.new(rows: rows, columns: columns, algorithm: algorithm)
+      described_class.new(rows: rows, columns: columns, algorithm: algorithm)
 
       # Verify seed was set to something
       expect($seed).not_to be_nil
