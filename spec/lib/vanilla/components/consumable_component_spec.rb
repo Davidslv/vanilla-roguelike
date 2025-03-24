@@ -149,7 +149,8 @@ module Vanilla
           { type: :buff, stat: :strength, amount: 5, duration: 3 },
           { type: :teleport },
           { type: :damage, amount: 5, damage_type: :fire }
-        ])}
+        ])
+}
 
         before do
           allow(Vanilla::ServiceRegistry).to receive(:get).with(:message_system).and_return(message_system)

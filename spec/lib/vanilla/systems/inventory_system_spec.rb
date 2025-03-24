@@ -371,9 +371,11 @@ module Vanilla
         let(:inventory) { Vanilla::Components::InventoryComponent.new }
         let(:level) { double("Level") }
         let(:position_component) { instance_double("Vanilla::Components::PositionComponent",
-                                                   row: 5, column: 10, coordinates: [5, 10]) }
+                                                   row: 5, column: 10, coordinates: [5, 10])
+}
         let(:item_component) { instance_double("Vanilla::Components::ItemComponent",
-                                               name: "Test Item", stackable?: false) }
+                                               name: "Test Item", stackable?: false)
+}
 
         before do
           # Configure entity

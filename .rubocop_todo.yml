@@ -23,14 +23,6 @@ ECS/ComponentBehavior:
 
 # Offense count: 4
 # This cop supports safe autocorrection (--autocorrect).
-Layout/BlockEndNewline:
-  Exclude:
-    - 'lib/vanilla/events/event_visualization.rb'
-    - 'spec/lib/vanilla/components/consumable_component_spec.rb'
-    - 'spec/lib/vanilla/systems/inventory_system_spec.rb'
-
-# Offense count: 4
-# This cop supports safe autocorrection (--autocorrect).
 # Configuration parameters: EnforcedStyle, IndentOneStep, IndentationWidth.
 # SupportedStyles: case, end
 Layout/CaseIndentation:
