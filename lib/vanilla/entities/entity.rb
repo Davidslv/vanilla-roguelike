@@ -103,14 +103,6 @@ module Vanilla
         @tags.to_a
       end
 
-      # Update all components
-      # @param delta_time [Float] time since last update
-      def update(delta_time)
-        @components.each do |component|
-          component.update(delta_time) if component.respond_to?(:update)
-        end
-      end
-
       # Convert to hash for serialization
       # @return [Hash] serialized representation
       def to_hash
