@@ -6,13 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 35
-# This cop supports safe autocorrection (--autocorrect).
-ECS/ComponentBehavior:
-  Exclude:
-    - 'spec/lib/vanilla/components/component_spec.rb'
-
-
 # Offense count: 44
 # Configuration parameters: AllowedMethods, AllowedPatterns, CountRepeatedAttributes.
 Metrics/AbcSize:

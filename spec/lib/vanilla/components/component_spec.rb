@@ -70,8 +70,8 @@ RSpec.describe Vanilla::Components::Component do
           :test
         end
 
-        def data
-          { value: 42 }
+        def to_hash
+          { type: type, value: 42 }
         end
       end
     end
@@ -82,23 +82,6 @@ RSpec.describe Vanilla::Components::Component do
       hash = component.to_hash
       expect(hash[:type]).to eq(:test)
       expect(hash[:value]).to eq(42)
-    end
-  end
-
-  describe '#update' do
-    let(:component_class) do
-      Class.new(described_class) do
-        def type
-          :test
-        end
-      end
-    end
-
-    let(:component) { component_class.new }
-    let(:entity) { double("Entity") }
-
-    it 'has a default implementation that does nothing' do
-      expect { component.update(entity, 1.0) }.not_to raise_error
     end
   end
 end

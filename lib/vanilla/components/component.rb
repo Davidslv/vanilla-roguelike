@@ -56,20 +56,7 @@ module Vanilla
       # @return [Hash] serialized component data
       def to_hash
         # Merge the component type with any data the component provides
-        { type: type }.merge(data || {})
-      end
-
-      # Get additional data for serialization
-      # @return [Hash] additional data to include in serialization
-      def data
-        {}
-      end
-
-      # Update the component
-      # @param entity [Entity] the entity this component belongs to
-      # @param delta_time [Float] time since last update in seconds
-      def update(entity, delta_time)
-        # Default implementation does nothing
+        { type: type }
       end
     end
   end
