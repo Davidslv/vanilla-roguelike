@@ -10,7 +10,6 @@
 # This cop supports safe autocorrection (--autocorrect).
 ECS/ComponentBehavior:
   Exclude:
-    - 'lib/vanilla/components/movement_component.rb'
     - 'lib/vanilla/components/position_component.rb'
     - 'lib/vanilla/components/render_component.rb'
     - 'lib/vanilla/components/stairs_component.rb'
