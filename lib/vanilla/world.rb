@@ -16,10 +16,28 @@ module Vanilla
       @systems = []
 
       @display = DisplayHandler.new
+      @logger = Vanilla::Logger.instance
+
       @current_level = nil
+      @level_changed = false
+
       @event_subscribers = Hash.new { |h, k| h[k] = [] }
       @event_queue = Queue.new
       @command_queue = Queue.new
+    end
+
+    # Works by delegating it to InputSystem
+    def quit?
+      input_system, _priority = @systems.find { |system, _priority| system.is_a?(Vanilla::Systems::InputSystem) }
+
+      input_system&.quit? || false
+    end
+
+    # Check if the level changed this frame (resets after checking)
+    def level_changed?
+      changed = @level_changed
+      @level_changed = false # Reset after querying
+      changed
     end
 
     # Add an entity to the world
@@ -184,6 +202,9 @@ module Vanilla
       monster_system&.spawn_monsters(difficulty)
 
       emit_event(:level_transitioned, { difficulty: difficulty, player_id: player_id })
+
+      # Flag to inform world that there's a new level to be rendered
+      @level_changed = true
     end
 
     # Add an item to a player's inventory

@@ -7,7 +7,7 @@ module Vanilla
     # Component for storing input state
     # This component stores pending input actions for an entity
     class InputComponent < Component
-      attr_reader :move_direction
+      attr_accessor :move_direction
 
       # Initialize a new input component
       def initialize
@@ -24,9 +24,9 @@ module Vanilla
       # TODO: remove this method for pure ECS
       # Set the movement direction
       # @param direction [Symbol] The direction to move (:north, :south, :east, :west)
-      def set_move_direction(direction)
-        @move_direction = direction
-      end
+      # def set_move_direction(direction)
+      #   @move_direction = direction
+      # end
 
       # Convert to hash for serialization
       # @return [Hash] Serialized representation
@@ -41,7 +41,7 @@ module Vanilla
       # @return [InputComponent] The new component
       def self.from_hash(hash)
         component = new
-        component.set_move_direction(hash[:move_direction])
+        component.move_direction = hash[:move_direction]
         component
       end
 
