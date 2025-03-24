@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 RSpec.describe Vanilla::Systems::MovementSystem do
@@ -150,7 +152,7 @@ RSpec.describe Vanilla::Systems::MovementSystem do
       result = system.move(entity, :north)
 
       expect(result).to be false
-      expect(position_component.row).to eq(5)  # Position unchanged
+      expect(position_component.row).to eq(5) # Position unchanged
       expect(position_component.column).to eq(10)
     end
   end

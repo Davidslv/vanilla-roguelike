@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 RSpec.describe Vanilla::Components::Component do
@@ -64,10 +66,6 @@ RSpec.describe Vanilla::Components::Component do
   describe '#to_hash' do
     let(:component_class) do
       Class.new(described_class) do
-        def initialize
-          super
-        end
-
         def type
           :test
         end
@@ -90,10 +88,6 @@ RSpec.describe Vanilla::Components::Component do
   describe '#update' do
     let(:component_class) do
       Class.new(described_class) do
-        def initialize
-          super
-        end
-
         def type
           :test
         end

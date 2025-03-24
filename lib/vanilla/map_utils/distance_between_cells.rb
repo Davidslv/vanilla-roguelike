@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module MapUtils
     # We will use this class to record the distance of each cell from the starting point (@root)
@@ -9,13 +11,13 @@ module Vanilla
         @cells[@root] = 0
       end
 
-      # We also add an array accessor method, [](cell),
-      # so that we can query the distance of a given cell from the root
+      #  We also add an array accessor method, [](cell),
+      #  so that we can query the distance of a given cell from the root
       def [](cell)
         @cells[cell]
       end
 
-      # And a corresponding setter, to record the distance of a given cell.
+      #  And a corresponding setter, to record the distance of a given cell.
       def []=(cell, distance)
         @cells[cell] = distance
       end
@@ -31,16 +33,16 @@ module Vanilla
         breadcrumbs = DistanceBetweenCells.new(@root)
         breadcrumbs[current] = @cells[current]
 
-          until current == @root
-            current.links.each do |neighbor|
-              if @cells[neighbor] < @cells[current]
-                breadcrumbs[neighbor] = @cells[neighbor]
-                current = neighbor
+        until current == @root
+          current.links.each do |neighbor|
+            if @cells[neighbor] < @cells[current]
+              breadcrumbs[neighbor] = @cells[neighbor]
+              current = neighbor
 
-                break
-              end
+              break
             end
           end
+        end
 
         breadcrumbs
       end
@@ -59,6 +61,5 @@ module Vanilla
         [max_cell, max_distance]
       end
     end
-
   end
 end

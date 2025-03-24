@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Components
     # Component for managing temporary effects/buffs on entities
@@ -42,13 +44,13 @@ module Vanilla
           message_system = Vanilla::ServiceRegistry.get(:message_system) rescue nil
           if message_system
             message_system.log_message("effects.applied",
-                                      metadata: {
-                                        effect_type: effect_type,
-                                        value: effect_value,
-                                        source: source
-                                      },
-                                      importance: :normal,
-                                      category: :effect)
+                                       metadata: {
+                                         effect_type: effect_type,
+                                         value: effect_value,
+                                         source: source
+                                       },
+                                       importance: :normal,
+                                       category: :effect)
           end
         end
 
@@ -67,12 +69,12 @@ module Vanilla
         message_system = Vanilla::ServiceRegistry.get(:message_system) rescue nil
         if message_system && removed
           message_system.log_message("effects.removed",
-                                    metadata: {
-                                      effect_type: removed[:type],
-                                      source: removed[:source]
-                                    },
-                                    importance: :normal,
-                                    category: :effect)
+                                     metadata: {
+                                       effect_type: removed[:type],
+                                       source: removed[:source]
+                                     },
+                                     importance: :normal,
+                                     category: :effect)
         end
 
         removed
@@ -97,9 +99,9 @@ module Vanilla
         message_system = Vanilla::ServiceRegistry.get(:message_system) rescue nil
         if message_system && !removed.empty?
           message_system.log_message("effects.removed_source",
-                                    metadata: { source: source, count: removed.size },
-                                    importance: :normal,
-                                    category: :effect)
+                                     metadata: { source: source, count: removed.size },
+                                     importance: :normal,
+                                     category: :effect)
         end
 
         removed
@@ -126,12 +128,12 @@ module Vanilla
         if message_system && !expired.empty?
           expired.each do |effect|
             message_system.log_message("effects.expired",
-                                      metadata: {
-                                        effect_type: effect[:type],
-                                        source: effect[:source]
-                                      },
-                                      importance: :normal,
-                                      category: :effect)
+                                       metadata: {
+                                         effect_type: effect[:type],
+                                         source: effect[:source]
+                                       },
+                                       importance: :normal,
+                                       category: :effect)
           end
         end
 

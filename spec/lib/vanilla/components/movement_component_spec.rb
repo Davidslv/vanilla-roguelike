@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 RSpec.describe Vanilla::Components::MovementComponent do
@@ -73,11 +75,11 @@ RSpec.describe Vanilla::Components::MovementComponent do
       component.set_direction(:north)
 
       expect(component.data).to eq({
-        speed: 1.5,
-        can_move_directions: [:north, :east],
-        active: false,
-        direction: :north
-      })
+                                     speed: 1.5,
+                                     can_move_directions: [:north, :east],
+                                     active: false,
+                                     direction: :north
+                                   })
     end
   end
 

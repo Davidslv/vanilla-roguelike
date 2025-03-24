@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Messages
     # Message represents a single message in the game's message log.
@@ -17,9 +19,9 @@ module Vanilla
       # @param turn_provider [Proc] Optional proc that provides the current turn number
       # @yield [Message] Called when the message is selected, if selectable
       def initialize(content, category: :system, importance: :normal,
-                    turn: nil, metadata: {}, selectable: false,
-                    shortcut_key: nil, turn_provider: -> { Vanilla.game_turn rescue 0 },
-                    &selection_callback)
+                     turn: nil, metadata: {}, selectable: false,
+                     shortcut_key: nil, turn_provider: -> { Vanilla.game_turn rescue 0 },
+                     &selection_callback)
         @content = content
         @category = category
         @importance = importance

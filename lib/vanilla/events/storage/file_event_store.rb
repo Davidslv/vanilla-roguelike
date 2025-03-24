@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'fileutils'
 require 'json'
 
@@ -30,7 +32,7 @@ module Vanilla
 
           # Write event as JSON line
           @current_file.puts(event.to_json)
-          @current_file.flush  # Ensure data is written immediately
+          @current_file.flush # Ensure data is written immediately
         end
 
         # Query for events based on options
@@ -82,6 +84,7 @@ module Vanilla
           File.open(filename, "r") do |file|
             file.each_line do |line|
               next if line.strip.empty?
+
               events << Event.from_json(line)
             end
           end

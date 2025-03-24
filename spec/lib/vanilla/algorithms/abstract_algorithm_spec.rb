@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'vanilla/algorithms/abstract_algorithm'
 
@@ -8,4 +10,4 @@ RSpec.describe Vanilla::Algorithms::AbstractAlgorithm do
       expect(described_class.demodulize).to eq('AbstractAlgorithm')
     end
   end
-end 
+end

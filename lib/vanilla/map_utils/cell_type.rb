@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module MapUtils
     # CellType implements the Flyweight pattern for cell types

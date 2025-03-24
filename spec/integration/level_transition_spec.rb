@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 RSpec.describe "Level Transitions", type: :integration do
@@ -77,7 +79,7 @@ RSpec.describe "Level Transitions", type: :integration do
     end
 
     it "logs the level transition message correctly" do
-      initial_difficulty = level.difficulty
+      level.difficulty
 
       # Setup: move player to stairs
       stairs_position = level.stairs.get_component(:position)
@@ -86,10 +88,10 @@ RSpec.describe "Level Transitions", type: :integration do
 
       # Check if game has access to message system
       message_system = if game.respond_to?(:message_system)
-        game.message_system
-      elsif Vanilla::ServiceRegistry.respond_to?(:get)
-        Vanilla::ServiceRegistry.get(:message_system)
-      end
+                         game.message_system
+                       elsif Vanilla::ServiceRegistry.respond_to?(:get)
+                         Vanilla::ServiceRegistry.get(:message_system)
+                       end
 
       skip "Cannot access message system for testing" unless message_system
 

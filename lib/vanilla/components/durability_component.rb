@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Components
     # Component for items that have durability and can wear out with use
@@ -122,7 +124,7 @@ module Vanilla
       def notify_low_durability
         # Get the item's name if possible
         item_name = "Unknown"
-        if entity = Component.get_entity(self)
+        if (entity = Component.get_entity(self))
           if entity.has_component?(:item)
             item_name = entity.get_component(:item).name
           end
@@ -132,9 +134,9 @@ module Vanilla
         message_system = Vanilla::ServiceRegistry.get(:message_system) rescue nil
         if message_system
           message_system.log_message("items.low_durability",
-                                    metadata: { item: item_name },
-                                    importance: :warning,
-                                    category: :item)
+                                     metadata: { item: item_name },
+                                     importance: :warning,
+                                     category: :item)
         end
       end
 
@@ -142,7 +144,7 @@ module Vanilla
       def notify_repair(amount)
         # Get the item's name if possible
         item_name = "Unknown"
-        if entity = Component.get_entity(self)
+        if (entity = Component.get_entity(self))
           if entity.has_component?(:item)
             item_name = entity.get_component(:item).name
           end
@@ -152,9 +154,9 @@ module Vanilla
         message_system = Vanilla::ServiceRegistry.get(:message_system) rescue nil
         if message_system
           message_system.log_message("items.repaired",
-                                    metadata: { item: item_name, amount: amount },
-                                    importance: :success,
-                                    category: :item)
+                                     metadata: { item: item_name, amount: amount },
+                                     importance: :success,
+                                     category: :item)
         end
       end
     end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # lib/vanilla/level.rb
 module Vanilla
   class Level
@@ -42,8 +44,10 @@ module Vanilla
     def update_grid_with_entity(entity)
       position = entity.get_component(:position)
       return unless position
+
       cell = @grid[position.row, position.column]
       return unless cell
+
       render = entity.get_component(:render)
       if render && render.character
         # Only update if cell isn’t already occupied by a higher-priority entity (e.g., player over stairs)

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Components
     # RenderComponent stores visual representation data for entities.
@@ -22,7 +24,7 @@ module Vanilla
         @character = character
         @color = color
         @layer = layer
-        @entity_type = entity_type || character  # Default entity_type to character if not provided
+        @entity_type = entity_type || character # Default entity_type to character if not provided
         super()
       end
 

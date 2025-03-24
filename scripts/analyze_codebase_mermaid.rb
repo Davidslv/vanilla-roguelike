@@ -1,4 +1,6 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
+
 # analyze_codebase_mermaid.rb
 #
 # This script analyzes the codebase and generates a Mermaid class diagram.
@@ -6,14 +8,12 @@
 # USAGE:
 # ruby scripts/analyze_codebase_mermaid.rb > vanilla_ecs.mmd
 #
-# ruby scripts/analyze_codebase_mermaid.rb Systems > vanilla_ecs_systems.mmd
+#  ruby scripts/analyze_codebase_mermaid.rb Systems > vanilla_ecs_systems.mmd
 #
-# ruby scripts/analyze_codebase_mermaid.rb Components > vanilla_ecs_components.mmd
+#  ruby scripts/analyze_codebase_mermaid.rb Components > vanilla_ecs_components.mmd
 #
-# ruby scripts/analyze_codebase_mermaid.rb Core > vanilla_ecs_core.mmd
+#  ruby scripts/analyze_codebase_mermaid.rb Core > vanilla_ecs_core.mmd
 
-
-require 'set'
 require 'parser/current' # gem install parser
 
 # Class to store class info
@@ -43,6 +43,7 @@ def analyze_codebase(dir)
 
       traverse_ast(ast) do |node|
         next unless node.is_a?(Parser::AST::Node) && node.type == :class
+
         class_name = node.children[0].children[1].to_s
         parent = node.children[1]&.children&.[](1)&.to_s
         classes[class_name] ||= ClassInfo.new(class_name, parent, file)
@@ -75,6 +76,7 @@ end
 # Recursively traverse AST nodes
 def traverse_ast(node, &block)
   return unless node.is_a?(Parser::AST::Node)
+
   yield node
   node.children.each { |child| traverse_ast(child, &block) if child.is_a?(Parser::AST::Node) }
 end

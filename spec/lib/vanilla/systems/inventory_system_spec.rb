@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 module Vanilla
@@ -369,10 +371,14 @@ module Vanilla
         let(:item) { Vanilla::Components::Entity.new }
         let(:inventory) { Vanilla::Components::InventoryComponent.new }
         let(:level) { double("Level") }
-        let(:position_component) { instance_double("Vanilla::Components::PositionComponent",
-          row: 5, column: 10, coordinates: [5, 10]) }
-        let(:item_component) { instance_double("Vanilla::Components::ItemComponent",
-          name: "Test Item", stackable?: false) }
+        let(:position_component) {
+          instance_double("Vanilla::Components::PositionComponent",
+                          row: 5, column: 10, coordinates: [5, 10])
+        }
+        let(:item_component) {
+          instance_double("Vanilla::Components::ItemComponent",
+                          name: "Test Item", stackable?: false)
+        }
 
         before do
           # Configure entity

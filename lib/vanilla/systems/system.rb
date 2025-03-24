@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Systems
     # Base class for all systems in the ECS architecture.

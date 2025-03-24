@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Messages
     class MessageManager
@@ -77,7 +79,7 @@ module Vanilla
           end
 
           if message_with_shortcut
-            result = message_with_shortcut.select
+            message_with_shortcut.select
             return true
           end
         end
@@ -136,6 +138,7 @@ module Vanilla
         end
 
         return unless @panel
+
         @panel.render(render_system, @selection_mode)
       end
 
@@ -161,64 +164,57 @@ module Vanilla
       # Log a combat message
       def log_combat(key, metadata = {}, importance = :normal)
         log_translated(key,
-          category: :combat,
-          importance: importance,
-          metadata: metadata
-        )
+                       category: :combat,
+                       importance: importance,
+                       metadata: metadata)
       end
 
       # Log a movement message
       def log_movement(key, metadata = {})
         log_translated(key,
-          category: :movement,
-          importance: :normal,
-          metadata: metadata
-        )
+                       category: :movement,
+                       importance: :normal,
+                       metadata: metadata)
       end
 
       # Log an item-related message
       def log_item(key, metadata = {}, importance = :info)
         log_translated(key,
-          category: :item,
-          importance: importance,
-          metadata: metadata
-        )
+                       category: :item,
+                       importance: importance,
+                       metadata: metadata)
       end
 
       # Log an exploration message
       def log_exploration(key, metadata = {}, importance = :info)
         log_translated(key,
-          category: :exploration,
-          importance: importance,
-          metadata: metadata
-        )
+                       category: :exploration,
+                       importance: importance,
+                       metadata: metadata)
       end
 
       # Log a warning message
       def log_warning(key, metadata = {})
         log_translated(key,
-          category: :system,
-          importance: :warning,
-          metadata: metadata
-        )
+                       category: :system,
+                       importance: :warning,
+                       metadata: metadata)
       end
 
       # Log a critical message
       def log_critical(key, metadata = {})
         log_translated(key,
-          category: :system,
-          importance: :critical,
-          metadata: metadata
-        )
+                       category: :system,
+                       importance: :critical,
+                       metadata: metadata)
       end
 
       # Log a success message
       def log_success(key, metadata = {})
         log_translated(key,
-          category: :system,
-          importance: :success,
-          metadata: metadata
-        )
+                       category: :system,
+                       importance: :success,
+                       metadata: metadata)
       end
 
       private

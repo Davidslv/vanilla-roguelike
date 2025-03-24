@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 module Vanilla
   # The World class is the central container for all entities and systems.
   # It manages entities, systems, events, and commands.
-  # 
+  #
   # World acts as a coordinator, not a decision-maker.
-  # It runs systems in order (update loop) and provides access to entities/components. 
+  #  It runs systems in order (update loop) and provides access to entities/components.
 
   class World
     attr_reader :entities, :systems, :display, :current_level
@@ -66,7 +68,9 @@ module Vanilla
     # @return [System] The added system
     def add_system(system, priority = 0)
       @systems << [system, priority]
-      @systems.sort_by! { |s, p| p }
+
+      @systems.sort_by! { |_system, system_priority| system_priority }
+
       system
     end
 
@@ -77,7 +81,7 @@ module Vanilla
       process_commands
 
       # Update all systems
-      @systems.each do |system, _|
+      @systems.each do |system, _| # rubocop:disable Style/HashEachMethods
         system.update(nil)
       end
 
@@ -158,7 +162,7 @@ module Vanilla
         remove_entity(params[:entity_id])
       when :add_to_inventory
         add_to_inventory(params[:player_id], params[:item_id])
-      # Other command handlers...
+        # Other command handlers...
       end
     end
 
@@ -171,7 +175,7 @@ module Vanilla
         entrance_row = new_level.respond_to?(:entrance_row) ? new_level.entrance_row : 0
         entrance_column = new_level.respond_to?(:entrance_column) ? new_level.entrance_column : 0
         position.set_position(entrance_row, entrance_column)
-        new_level.add_entity(player)  # Ensure player is added to new level's entities
+        new_level.add_entity(player) # Ensure player is added to new level's entities
       end
       set_level(new_level)
 

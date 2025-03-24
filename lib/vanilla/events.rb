@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Event system for Vanilla game
 # This file requires all components of the event system
 

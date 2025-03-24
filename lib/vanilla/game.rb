@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # lib/vanilla/game.rb
 module Vanilla
   class Game
@@ -63,7 +65,7 @@ module Vanilla
           @turn += 1
           render
           @world.update(nil)  # Ensure any post-movement commands (e.g., level change) are processed
-          render  # Redraw after potential level change
+          render # Redraw after potential level change
         end
       end
     end

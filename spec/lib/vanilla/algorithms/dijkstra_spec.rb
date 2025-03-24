@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'vanilla/algorithms/dijkstra'
 require 'vanilla/map_utils/grid'

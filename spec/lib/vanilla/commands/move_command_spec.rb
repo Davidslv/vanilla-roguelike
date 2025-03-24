@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 RSpec.describe Vanilla::Commands::MoveCommand do
@@ -42,8 +44,8 @@ RSpec.describe Vanilla::Commands::MoveCommand do
 
         # Mock the movement to change position
         expect(movement_system).to receive(:move).with(entity, :up) do
-          position_component.row = 4  # Simulate movement up
-          true  # Return success
+          position_component.row = 4 # Simulate movement up
+          true # Return success
         end
 
         # Expect level's grid update to be called
@@ -77,7 +79,7 @@ RSpec.describe Vanilla::Commands::MoveCommand do
         # Mock the movement to not change position
         expect(movement_system).to receive(:move).with(entity, :up) do
           # Position stays the same
-          true  # Return success anyway
+          true # Return success anyway
         end
 
         # Should not try to clear the position

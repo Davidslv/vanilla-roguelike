@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Components
     # Component for items that represent currency or valuable treasures

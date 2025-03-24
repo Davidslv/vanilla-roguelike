@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 module Vanilla
@@ -12,9 +14,9 @@ module Vanilla
       let(:stackable_item) do
         item = Entity.new
         item.add_component(ItemComponent.new(
-          name: "Stackable Item",
-          stackable: true
-        ))
+                             name: "Stackable Item",
+                             stackable: true
+                           ))
         item
       end
 
@@ -73,10 +75,10 @@ module Vanilla
             # Create a similar stackable item
             similar_item = Entity.new
             similar_item.add_component(ItemComponent.new(
-              name: "Stackable Item",
-              stackable: true,
-              item_type: :potion
-            ))
+                                         name: "Stackable Item",
+                                         stackable: true,
+                                         item_type: :potion
+                                       ))
 
             # Both should have the same item_type
             stackable_item.get_component(:item).instance_variable_set(:@item_type, :potion)
@@ -84,7 +86,7 @@ module Vanilla
             # Add the similar item
             expect {
               inventory.add(similar_item)
-            }.not_to change { inventory.items.count }
+            }.not_to(change { inventory.items.count })
 
             # But the stack size should increase
             expect(stackable_item.get_component(:item).stack_size).to eq(2)
@@ -119,7 +121,7 @@ module Vanilla
           it "decreases stack size for stackable items with multiple stacks" do
             expect {
               inventory.remove(stackable_item)
-            }.not_to change { inventory.items.count }
+            }.not_to(change { inventory.items.count })
 
             expect(stackable_item.get_component(:item).stack_size).to eq(1)
           end
@@ -138,9 +140,9 @@ module Vanilla
         before do
           weapon = Entity.new
           weapon.add_component(ItemComponent.new(
-            name: "Sword",
-            item_type: :weapon
-          ))
+                                 name: "Sword",
+                                 item_type: :weapon
+                               ))
           inventory.add(weapon)
         end
 
@@ -158,17 +160,17 @@ module Vanilla
           # Add 2 potions (one with stack of 2)
           potion1 = Entity.new
           potion1.add_component(ItemComponent.new(
-            name: "Healing Potion",
-            item_type: :potion,
-            stackable: true,
-            stack_size: 2
-          ))
+                                  name: "Healing Potion",
+                                  item_type: :potion,
+                                  stackable: true,
+                                  stack_size: 2
+                                ))
 
           potion2 = Entity.new
           potion2.add_component(ItemComponent.new(
-            name: "Mana Potion",
-            item_type: :potion
-          ))
+                                  name: "Mana Potion",
+                                  item_type: :potion
+                                ))
 
           inventory.add(potion1)
           inventory.add(potion2)

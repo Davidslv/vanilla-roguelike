@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Components
     # Component for managing an entity's inventory of items
@@ -122,8 +124,8 @@ module Vanilla
 
         @items.find do |inv_item|
           inv_item.has_component?(:item) &&
-          inv_item.get_component(:item).item_type == item_type &&
-          inv_item.get_component(:item).stackable?
+            inv_item.get_component(:item).item_type == item_type &&
+            inv_item.get_component(:item).stackable?
         end
       end
     end

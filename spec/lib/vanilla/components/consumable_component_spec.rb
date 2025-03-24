@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 module Vanilla
@@ -78,7 +80,7 @@ module Vanilla
 
           expect {
             consumable.consume(entity)
-          }.not_to change { consumable.charges }
+          }.not_to(change { consumable.charges })
         end
 
         it "applies effects to the entity" do
@@ -143,12 +145,14 @@ module Vanilla
       describe "#apply_effects" do
         let(:entity) { instance_double("Entity") }
         let(:message_system) { instance_double("MessageSystem") }
-        let(:consumable) { Vanilla::Components::ConsumableComponent.new(effects: [
-          { type: :heal, amount: 10 },
-          { type: :buff, stat: :strength, amount: 5, duration: 3 },
-          { type: :teleport },
-          { type: :damage, amount: 5, damage_type: :fire }
-        ])}
+        let(:consumable) {
+          Vanilla::Components::ConsumableComponent.new(effects: [
+                                                         { type: :heal, amount: 10 },
+                                                         { type: :buff, stat: :strength, amount: 5, duration: 3 },
+                                                         { type: :teleport },
+                                                         { type: :damage, amount: 5, damage_type: :fire }
+                                                       ])
+        }
 
         before do
           allow(Vanilla::ServiceRegistry).to receive(:get).with(:message_system).and_return(message_system)

@@ -1,8 +1,9 @@
+# frozen_string_literal: true
+
 STDOUT.sync = true
 
 require 'pry'
 require 'logger'
-require 'set'
 require 'securerandom'
 require 'i18n'
 
@@ -51,7 +52,6 @@ module Vanilla
 
   # inventory system
   require_relative 'vanilla/inventory'
-
 
   # Setup I18n if it hasn't been set up already (like in tests)
   if I18n.load_path.empty?
@@ -144,5 +144,4 @@ module Vanilla
       game.cleanup
     end
   end
-
 end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'system'
 
 module Vanilla
@@ -8,7 +10,7 @@ module Vanilla
         @logger = Vanilla::Logger.instance
       end
 
-      def update(delta_time)
+      def update(_delta_time)
         entities_with(:input).each do |entity|
           process_input(entity)
         end

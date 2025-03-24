@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'vanilla/map_utils/grid'
 
@@ -7,7 +9,7 @@ RSpec.describe Vanilla::MapUtils::Grid do
       rows = 5
       columns = 7
       grid = described_class.new(rows: rows, columns: columns)
-      
+
       expect(grid.rows).to eq(rows)
       expect(grid.columns).to eq(columns)
     end
@@ -22,7 +24,7 @@ RSpec.describe Vanilla::MapUtils::Grid do
 
     it 'initializes cells as instances of Vanilla::MapUtils::Cell' do
       grid = described_class.new(rows: 3, columns: 3)
-      
+
       grid.each_cell do |cell|
         expect(cell).to be_an_instance_of(Vanilla::MapUtils::Cell)
       end
@@ -30,7 +32,7 @@ RSpec.describe Vanilla::MapUtils::Grid do
 
     it 'sets correct row and column values for each cell' do
       grid = described_class.new(rows: 2, columns: 2)
-      
+
       expect(grid[0, 0].row).to eq(0)
       expect(grid[0, 0].column).to eq(0)
       expect(grid[1, 1].row).to eq(1)
@@ -40,7 +42,7 @@ RSpec.describe Vanilla::MapUtils::Grid do
     it 'correctly sets neighboring cells' do
       grid = described_class.new(rows: 3, columns: 3)
       center_cell = grid[1, 1]
-      
+
       expect(center_cell.north).to eq(grid[0, 1])
       expect(center_cell.south).to eq(grid[2, 1])
       expect(center_cell.east).to eq(grid[1, 2])

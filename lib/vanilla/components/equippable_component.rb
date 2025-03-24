@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Components
     # Component for items that can be equipped by entities
@@ -109,8 +111,8 @@ module Vanilla
         # Get all equipped items
         equipped_items = inventory.items.select do |item|
           item.has_component?(:equippable) &&
-          item.get_component(:equippable).equipped? &&
-          item.get_component(:equippable).slot == @slot
+            item.get_component(:equippable).equipped? &&
+            item.get_component(:equippable).slot == @slot
         end
 
         !equipped_items.empty?

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Events
     # Interface for components that respond to events

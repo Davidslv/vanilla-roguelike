@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Messages
     # Panel for displaying messages beneath the map
@@ -36,7 +38,7 @@ module Vanilla
       # Render the message panel
       # @param renderer [Vanilla::Renderers::Renderer] The renderer to use
       # @param selection_mode [Boolean] Whether the game is in message selection mode
-      def render(renderer, selection_mode = false)
+      def render(renderer, _selection_mode = false)
         return unless renderer.respond_to?(:draw_character)
 
         # Debug output with concise message
@@ -209,7 +211,7 @@ module Vanilla
         prefixed_text = prefix + text
 
         # Truncate to fit panel width
-        prefixed_text.length > max_width ? prefixed_text[0...(max_width-3)] + "..." : prefixed_text
+        prefixed_text.length > max_width ? prefixed_text[0...(max_width - 3)] + "..." : prefixed_text
       end
 
       # Format a hash-based message
@@ -231,7 +233,7 @@ module Vanilla
         prefixed_text = prefix + text
 
         # Truncate to fit panel width
-        prefixed_text.length > max_width ? prefixed_text[0...(max_width-3)] + "..." : prefixed_text
+        prefixed_text.length > max_width ? prefixed_text[0...(max_width - 3)] + "..." : prefixed_text
       end
 
       # Draw a separator line at the top of the message panel

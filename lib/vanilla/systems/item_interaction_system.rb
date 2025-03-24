@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Systems
     # System for handling interactions between entities and items in the game world
@@ -28,14 +30,14 @@ module Vanilla
             item = items.first
             item_name = item.has_component?(:item) ? item.get_component(:item).name : "unknown item"
             @message_system.log_message("items.found.single",
-                                      { item: item_name },
-                                      importance: :normal,
-                                      category: :item)
+                                        { item: item_name },
+                                        importance: :normal,
+                                        category: :item)
           else
             @message_system.log_message("items.found.multiple",
-                                      { count: items.size },
-                                      importance: :normal,
-                                      category: :item)
+                                        { count: items.size },
+                                        importance: :normal,
+                                        category: :item)
           end
         end
 
@@ -62,8 +64,8 @@ module Vanilla
         unless entity_pos.row == item_pos.row && entity_pos.column == item_pos.column
           if @message_system
             @message_system.log_message("items.not_here",
-                                      importance: :warning,
-                                      category: :item)
+                                        importance: :warning,
+                                        category: :item)
           end
           return false
         end
@@ -103,17 +105,17 @@ module Vanilla
         if picked_up_count > 0 && @message_system
           if picked_up_count == 1
             @message_system.log_message("items.picked_up.single",
-                                      importance: :normal,
-                                      category: :item)
+                                        importance: :normal,
+                                        category: :item)
           else
             @message_system.log_message("items.picked_up.multiple",
-                                      category: :item,
-                                      importance: :normal)
+                                        category: :item,
+                                        importance: :normal)
           end
         elsif picked_up_count == 0 && items.any? && @message_system
           @message_system.log_message("items.inventory_full",
-                                    importance: :warning,
-                                    category: :item)
+                                      importance: :warning,
+                                      category: :item)
         end
 
         picked_up_count
@@ -132,9 +134,9 @@ module Vanilla
         # 2. Have an item component
         level.all_entities.select do |entity|
           entity.has_component?(:position) &&
-          entity.has_component?(:item) &&
-          entity.get_component(:position).row == row &&
-          entity.get_component(:position).column == column
+            entity.has_component?(:item) &&
+            entity.get_component(:position).row == row &&
+            entity.get_component(:position).column == column
         end
       end
     end

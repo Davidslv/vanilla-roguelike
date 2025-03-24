@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Support
     class TileType
@@ -10,7 +12,7 @@ module Vanilla
         MONSTER = 'M'.freeze,
         STAIRS  = '%'.freeze,
         VERTICAL_WALL = '|'.freeze,
-        GOLD    = '$'.freeze
+        GOLD = '$'.freeze
       ].freeze
 
       def self.values

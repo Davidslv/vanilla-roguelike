@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # module Vanilla
 #   class Logger
 #     def self.instance
@@ -60,6 +62,7 @@ module Vanilla
 
     def close
       return unless @file
+
       @file.puts "=== Vanilla Game Log Ended at #{Time.now} ==="
       @file.close
       @file = nil

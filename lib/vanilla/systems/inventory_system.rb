@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   module Systems
     # System for managing entity inventories and item interactions
@@ -58,14 +60,14 @@ module Vanilla
 
         # Handle different item use cases
         result = if item.has_component?(:consumable)
-          use_consumable(entity, item)
-        elsif item.has_component?(:equippable)
-          toggle_equip(entity, item)
-        else
-          # Default generic use behavior
-          log_message("items.use", { item: item_name(item) })
-          true
-        end
+                   use_consumable(entity, item)
+                 elsif item.has_component?(:equippable)
+                   toggle_equip(entity, item)
+                 else
+                   # Default generic use behavior
+                   log_message("items.use", { item: item_name(item) })
+                   true
+                 end
 
         result
       end
@@ -218,10 +220,10 @@ module Vanilla
         category = options[:category] || :item
 
         @message_system.log_message(key, {
-          category: category,
-          importance: importance,
-          metadata: metadata
-        })
+                                      category: category,
+                                      importance: importance,
+                                      metadata: metadata
+                                    })
       end
     end
   end

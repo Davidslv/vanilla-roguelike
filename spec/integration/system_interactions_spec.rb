@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 RSpec.describe "System Interactions", type: :integration do
@@ -41,7 +43,7 @@ RSpec.describe "System Interactions", type: :integration do
       # Verify grid responds to expected methods
       expect(level).to respond_to(:update_grid_with_entities)
 
-      initial_position = player.get_component(:position)
+      player.get_component(:position)
 
       # This could be a private method we need to address
       expect {
@@ -63,13 +65,13 @@ RSpec.describe "System Interactions", type: :integration do
     it "logs messages with consistent parameter formats" do
       # Get message system through game or registry
       message_system = if game.respond_to?(:message_system)
-        game.message_system
-      elsif Vanilla::ServiceRegistry.respond_to?(:get)
-        Vanilla::ServiceRegistry.get(:message_system)
-      else
-        pending "Cannot access message system for testing"
-        next
-      end
+                         game.message_system
+                       elsif Vanilla::ServiceRegistry.respond_to?(:get)
+                         Vanilla::ServiceRegistry.get(:message_system)
+                       else
+                         pending "Cannot access message system for testing"
+                         next
+                       end
 
       # Test various ways of calling log_message to ensure they all work
       expect {
@@ -94,13 +96,13 @@ RSpec.describe "System Interactions", type: :integration do
     it "renders entities without errors" do
       # Get render system through game or registry
       render_system = if game.respond_to?(:render_system)
-        game.render_system
-      elsif Vanilla::ServiceRegistry.respond_to?(:get)
-        Vanilla::ServiceRegistry.get(:render_system)
-      else
-        pending "Cannot access render system for testing"
-        next
-      end
+                        game.render_system
+                      elsif Vanilla::ServiceRegistry.respond_to?(:get)
+                        Vanilla::ServiceRegistry.get(:render_system)
+                      else
+                        pending "Cannot access render system for testing"
+                        next
+                      end
 
       # Mock the renderer to avoid actual display updates during tests
       allow(render_system).to receive(:render)
@@ -110,7 +112,7 @@ RSpec.describe "System Interactions", type: :integration do
         if render_system.respond_to?(:render)
           render_system.render
         elsif render_system.respond_to?(:update)
-          render_system.update(0.01)  # Small delta time
+          render_system.update(0.01) # Small delta time
         end
       }.not_to raise_error
     end
@@ -121,7 +123,7 @@ RSpec.describe "System Interactions", type: :integration do
       player = game.player
 
       # Skip state capture since we don't have access to current_level yet
-      #initial_state = capture_game_state(game)
+      # initial_state = capture_game_state(game)
 
       # This test simulates what happens when a player moves:
       # 1. Input is processed
@@ -133,7 +135,6 @@ RSpec.describe "System Interactions", type: :integration do
 
       expect {
         # Simulate input handling
-        direction = :east
 
         # Directly move player
         position = player.get_component(:position)

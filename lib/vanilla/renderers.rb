@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Vanilla
   # The Renderers module provides interfaces and implementations for different
   # rendering approaches in the Vanilla game.

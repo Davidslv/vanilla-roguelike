@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 module Vanilla
@@ -64,7 +66,7 @@ module Vanilla
 
       describe "#get_recent_messages" do
         before do
-          3.times { |i| message_manager.add_message("Message #{i+1}") }
+          3.times { |i| message_manager.add_message("Message #{i + 1}") }
         end
 
         it "returns the specified number of recent messages" do
@@ -90,9 +92,9 @@ module Vanilla
             message_manager.toggle_selection_mode
             # Add selectable messages
             allow(message_manager).to receive(:get_recent_messages).and_return([
-              Message.new("Option 1", selectable: true) { |m| "Selected option 1" },
-              Message.new("Option 2", selectable: true) { |m| "Selected option 2" },
-            ])
+                                                                                 Message.new("Option 1", selectable: true) { |_m| "Selected option 1" },
+                                                                                 Message.new("Option 2", selectable: true) { |_m| "Selected option 2" },
+                                                                               ])
           end
 
           it "handles arrow keys for navigation" do
@@ -103,7 +105,7 @@ module Vanilla
 
           it "handles Enter key for selection" do
             # Setup the mock to return a specific message based on selection index
-            selected_message = Message.new("Option 1", selectable: true) { |m| "Selected option 1" }
+            selected_message = Message.new("Option 1", selectable: true) { |_m| "Selected option 1" }
             allow(message_manager).to receive(:currently_selected_message).and_return(selected_message)
 
             # The message should be selected when Enter is pressed
@@ -115,7 +117,7 @@ module Vanilla
         context "with shortcut keys" do
           it "activates the message with the matching shortcut key" do
             selection_called = false
-            message_with_shortcut = Message.new("Shortcut Option", selectable: true, shortcut_key: 'a') do |m|
+            message_with_shortcut = Message.new("Shortcut Option", selectable: true, shortcut_key: 'a') do |_m|
               selection_called = true
             end
 

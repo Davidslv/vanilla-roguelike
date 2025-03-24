@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 RSpec.describe Vanilla::Renderers::TerminalRenderer do
@@ -174,7 +176,7 @@ RSpec.describe Vanilla::Renderers::TerminalRenderer do
       expect(renderer).to receive(:puts).with(renderer.instance_variable_get(:@header))
       expect(renderer).to receive(:puts).with("-" * 35)
       expect(renderer).to receive(:puts).with("\n")
-      expect(renderer).to receive(:puts)  # For the final output
+      expect(renderer).to receive(:puts) # For the final output
 
       renderer.present
     end
@@ -205,7 +207,7 @@ RSpec.describe Vanilla::Renderers::TerminalRenderer do
       renderer.present
 
       # Now test the captured output
-      expect(output_captured).to include('+---+')  # Grid borders
+      expect(output_captured).to include('+---+') # Grid borders
       expect(output_captured).to include(' @ ')  # Character at 1,1
       expect(output_captured).to include(' M ')  # Character at 2,3
     end
