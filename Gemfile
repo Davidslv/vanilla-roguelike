@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 source 'https://rubygems.org'
 
 # documentation
 gem 'yard'
 
 # Locatization
-gem "i18n", "~> 1.14"
+gem 'i18n', '~> 1.14'
 
 gem 'logger'
 
@@ -16,6 +18,7 @@ end
 group :test, :development do
   gem 'pry'
   gem 'rubocop', require: false
+  gem 'rubocop-rspec', require: false
 end
 group :development do
   gem 'ast'
