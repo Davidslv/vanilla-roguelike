@@ -60,12 +60,12 @@ module Vanilla
 
         # Handle different item use cases
         result = if item.has_component?(:consumable)
-          use_consumable(entity, item)
+                   use_consumable(entity, item)
                  elsif item.has_component?(:equippable)
-          toggle_equip(entity, item)
+                   toggle_equip(entity, item)
                  else
           # Default generic use behavior
-          log_message("items.use", { item: item_name(item) })
+                   log_message("items.use", { item: item_name(item) })
           true
         end
 
@@ -220,10 +220,10 @@ module Vanilla
         category = options[:category] || :item
 
         @message_system.log_message(key, {
-          category: category,
+                                      category: category,
           importance: importance,
           metadata: metadata
-        })
+                                    })
       end
     end
   end

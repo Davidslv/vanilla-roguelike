@@ -65,11 +65,11 @@ RSpec.describe "System Interactions", type: :integration do
     it "logs messages with consistent parameter formats" do
       # Get message system through game or registry
       message_system = if game.respond_to?(:message_system)
-        game.message_system
+                         game.message_system
                        elsif Vanilla::ServiceRegistry.respond_to?(:get)
-        Vanilla::ServiceRegistry.get(:message_system)
+                         Vanilla::ServiceRegistry.get(:message_system)
                        else
-        pending "Cannot access message system for testing"
+                         pending "Cannot access message system for testing"
         next
       end
 
@@ -96,11 +96,11 @@ RSpec.describe "System Interactions", type: :integration do
     it "renders entities without errors" do
       # Get render system through game or registry
       render_system = if game.respond_to?(:render_system)
-        game.render_system
+                        game.render_system
                       elsif Vanilla::ServiceRegistry.respond_to?(:get)
-        Vanilla::ServiceRegistry.get(:render_system)
+                        Vanilla::ServiceRegistry.get(:render_system)
                       else
-        pending "Cannot access render system for testing"
+                        pending "Cannot access render system for testing"
         next
       end
 
@@ -112,7 +112,7 @@ RSpec.describe "System Interactions", type: :integration do
         if render_system.respond_to?(:render)
           render_system.render
         elsif render_system.respond_to?(:update)
-          render_system.update(0.01)  # Small delta time
+          render_system.update(0.01) # Small delta time
         end
       }.not_to raise_error
     end

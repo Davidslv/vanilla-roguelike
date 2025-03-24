@@ -32,7 +32,7 @@ module Vanilla
 
           # Write event as JSON line
           @current_file.puts(event.to_json)
-          @current_file.flush  # Ensure data is written immediately
+          @current_file.flush # Ensure data is written immediately
         end
 
         # Query for events based on options

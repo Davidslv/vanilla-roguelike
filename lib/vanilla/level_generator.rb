@@ -30,7 +30,7 @@ module Vanilla
 
         # Avoid placing stairs at player’s start
         if stairs_cell == player_cell
-          max_attempts = level.grid.rows * level.grid.columns  # Total cells
+          max_attempts = level.grid.rows * level.grid.columns # Total cells
           attempts = 0
           stairs_cell = level.grid.random_cell
 
@@ -39,7 +39,7 @@ module Vanilla
             attempts += 1
           end
 
-          stairs_cell = level.grid[1, 0] if stairs_cell == player_cell  # Fallback to a nearby cell
+          stairs_cell = level.grid[1, 0] if stairs_cell == player_cell # Fallback to a nearby cell
           @logger.debug("Stairs cell reselected to avoid player: [#{stairs_cell.row}, #{stairs_cell.column}]")
         end
 
@@ -76,7 +76,7 @@ module Vanilla
         else
           @logger.warn("No valid next cell found; using random fallback")
           goal_cell = grid.random_cell while goal_cell == start_cell
-          current = start_cell  # Restart pathing
+          current = start_cell # Restart pathing
         end
       end
     end

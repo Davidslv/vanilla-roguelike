@@ -21,8 +21,8 @@ module Vanilla
 
         # Add RenderComponent
         add_component(Components::RenderComponent.new(
-          character: Support::TileType::STAIRS,
-          layer: 2  # Above floor, below monsters
+                        character: Support::TileType::STAIRS,
+                        layer: 2 # Above floor, below monsters
         ))
       end
     end

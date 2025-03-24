@@ -14,8 +14,8 @@ module Vanilla
       let(:stackable_item) do
         item = Entity.new
         item.add_component(ItemComponent.new(
-          name: "Stackable Item",
-          stackable: true
+                             name: "Stackable Item",
+                             stackable: true
         ))
         item
       end
@@ -75,9 +75,9 @@ module Vanilla
             # Create a similar stackable item
             similar_item = Entity.new
             similar_item.add_component(ItemComponent.new(
-              name: "Stackable Item",
-              stackable: true,
-              item_type: :potion
+                                         name: "Stackable Item",
+                                         stackable: true,
+                                         item_type: :potion
             ))
 
             # Both should have the same item_type
@@ -140,8 +140,8 @@ module Vanilla
         before do
           weapon = Entity.new
           weapon.add_component(ItemComponent.new(
-            name: "Sword",
-            item_type: :weapon
+                                 name: "Sword",
+                                 item_type: :weapon
           ))
           inventory.add(weapon)
         end
@@ -160,16 +160,16 @@ module Vanilla
           # Add 2 potions (one with stack of 2)
           potion1 = Entity.new
           potion1.add_component(ItemComponent.new(
-            name: "Healing Potion",
-            item_type: :potion,
-            stackable: true,
-            stack_size: 2
+                                  name: "Healing Potion",
+                                  item_type: :potion,
+                                  stackable: true,
+                                  stack_size: 2
           ))
 
           potion2 = Entity.new
           potion2.add_component(ItemComponent.new(
-            name: "Mana Potion",
-            item_type: :potion
+                                  name: "Mana Potion",
+                                  item_type: :potion
           ))
 
           inventory.add(potion1)

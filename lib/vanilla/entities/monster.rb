@@ -41,9 +41,9 @@ module Vanilla
 
         # Add RenderComponent for visual representation
         add_component(Components::RenderComponent.new(
-          character: Support::TileType::MONSTER,
-          entity_type: @monster_type,
-          layer: 5  # Monsters are below player
+                        character: Support::TileType::MONSTER,
+                        entity_type: @monster_type,
+                        layer: 5 # Monsters are below player
         ))
       end
 

@@ -101,12 +101,12 @@ module Vanilla
 
           # Check render component
           render = weapon.get_component(:render)
-          expect(render.character).to eq(')')  # Default for weapons
+          expect(render.character).to eq(')') # Default for weapons
 
           # Check equippable component
           equippable = weapon.get_component(:equippable)
           expect(equippable).not_to be_nil
-          expect(equippable.slot).to eq(:right_hand)  # Default slot
+          expect(equippable.slot).to eq(:right_hand) # Default slot
           expect(equippable.stat_modifiers).to eq({ attack: 5 })
           expect(equippable.equipped?).to be false
         end
@@ -147,12 +147,12 @@ module Vanilla
 
           # Check render component
           render = armor.get_component(:render)
-          expect(render.character).to eq('[')  # Default for armor
+          expect(render.character).to eq('[') # Default for armor
 
           # Check equippable component
           equippable = armor.get_component(:equippable)
           expect(equippable).not_to be_nil
-          expect(equippable.slot).to eq(:body)  # Default for "Leather Armor"
+          expect(equippable.slot).to eq(:body) # Default for "Leather Armor"
           expect(equippable.stat_modifiers).to eq({ defense: 3 })
           expect(equippable.equipped?).to be false
         end
@@ -175,7 +175,7 @@ module Vanilla
         it "allows custom options for armor" do
           options = {
             description: "A magical robe of protection",
-            slot: :body,  # Override slot detection
+            slot: :body, # Override slot detection
             character: '{',
             value: 200
           }
@@ -205,11 +205,11 @@ module Vanilla
           item_comp = potion.get_component(:item)
           expect(item_comp.name).to eq("Healing Potion")
           expect(item_comp.item_type).to eq(:potion)
-          expect(item_comp.stackable?).to be true  # Potions are stackable by default
+          expect(item_comp.stackable?).to be true # Potions are stackable by default
 
           # Check render component
           render = potion.get_component(:render)
-          expect(render.character).to eq('!')  # Default for potions
+          expect(render.character).to eq('!') # Default for potions
 
           # Check consumable component
           consumable = potion.get_component(:consumable)
@@ -225,8 +225,8 @@ module Vanilla
           options = {
             description: "A potent strength potion",
             charges: 2,
-            duration: 10,  # For the effect
-            stat: :strength,  # For the effect
+            duration: 10, # For the effect
+            stat: :strength, # For the effect
             auto_identify: true,
             character: 'p',
             value: 50
@@ -265,11 +265,11 @@ module Vanilla
           item_comp = scroll.get_component(:item)
           expect(item_comp.name).to eq("Fireball Scroll")
           expect(item_comp.item_type).to eq(:scroll)
-          expect(item_comp.stackable?).to be false  # Scrolls not stackable by default
+          expect(item_comp.stackable?).to be false # Scrolls not stackable by default
 
           # Check render component
           render = scroll.get_component(:render)
-          expect(render.character).to eq('?')  # Default for scrolls
+          expect(render.character).to eq('?') # Default for scrolls
 
           # Check consumable component
           consumable = scroll.get_component(:consumable)
@@ -287,7 +287,7 @@ module Vanilla
             auto_identify: true,
             character: 'T',
             value: 75,
-            stackable: true  # Make stackable if desired
+            stackable: true # Make stackable if desired
           }
 
           scroll = factory.create_scroll("Teleport Scroll", :teleport, 1, options)

@@ -53,11 +53,11 @@ RSpec.describe Vanilla::Components::RenderComponent do
     it 'serializes render component data' do
       component = described_class.new(character: '@', color: :blue, layer: 3, entity_type: 'player')
       expect(component.data).to eq({
-        character: '@',
+                                     character: '@',
         color: :blue,
         layer: 3,
         entity_type: 'player'
-      })
+                                   })
     end
   end
 

@@ -65,8 +65,8 @@ module Vanilla
         it "returns false if slot is occupied" do
           # Simulate a full slot
           allow(inventory).to receive(:items).and_return([
-            double("Item", has_component?: true, get_component: double("EquippableComponent", equipped?: true, slot: :right_hand))
-          ])
+                                                           double("Item", has_component?: true, get_component: double("EquippableComponent", equipped?: true, slot: :right_hand))
+                                                         ])
           expect(component.equip(entity)).to be false
         end
 

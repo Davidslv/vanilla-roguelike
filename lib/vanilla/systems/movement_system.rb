@@ -64,11 +64,11 @@ module Vanilla
         log_movement(entity, direction, old_position, { row: position.row, column: position.column })
 
         emit_event(:entity_moved, {
-          entity_id: entity.id,
+                     entity_id: entity.id,
           old_position: old_position,
           new_position: { row: position.row, column: position.column },
           direction: direction
-        })
+                   })
 
         grid[old_position[:row], old_position[:column]].tile = Vanilla::Support::TileType::EMPTY
         grid[position.row, position.column].tile = entity.get_component(:render).character

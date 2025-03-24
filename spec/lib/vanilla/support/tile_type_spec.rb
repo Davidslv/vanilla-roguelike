@@ -6,7 +6,7 @@ RSpec.describe Vanilla::Support::TileType do
   describe '.values' do
     it 'returns all the defined tile values' do
       expect(described_class.values).to eq([
-        ' ',  # EMPTY
+                                             ' ', # EMPTY
         '#',  # WALL
         '/',  # DOOR
         '.',  # FLOOR
@@ -15,7 +15,7 @@ RSpec.describe Vanilla::Support::TileType do
         '%',  # STAIRS
         '|',  # VERTICAL_WALL
         '$'   # GOLD
-      ])
+                                           ])
     end
   end
 

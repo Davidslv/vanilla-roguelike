@@ -27,9 +27,9 @@ module Vanilla
       EXIT_COMMAND_ISSUED = "exit_command_issued"
 
       # Movement-related events
-      MOVEMENT_INTENT = "movement_intent"  # Intent to move
-      MOVEMENT_SUCCEEDED = "movement_succeeded"  # Movement was successful
-      MOVEMENT_BLOCKED = "movement_blocked"  # Movement was blocked
+      MOVEMENT_INTENT = "movement_intent" # Intent to move
+      MOVEMENT_SUCCEEDED = "movement_succeeded" # Movement was successful
+      MOVEMENT_BLOCKED = "movement_blocked" # Movement was blocked
 
       # Combat events
       COMBAT_ATTACK = "combat_attack"

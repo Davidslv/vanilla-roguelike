@@ -75,11 +75,11 @@ RSpec.describe Vanilla::Components::MovementComponent do
       component.set_direction(:north)
 
       expect(component.data).to eq({
-        speed: 1.5,
+                                     speed: 1.5,
         can_move_directions: [:north, :east],
         active: false,
         direction: :north
-      })
+                                   })
     end
   end
 

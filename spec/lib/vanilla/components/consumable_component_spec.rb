@@ -146,11 +146,11 @@ module Vanilla
         let(:entity) { instance_double("Entity") }
         let(:message_system) { instance_double("MessageSystem") }
         let(:consumable) { Vanilla::Components::ConsumableComponent.new(effects: [
-          { type: :heal, amount: 10 },
+                                                                          { type: :heal, amount: 10 },
           { type: :buff, stat: :strength, amount: 5, duration: 3 },
           { type: :teleport },
           { type: :damage, amount: 5, damage_type: :fire }
-        ])
+                                                                        ])
 }
 
         before do

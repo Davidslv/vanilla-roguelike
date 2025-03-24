@@ -50,10 +50,10 @@ module Vanilla
 
           # Emit collision event
           emit_event(:entities_collided, {
-            entity_id: entity_id,
+                       entity_id: entity_id,
             other_entity_id: other_entity.id,
             position: { row: row, column: column }
-          })
+                     })
 
           handle_specific_collisions(entity, other_entity)
         end
@@ -93,20 +93,20 @@ module Vanilla
             item_name = item.get_component(:item).name
 
             emit_event(:item_picked_up, {
-              player_id: player.id,
+                         player_id: player.id,
               item_id: item.id,
               item_name: item_name
-            })
+                       })
 
             # Queue command to add item to inventory and remove from world
             @world.queue_command(:add_to_inventory, {
-              player_id: player.id,
+                                   player_id: player.id,
               item_id: item.id
-            })
+                                 })
 
             @world.queue_command(:remove_entity, {
-              entity_id: item.id
-            })
+                                   entity_id: item.id
+                                 })
           end
         end
       end

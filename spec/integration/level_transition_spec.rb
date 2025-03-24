@@ -88,9 +88,9 @@ RSpec.describe "Level Transitions", type: :integration do
 
       # Check if game has access to message system
       message_system = if game.respond_to?(:message_system)
-        game.message_system
+                         game.message_system
                        elsif Vanilla::ServiceRegistry.respond_to?(:get)
-        Vanilla::ServiceRegistry.get(:message_system)
+                         Vanilla::ServiceRegistry.get(:message_system)
       end
 
       skip "Cannot access message system for testing" unless message_system

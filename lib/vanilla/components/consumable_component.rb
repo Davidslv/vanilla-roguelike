@@ -83,15 +83,15 @@ module Vanilla
         @effects.each do |effect|
           applied = case effect[:type]
                     when :heal
-                     heal_entity(entity, effect[:amount])
+                      heal_entity(entity, effect[:amount])
                     when :damage
-                     damage_entity(entity, effect[:amount], effect[:damage_type])
+                      damage_entity(entity, effect[:amount], effect[:damage_type])
                     when :buff
-                     apply_buff(entity, effect[:stat], effect[:amount], effect[:duration])
+                      apply_buff(entity, effect[:stat], effect[:amount], effect[:duration])
                     when :teleport
-                     teleport_entity(entity)
+                      teleport_entity(entity)
                     else
-                     false
+                      false
                    end
 
           # If any effect fails, the overall consumption fails

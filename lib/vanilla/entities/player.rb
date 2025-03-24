@@ -48,9 +48,9 @@ module Vanilla
 
         # Add RenderComponent (replacing TileComponent)
         add_component(Components::RenderComponent.new(
-          character: Support::TileType::PLAYER,
-          entity_type: Support::TileType::PLAYER,
-          layer: 10  # Player is usually drawn on top
+                        character: Support::TileType::PLAYER,
+                        entity_type: Support::TileType::PLAYER,
+                        layer: 10 # Player is usually drawn on top
         ))
       end
 

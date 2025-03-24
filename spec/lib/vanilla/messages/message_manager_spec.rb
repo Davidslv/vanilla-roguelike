@@ -92,9 +92,9 @@ module Vanilla
             message_manager.toggle_selection_mode
             # Add selectable messages
             allow(message_manager).to receive(:get_recent_messages).and_return([
-              Message.new("Option 1", selectable: true) { |m| "Selected option 1" },
+                                                                                 Message.new("Option 1", selectable: true) { |m| "Selected option 1" },
               Message.new("Option 2", selectable: true) { |m| "Selected option 2" },
-            ])
+                                                                               ])
           end
 
           it "handles arrow keys for navigation" do

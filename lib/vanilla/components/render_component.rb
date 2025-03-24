@@ -24,7 +24,7 @@ module Vanilla
         @character = character
         @color = color
         @layer = layer
-        @entity_type = entity_type || character  # Default entity_type to character if not provided
+        @entity_type = entity_type || character # Default entity_type to character if not provided
         super()
       end
 

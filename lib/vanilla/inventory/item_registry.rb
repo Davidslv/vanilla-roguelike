@@ -203,7 +203,7 @@ module Vanilla
 
         # Add key component
         key.add_component(Vanilla::Components::KeyComponent.new(
-          data[:key_id] || SecureRandom.uuid,
+                            data[:key_id] || SecureRandom.uuid,
           data[:lock_type] || :door,
           data[:one_time_use].nil? ? true : data[:one_time_use]
         ))
@@ -228,7 +228,7 @@ module Vanilla
 
         # Add currency component
         currency.add_component(Vanilla::Components::CurrencyComponent.new(
-          data[:value] || 1,
+                                 data[:value] || 1,
           data[:currency_type] || :gold
         ))
 
@@ -254,7 +254,7 @@ module Vanilla
       def load_default_templates
         # Weapons
         register_template(:short_sword, {
-          name: "Short Sword",
+                            name: "Short Sword",
           description: "A simple but effective weapon.",
           item_type: :weapon,
           damage: 5,
@@ -262,10 +262,10 @@ module Vanilla
           character: '/',
           color: :white,
           weight: 3
-        })
+                          })
 
         register_template(:dagger, {
-          name: "Dagger",
+                            name: "Dagger",
           description: "A small, quick blade.",
           item_type: :weapon,
           damage: 3,
@@ -273,11 +273,11 @@ module Vanilla
           character: '†',
           color: :cyan,
           weight: 1
-        })
+                          })
 
         # Armors
         register_template(:leather_armor, {
-          name: "Leather Armor",
+                            name: "Leather Armor",
           description: "Basic protection made of hardened leather.",
           item_type: :armor,
           defense: 2,
@@ -285,10 +285,10 @@ module Vanilla
           character: '[',
           color: :brown,
           weight: 5
-        })
+                          })
 
         register_template(:helmet, {
-          name: "Helmet",
+                            name: "Helmet",
           description: "A metal helmet that protects your head.",
           item_type: :armor,
           defense: 1,
@@ -296,11 +296,11 @@ module Vanilla
           character: '^',
           color: :gray,
           weight: 2
-        })
+                          })
 
         # Potions
         register_template(:healing_potion, {
-          name: "Healing Potion",
+                            name: "Healing Potion",
           description: "A small vial of red liquid that restores health.",
           item_type: :potion,
           effect_type: :heal,
@@ -308,10 +308,10 @@ module Vanilla
           character: '!',
           color: :red,
           weight: 1
-        })
+                          })
 
         register_template(:strength_potion, {
-          name: "Strength Potion",
+                            name: "Strength Potion",
           description: "A potion that temporarily boosts your strength.",
           item_type: :potion,
           effect_type: :buff,
@@ -321,11 +321,11 @@ module Vanilla
           character: '!',
           color: :green,
           weight: 1
-        })
+                          })
 
         # Scrolls
         register_template(:scroll_of_identify, {
-          name: "Scroll of Identify",
+                            name: "Scroll of Identify",
           description: "Reveals the true nature of an item.",
           item_type: :scroll,
           effect_type: :identify,
@@ -333,11 +333,11 @@ module Vanilla
           character: '?',
           color: :yellow,
           weight: 0.5
-        })
+                          })
 
         # Keys
         register_template(:rusty_key, {
-          name: "Rusty Key",
+                            name: "Rusty Key",
           description: "An old, rusty key. It might unlock something.",
           item_type: :key,
           key_id: "dungeon_1",
@@ -346,11 +346,11 @@ module Vanilla
           character: 'k',
           color: :brown,
           weight: 0.5
-        })
+                          })
 
         # Currency
         register_template(:gold_coins, {
-          name: "Gold Coins",
+                            name: "Gold Coins",
           description: "Standard currency for trade.",
           item_type: :currency,
           value: 10,
@@ -358,17 +358,17 @@ module Vanilla
           character: '$',
           color: :yellow,
           weight: 0.01
-        })
+                          })
 
         # Misc items
         register_template(:mysterious_artifact, {
-          name: "Mysterious Artifact",
+                            name: "Mysterious Artifact",
           description: "A strange object of unknown purpose.",
           item_type: :misc,
           character: '*',
           color: :magenta,
           weight: 1
-        })
+                          })
       end
     end
   end

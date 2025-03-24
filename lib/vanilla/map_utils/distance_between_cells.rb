@@ -33,16 +33,16 @@ module Vanilla
         breadcrumbs = DistanceBetweenCells.new(@root)
         breadcrumbs[current] = @cells[current]
 
-          until current == @root
-            current.links.each do |neighbor|
-              if @cells[neighbor] < @cells[current]
-                breadcrumbs[neighbor] = @cells[neighbor]
-                current = neighbor
+        until current == @root
+          current.links.each do |neighbor|
+            if @cells[neighbor] < @cells[current]
+              breadcrumbs[neighbor] = @cells[neighbor]
+              current = neighbor
 
-                break
-              end
+              break
             end
           end
+        end
 
         breadcrumbs
       end
