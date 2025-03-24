@@ -17,26 +17,11 @@ RSpec.describe Vanilla::Components::InputComponent do
     end
   end
 
-  describe '#set_move_direction' do
-    let(:component) { Vanilla::Components::InputComponent.new }
-
-    it 'sets the move direction' do
-      component.set_move_direction(:north)
-      expect(component.move_direction).to eq(:north)
-    end
-
-    it 'can set the move direction to nil' do
-      component.set_move_direction(:north)
-      component.set_move_direction(nil)
-      expect(component.move_direction).to be_nil
-    end
-  end
-
   describe '#to_hash' do
     let(:component) { Vanilla::Components::InputComponent.new }
 
     it 'returns a hash with the component data' do
-      component.set_move_direction(:east)
+      component.move_direction = :east
 
       expect(component.to_hash).to eq(
         {

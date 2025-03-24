@@ -100,6 +100,10 @@ module Vanilla
         system.update(nil)
       end
 
+      # IMPORTANT:
+      # Commands are processed before events to ensure any events triggered by commands
+      # are handled in the same update cycle
+
       # Process queued commands
       process_commands
 

@@ -46,10 +46,10 @@ RSpec.describe Vanilla::Systems::MovementSystem do
     let(:system) { Vanilla::Systems::MovementSystem.new(world) }
 
     it 'processes movement for entities with input directions' do
-      input_component.set_move_direction(:north)
+      input_component.move_direction = :north
 
       expect(system).to receive(:process_entity_movement).with(entity)
-      system.update(0.1)
+      system.update(1)
     end
 
     it 'does nothing when initialized with direct grid' do
