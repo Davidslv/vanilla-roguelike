@@ -10,7 +10,6 @@
 # This cop supports safe autocorrection (--autocorrect).
 ECS/ComponentBehavior:
   Exclude:
-    - 'lib/vanilla/components/consumable_component.rb'
     - 'lib/vanilla/components/equippable_component.rb'
     - 'lib/vanilla/components/input_component.rb'
     - 'lib/vanilla/components/item_component.rb'
