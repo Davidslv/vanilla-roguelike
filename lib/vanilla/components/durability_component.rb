@@ -133,9 +133,9 @@ module Vanilla
         message_system = Vanilla::ServiceRegistry.get(:message_system) rescue nil
         if message_system
           message_system.log_message("items.low_durability",
-                                    metadata: { item: item_name },
-                                    importance: :warning,
-                                    category: :item)
+                                     metadata: { item: item_name },
+                                     importance: :warning,
+                                     category: :item)
         end
       end
 
@@ -153,9 +153,9 @@ module Vanilla
         message_system = Vanilla::ServiceRegistry.get(:message_system) rescue nil
         if message_system
           message_system.log_message("items.repaired",
-                                    metadata: { item: item_name, amount: amount },
-                                    importance: :success,
-                                    category: :item)
+                                     metadata: { item: item_name, amount: amount },
+                                     importance: :success,
+                                     category: :item)
         end
       end
     end

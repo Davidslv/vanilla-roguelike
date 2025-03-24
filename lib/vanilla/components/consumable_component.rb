@@ -99,8 +99,8 @@ module Vanilla
           # Log the effect if successful and message system exists
           if applied && message_system
             message_system.log_message("items.effect.#{effect[:type]}",
-                                     {category: :item, importance: :success,
-                                      metadata: {amount: effect[:amount], stat: effect[:stat]}})
+                                       {category: :item, importance: :success,
+                                        metadata: {amount: effect[:amount], stat: effect[:stat]}})
           end
         end
 

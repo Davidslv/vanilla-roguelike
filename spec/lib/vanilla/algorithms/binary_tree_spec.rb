@@ -35,25 +35,25 @@ RSpec.describe Vanilla::Algorithms::BinaryTree do
           # But not both (binary tree property)
           if has_north && has_east
             expect(north_linked ^ east_linked).to be(true), 
-              "Cell at (#{cell.row}, #{cell.column}) should link to exactly one of north or east"
+                                                  "Cell at (#{cell.row}, #{cell.column}) should link to exactly one of north or east"
           elsif has_north
             expect(north_linked).to be(true),
-              "Cell at (#{cell.row}, #{cell.column}) should link north when it's the only option"
+                                    "Cell at (#{cell.row}, #{cell.column}) should link north when it's the only option"
           elsif has_east
             expect(east_linked).to be(true),
-              "Cell at (#{cell.row}, #{cell.column}) should link east when it's the only option"
+                                   "Cell at (#{cell.row}, #{cell.column}) should link east when it's the only option"
           end
           
           # Cell should not make outgoing links to south or west
           # (though it may have incoming links from those directions)
           if cell.south
             expect(cell.south.linked?(cell)).to be(cell.linked?(cell.south)),
-              "Links should be bidirectional"
+                                                "Links should be bidirectional"
           end
           
           if cell.west
             expect(cell.west.linked?(cell)).to be(cell.linked?(cell.west)),
-              "Links should be bidirectional"
+                                               "Links should be bidirectional"
           end
         end
       end

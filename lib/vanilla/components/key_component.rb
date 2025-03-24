@@ -44,9 +44,9 @@ module Vanilla
         message_system = Vanilla::ServiceRegistry.get(:message_system) rescue nil
         if message_system
           message_system.log_message("items.key.unlock",
-                                    metadata: { lock_type: lock_type || @lock_type },
-                                    importance: :success,
-                                    category: :item)
+                                     metadata: { lock_type: lock_type || @lock_type },
+                                     importance: :success,
+                                     category: :item)
         end
 
         # Return whether the key should be consumed
