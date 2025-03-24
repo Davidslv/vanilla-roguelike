@@ -3,6 +3,7 @@ classDiagram
     class Component {
       -component_classes
       +register()
+      +get_class()
       +from_hash()
       +initialize()
       +type()
@@ -14,21 +15,65 @@ classDiagram
       -id
       -components
       -component_map
+      -tags
+      -name
       +initialize()
       +add_component()
       +remove_component()
       +has_component?()
       +get_component()
+      +add_tag()
+      +remove_tag()
+      +has_tag?()
+      +tags()
       +update()
       +to_hash()
       +method_missing()
       +respond_to_missing?()
+    }
+    class System {
+      -world
+      +initialize()
+      +update()
+      +handle_event()
+      +entities_with()
+      +emit_event()
+      +queue_command()
+    }
+    class World {
+      -entities
+      -systems
+      -display
+      -current_level
+      -event_subscribers
+      -event_queue
+      -command_queue
+      +initialize()
+      +add_entity()
+      +remove_entity()
+      +get_entity()
+      +find_entity_by_tag()
+      +query_entities()
+      +add_system()
+      +update()
+      +queue_command()
+      +emit_event()
+      +subscribe()
+      +unsubscribe()
+      +set_level()
+      +grid()
+      +process_events()
+      +process_commands()
+      +handle_command()
+      +change_level()
+      +add_to_inventory()
     }
   end
   subgraph Components
     class Component {
       -component_classes
       +register()
+      +get_class()
       +from_hash()
       +initialize()
       +type()
@@ -38,6 +83,20 @@ classDiagram
     }
     style Component fill:#ffcccc
   end
+  subgraph Systems
+    class System {
+      -world
+      +initialize()
+      +update()
+      +handle_event()
+      +entities_with()
+      +emit_event()
+      +queue_command()
+    }
+  end
   %% Relationships
   Entity --> Component : uses
+  World --> World :  emits_level_transitioned
   Entity o--> "many" Component : contains
+  World o--> "many" Entity : manages
+  World o--> "many" System : manages

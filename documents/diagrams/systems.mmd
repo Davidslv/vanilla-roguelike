@@ -1,8 +1,20 @@
 classDiagram
+  subgraph Core
+    class System {
+      -world
+      +initialize()
+      +update()
+      +handle_event()
+      +entities_with()
+      +emit_event()
+      +queue_command()
+    }
+  end
   subgraph Systems
     class MessageSystem {
       -logger
       -manager
+      -message_queue
       +initialize()
       +setup_panel()
       +render()
@@ -15,7 +27,29 @@ classDiagram
       +toggle_selection_mode()
       +selection_mode?()
       +cleanup()
+      +update()
+      +handle_event()
+      +add_message()
+      +process_message_queue()
+      +trim_message_queue()
+      +importance_value()
     }
+    class CollisionSystem {
+      -logger
+      +initialize()
+      +update()
+      +handle_event()
+      +find_entities_at_position()
+      +handle_specific_collisions()
+    }
+    System <|-- CollisionSystem
+    class InputSystem {
+      -logger
+      +initialize()
+      +update()
+      +process_input()
+    }
+    System <|-- InputSystem
     class InventoryRenderSystem {
       -renderer
       -logger
@@ -59,7 +93,6 @@ classDiagram
       +find_items_at_position()
     }
     class MonsterSystem {
-      -grid
       -player
       -monsters
       -logger
@@ -75,10 +108,12 @@ classDiagram
       +select_weighted_monster_type()
       +valid_move?()
     }
+    System <|-- MonsterSystem
     class MovementSystem {
-      -grid
       -logger
       +initialize()
+      +update()
+      +process_entity_movement()
       +move()
       +can_process?()
       +normalize_direction()
@@ -88,14 +123,26 @@ classDiagram
       +update_position()
       +log_movement()
     }
+    System <|-- MovementSystem
     class RenderSystem {
       -renderer
+      -difficulty
+      -seed
       -logger
       +initialize()
-      +clear_screen()
-      +render()
+      +update()
+      +render_grid()
+      +render_messages()
+    }
+    System <|-- RenderSystem
+    class System {
+      -world
+      +initialize()
+      +update()
+      +handle_event()
+      +entities_with()
+      +emit_event()
+      +queue_command()
     }
   end
   %% Relationships
-  MovementSystem --> MovementSystem : uses
-  MovementSystem --> MessageSystem : uses

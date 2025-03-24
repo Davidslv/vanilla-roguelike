@@ -3,6 +3,7 @@ classDiagram
     class Component {
       -component_classes
       +register()
+      +get_class()
       +from_hash()
       +initialize()
       +type()
@@ -15,6 +16,7 @@ classDiagram
     class Component {
       -component_classes
       +register()
+      +get_class()
       +from_hash()
       +initialize()
       +type()
@@ -101,6 +103,20 @@ classDiagram
     }
     Component <|-- EquippableComponent
     style EquippableComponent fill:#ffcccc
+    class InputComponent {
+      -move_direction
+      -action_triggered
+      -action_params
+      +initialize()
+      +type()
+      +set_move_direction()
+      +set_action_triggered()
+      +action_params()
+      +clear()
+      +data()
+    }
+    Component <|-- InputComponent
+    style InputComponent fill:#ffcccc
     class InventoryComponent {
       -items
       -max_size
@@ -148,11 +164,12 @@ classDiagram
     }
     style KeyComponent fill:#ffcccc
     class MovementComponent {
+      -active
       -speed
-      -can_move_directions
       +initialize()
       +type()
-      +data()
+      +active?()
+      +to_hash()
     }
     Component <|-- MovementComponent
     style MovementComponent fill:#ffcccc
@@ -161,10 +178,8 @@ classDiagram
       -column
       +initialize()
       +type()
-      +coordinates()
-      +move_to()
-      +move_by()
-      +data()
+      +set_position()
+      +to_hash()
     }
     Component <|-- PositionComponent
     style PositionComponent fill:#ffcccc
@@ -176,6 +191,9 @@ classDiagram
       +initialize()
       +type()
       +tile()
+      +update_appearance()
+      +set_layer()
+      +set_color()
       +data()
     }
     Component <|-- RenderComponent
@@ -212,10 +230,10 @@ classDiagram
   DurabilityComponent --> Component : uses
   EffectComponent --> Component : uses
   EquippableComponent --> Component : uses
+  InputComponent --> Component : uses
   InventoryComponent --> Component : uses
   ItemComponent --> Component : uses
   KeyComponent --> Component : uses
-  MovementComponent --> MovementComponent : uses
   MovementComponent --> Component : uses
   PositionComponent --> Component : uses
   RenderComponent --> Component : uses

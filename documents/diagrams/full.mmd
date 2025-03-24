@@ -3,6 +3,7 @@ classDiagram
     class Component {
       -component_classes
       +register()
+      +get_class()
       +from_hash()
       +initialize()
       +type()
@@ -14,21 +15,65 @@ classDiagram
       -id
       -components
       -component_map
+      -tags
+      -name
       +initialize()
       +add_component()
       +remove_component()
       +has_component?()
       +get_component()
+      +add_tag()
+      +remove_tag()
+      +has_tag?()
+      +tags()
       +update()
       +to_hash()
       +method_missing()
       +respond_to_missing?()
+    }
+    class System {
+      -world
+      +initialize()
+      +update()
+      +handle_event()
+      +entities_with()
+      +emit_event()
+      +queue_command()
+    }
+    class World {
+      -entities
+      -systems
+      -display
+      -current_level
+      -event_subscribers
+      -event_queue
+      -command_queue
+      +initialize()
+      +add_entity()
+      +remove_entity()
+      +get_entity()
+      +find_entity_by_tag()
+      +query_entities()
+      +add_system()
+      +update()
+      +queue_command()
+      +emit_event()
+      +subscribe()
+      +unsubscribe()
+      +set_level()
+      +grid()
+      +process_events()
+      +process_commands()
+      +handle_command()
+      +change_level()
+      +add_to_inventory()
     }
   end
   subgraph Components
     class Component {
       -component_classes
       +register()
+      +get_class()
       +from_hash()
       +initialize()
       +type()
@@ -115,6 +160,20 @@ classDiagram
     }
     Component <|-- EquippableComponent
     style EquippableComponent fill:#ffcccc
+    class InputComponent {
+      -move_direction
+      -action_triggered
+      -action_params
+      +initialize()
+      +type()
+      +set_move_direction()
+      +set_action_triggered()
+      +action_params()
+      +clear()
+      +data()
+    }
+    Component <|-- InputComponent
+    style InputComponent fill:#ffcccc
     class InventoryComponent {
       -items
       -max_size
@@ -162,11 +221,12 @@ classDiagram
     }
     style KeyComponent fill:#ffcccc
     class MovementComponent {
+      -active
       -speed
-      -can_move_directions
       +initialize()
       +type()
-      +data()
+      +active?()
+      +to_hash()
     }
     Component <|-- MovementComponent
     style MovementComponent fill:#ffcccc
@@ -175,10 +235,8 @@ classDiagram
       -column
       +initialize()
       +type()
-      +coordinates()
-      +move_to()
-      +move_by()
-      +data()
+      +set_position()
+      +to_hash()
     }
     Component <|-- PositionComponent
     style PositionComponent fill:#ffcccc
@@ -190,6 +248,9 @@ classDiagram
       +initialize()
       +type()
       +tile()
+      +update_appearance()
+      +set_layer()
+      +set_color()
       +data()
     }
     Component <|-- RenderComponent
@@ -224,6 +285,7 @@ classDiagram
     class MessageSystem {
       -logger
       -manager
+      -message_queue
       +initialize()
       +setup_panel()
       +render()
@@ -236,7 +298,29 @@ classDiagram
       +toggle_selection_mode()
       +selection_mode?()
       +cleanup()
+      +update()
+      +handle_event()
+      +add_message()
+      +process_message_queue()
+      +trim_message_queue()
+      +importance_value()
     }
+    class CollisionSystem {
+      -logger
+      +initialize()
+      +update()
+      +handle_event()
+      +find_entities_at_position()
+      +handle_specific_collisions()
+    }
+    System <|-- CollisionSystem
+    class InputSystem {
+      -logger
+      +initialize()
+      +update()
+      +process_input()
+    }
+    System <|-- InputSystem
     class InventoryRenderSystem {
       -renderer
       -logger
@@ -280,7 +364,6 @@ classDiagram
       +find_items_at_position()
     }
     class MonsterSystem {
-      -grid
       -player
       -monsters
       -logger
@@ -296,10 +379,12 @@ classDiagram
       +select_weighted_monster_type()
       +valid_move?()
     }
+    System <|-- MonsterSystem
     class MovementSystem {
-      -grid
       -logger
       +initialize()
+      +update()
+      +process_entity_movement()
       +move()
       +can_process?()
       +normalize_direction()
@@ -309,12 +394,26 @@ classDiagram
       +update_position()
       +log_movement()
     }
+    System <|-- MovementSystem
     class RenderSystem {
       -renderer
+      -difficulty
+      -seed
       -logger
       +initialize()
-      +clear_screen()
-      +render()
+      +update()
+      +render_grid()
+      +render_messages()
+    }
+    System <|-- RenderSystem
+    class System {
+      -world
+      +initialize()
+      +update()
+      +handle_event()
+      +entities_with()
+      +emit_event()
+      +queue_command()
     }
   end
   subgraph Others
@@ -377,6 +476,11 @@ classDiagram
       +execute()
     }
     Command <|-- NullCommand
+    class DisplayHandler {
+      -keyboard_handler
+      +initialize()
+      +cleanup()
+    }
     class Monster {
       -monster_type
       -health
@@ -410,6 +514,8 @@ classDiagram
       +initialize()
     }
     Entity <|-- Stairs
+    class EntityFactory {
+    }
     class Event {
       -id
       -type
@@ -463,6 +569,24 @@ classDiagram
       +ensure_file_open()
     }
     EventStore <|-- FileEventStore
+    class Game {
+      -difficulty
+      -seed
+      -logger
+      -turn
+      -world
+      -display
+      -level
+      -player
+      -monster_system
+      +initialize()
+      +start()
+      +cleanup()
+      +setup_world()
+      +game_loop()
+      +render()
+      +input_to_direction()
+    }
     class InputHandler {
       -logger
       -event_manager
@@ -549,17 +673,32 @@ classDiagram
       +handle_inventory_input()
       +cleanup()
     }
+    class KeyboardHandler {
+      +wait_for_input()
+    }
     class Level {
-      -difficulty
       -grid
-      -player
+      -difficulty
+      -entities
+      -entrance_row
+      -entrance_column
+      -logger
+      -algorithm
       -stairs
       +initialize()
+      +generate()
+      +place_stairs()
+      +add_entity()
+      +remove_entity()
       +all_entities()
-      +player_at_stairs?()
+      +update_grid_with_entity()
       +update_grid_with_entities()
-      +start_position()
-      +longest_path()
+    }
+    class LevelGenerator {
+      -logger
+      -algorithm
+      +generate()
+      +ensure_path()
     }
     class Logger {
       -level
@@ -590,6 +729,8 @@ classDiagram
       -links
       -type_factory
       -cell_type
+      -grid
+      -tile
       +initialize()
       +position()
       +link()
@@ -633,20 +774,23 @@ classDiagram
       +max()
     }
     class Grid {
-      -cell_type_factory
       -rows
       -columns
       -grid
       +initialize()
       +[]()
+      +each_cell()
       +random_cell()
       +size()
-      +contents_of()
-      +dead_ends()
-      +each_row()
-      +each_cell()
-      +prepare_grid()
-      +configure_cells()
+    }
+    class Distances {
+      -root
+      -cells
+      +initialize()
+      +[]()
+      +path_to()
+      +cells()
+      +max()
     }
     class Message {
       -content
@@ -746,88 +890,20 @@ classDiagram
       +present()
     }
     class TerminalRenderer {
-      -buffer
-      -grid
-      -header
-      -message_buffer
-      -color_buffer
-      +initialize()
       +clear()
-      +clear_screen()
       +draw_grid()
-      +draw_character()
-      +color_code()
-      +reset_color()
+      +draw_title_screen()
       +present()
-    }
-    Renderer <|-- TerminalRenderer
-    class GameSimulator {
-      -seed
-      -capture_output
-      -performance_monitor
-      -results
-      -display_rendering
-      -game
-      -level
-      +initialize()
-      +add_test_stairs()
-      +fix_coordinates()
-      +create_guaranteed_stairs()
-      +use_guaranteed_stairs()
-      +guaranteed_level_transition()
-      +player_position()
-      +find_and_use_stairs()
-      +setup_game()
-      +initialize_test_level_if_needed()
-      +patch_game_for_testing()
-      +run()
-      +process_action()
-      +debug_trace()
-      +simulate_movement()
-      +collect_messages()
-      +verify_player_rendering()
-      +capture_screen()
-      +simulate_movement_with_render_check()
-      +get_current_messages()
     }
     class TileType {
     }
     class RenderSystemFactory {
+      -renderer
+      -logger
+      +initialize()
+      +render()
     }
     class ServiceRegistry {
-    }
-    class Game {
-      -logger
-      -screen_transition_delay
-      -seed
-      -difficulty
-      -scheduler
-      -game_over
-      -current_turn
-      -render_system
-      -message_system
-      -inventory_system
-      -level
-      -player
-      -monster_system
-      +initialize()
-      +print_title_screen()
-      +exit_game()
-      +start()
-      +cleanup()
-      +setup_message_panel()
-      +render()
-      +clear_screen_with_space_for_messages()
-      +clear_screen()
-      +start_new_level()
-      +add_starter_items_to_player()
-      +next_level()
-      +handle_input()
-      +check_for_monster_collisions()
-      +transition_to_next_level()
-      +try_handle_with_message_system()
-      +wait_for_keypress()
-      +move_player()
     }
     class Scheduler {
       -entities
@@ -869,11 +945,10 @@ classDiagram
   EffectComponent --> Component : uses
   Entity --> Component : uses
   EquippableComponent --> Component : uses
+  InputComponent --> Component : uses
   InventoryComponent --> Component : uses
   ItemComponent --> Component : uses
   KeyComponent --> Component : uses
-  MovementComponent --> Entity : uses
-  MovementComponent --> MovementComponent : uses
   MovementComponent --> Component : uses
   PositionComponent --> Component : uses
   RenderComponent --> Component : uses
@@ -889,8 +964,14 @@ classDiagram
   Player --> RenderComponent : uses
   Stairs --> PositionComponent : uses
   Stairs --> RenderComponent : uses
+  EntityFactory --> Entity : uses
+  EntityFactory --> PositionComponent : uses
+  EntityFactory --> RenderComponent : uses
+  EntityFactory --> InputComponent : uses
+  EntityFactory --> MovementComponent : uses
   EventManager --> Event : uses
   FileEventStore --> Event : uses
+  Game --> EntityFactory : uses
   InputHandler --> MoveCommand : uses
   InputHandler --> ExitCommand : uses
   InputHandler --> NullCommand : uses
@@ -903,82 +984,51 @@ classDiagram
   ItemRegistry --> CurrencyComponent : uses
   InventorySystemFacade --> ItemFactory : uses
   InventorySystemFacade --> ItemRegistry : uses
-  Level --> Player : uses
-  Level --> Stairs : uses
+  Level --> EntityFactory : uses
+  LevelGenerator --> Level : uses
   Logger --> Logger : uses
   Map --> Logger : uses
   Cell --> Cell : uses
   CellTypeFactory --> CellType : uses
   DistanceBetweenCells --> DistanceBetweenCells : uses
-  Grid --> CellTypeFactory : uses
   Grid --> Cell : uses
+  Distances --> Cell : uses
+  Distances --> Distances : uses
   MessageLog --> Message : uses
   MessageManager --> MessageLog : uses
   MessageManager --> Message : uses
-  TerminalRenderer --> MessageSystem : uses
-  GameSimulator --> CellType : uses
-  GameSimulator --> Level : uses
-  GameSimulator --> MoveCommand : uses
-  GameSimulator --> MessageSystem : uses
+  CollisionSystem --> Logger : uses
+  CollisionSystem --> World :  emits_entities_collided
+  CollisionSystem --> World :  emits_level_transition_requested
+  CollisionSystem --> World :  emits_item_picked_up
+  CollisionSystem --> World :  queues_add_to_inventory
+  CollisionSystem --> World :  queues_remove_entity
+  InputSystem --> Logger : uses
   InventorySystem --> PositionComponent : uses
   MonsterSystem --> Logger : uses
-  MonsterSystem --> Monster : uses
+  MonsterSystem --> EntityFactory : uses
   MonsterSystem --> TileType : uses
-  MovementSystem --> Entity : uses
-  MovementSystem --> PositionComponent : uses
-  MovementSystem --> MovementComponent : uses
-  MovementSystem --> MovementSystem : uses
   MovementSystem --> Logger : uses
-  MovementSystem --> MessageSystem : uses
+  MovementSystem --> TileType : uses
+  MovementSystem --> World :  emits_entity_moved
+  MovementSystem --> World :  emits_stairs_found
+  MovementSystem --> World :  queues_change_level
+  RenderSystem --> TerminalRenderer : uses
   RenderSystem --> Logger : uses
-  RenderSystemFactory --> TerminalRenderer : uses
   RenderSystemFactory --> RenderSystem : uses
+  RenderSystemFactory --> RenderSystemFactory : uses
+  RenderSystemFactory --> TerminalRenderer : uses
+  RenderSystemFactory --> Logger : uses
+  World --> DisplayHandler : uses
+  World --> LevelGenerator : uses
+  World --> World :  emits_level_transitioned
   ServiceRegistry --> ServiceRegistry : uses
-  ServiceRegistry --> Logger : uses
-  ServiceRegistry --> RenderSystemFactory : uses
-  ServiceRegistry --> MessageSystem : uses
-  ServiceRegistry --> InventorySystemFacade : uses
-  ServiceRegistry --> Level : uses
-  ServiceRegistry --> MonsterSystem : uses
-  ServiceRegistry --> InventoryComponent : uses
-  ServiceRegistry --> Entity : uses
-  ServiceRegistry --> ItemComponent : uses
-  ServiceRegistry --> RenderComponent : uses
-  ServiceRegistry --> CurrencyComponent : uses
-  ServiceRegistry --> InputHandler : uses
-  ServiceRegistry --> MovementSystem : uses
-  Game --> ServiceRegistry : uses
-  Game --> Logger : uses
-  Game --> RenderSystemFactory : uses
-  Game --> MessageSystem : uses
-  Game --> InventorySystemFacade : uses
-  Game --> Level : uses
-  Game --> MonsterSystem : uses
-  Game --> InventoryComponent : uses
-  Game --> Entity : uses
-  Game --> ItemComponent : uses
-  Game --> RenderComponent : uses
-  Game --> CurrencyComponent : uses
-  Game --> InputHandler : uses
-  Game --> Game : uses
-  Game --> MovementSystem : uses
+  ServiceRegistry --> Game : uses
   Scheduler --> ServiceRegistry : uses
-  Scheduler --> Logger : uses
-  Scheduler --> Scheduler : uses
-  Scheduler --> RenderSystemFactory : uses
-  Scheduler --> MessageSystem : uses
-  Scheduler --> InventorySystemFacade : uses
-  Scheduler --> Level : uses
-  Scheduler --> MonsterSystem : uses
-  Scheduler --> InventoryComponent : uses
-  Scheduler --> Entity : uses
-  Scheduler --> ItemComponent : uses
-  Scheduler --> RenderComponent : uses
-  Scheduler --> CurrencyComponent : uses
-  Scheduler --> InputHandler : uses
   Scheduler --> Game : uses
-  Scheduler --> MovementSystem : uses
   ClassInfo --> ClassInfo : uses
   LogMonitor --> LogMonitor : uses
   TestPositionComponent --> Component : uses
   Entity o--> "many" Component : contains
+  World o--> "many" Entity : manages
+  World o--> "many" System : manages
