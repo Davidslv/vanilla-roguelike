@@ -116,6 +116,7 @@ DEPENDENCIES
   logger
   pry
   rspec
+  rubocop
   simplecov
   solargraph
   solargraph-rspec
