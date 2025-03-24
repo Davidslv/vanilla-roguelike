@@ -49,19 +49,58 @@ RSpec.describe Vanilla::Components::PositionComponent do
     end
   end
 
-  describe 'movement' do
+  describe '#set_position' do
     let(:component) { described_class.new(row: 5, column: 10) }
 
-    it 'can move to an absolute position' do
-      component.move_to(7, 12)
+    it 'sets the absolute position' do
+      component.set_position(7, 12)
       expect(component.row).to eq(7)
       expect(component.column).to eq(12)
     end
+  end
 
-    it 'can move relative to current position' do
-      component.move_by(2, -3)
+  describe '#translate' do
+    let(:component) { described_class.new(row: 5, column: 10) }
+
+    it 'moves the position by the given deltas' do
+      component.translate(2, -3)
       expect(component.row).to eq(7)
       expect(component.column).to eq(7)
+    end
+  end
+
+  describe 'backward compatibility' do
+    let(:component) { described_class.new(row: 5, column: 10) }
+
+    describe '#move_to' do
+      it 'still works by calling set_position' do
+        expect(component).to receive(:set_position).with(7, 12)
+        component.move_to(7, 12)
+      end
+    end
+
+    describe '#move_by' do
+      it 'still works by calling translate' do
+        expect(component).to receive(:translate).with(2, -3)
+        component.move_by(2, -3)
+      end
+    end
+  end
+
+  describe 'encapsulation' do
+    let(:component) { described_class.new(row: 5, column: 10) }
+
+    it 'does not allow direct setting of row and column' do
+      expect(component).to respond_to(:row)
+      expect(component).to respond_to(:column)
+      expect(component).not_to respond_to(:row=)
+      expect(component).not_to respond_to(:column=)
+    end
+
+    it 'requires using set_position to change position' do
+      component.set_position(7, 12)
+      expect(component.row).to eq(7)
+      expect(component.column).to eq(12)
     end
   end
 end

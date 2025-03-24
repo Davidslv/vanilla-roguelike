@@ -11,15 +11,16 @@ module Vanilla
   # components, applying transformations, calculations, or other processing
   # to those entities.
   module Systems
-    # Load system classes
+    # Load base system class first
+    require_relative 'systems/system'
+
+    # Load other system classes
+    require_relative 'systems/input_system'
     require_relative 'systems/movement_system'
+    require_relative 'systems/collision_system'
+    require_relative 'systems/message_system'
     require_relative 'systems/monster_system'
     require_relative 'systems/render_system'
     require_relative 'systems/render_system_factory'
   end
 end
-
-# Require all system files
-require_relative 'systems/movement_system'
-require_relative 'systems/render_system'
-require_relative 'systems/render_system_factory'

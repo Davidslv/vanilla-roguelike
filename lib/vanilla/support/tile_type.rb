@@ -24,13 +24,13 @@ module Vanilla
         VALUES.include?(tile)
       end
 
-      # Check if the tile is walkable (can be traversed by player)
-      # @param tile [String] The tile character to check
-      # @return [Boolean] true if the tile is walkable, false otherwise
       def self.walkable?(tile)
         return false unless valid?(tile)
 
-        [EMPTY, FLOOR, DOOR, STAIRS, GOLD].include?(tile)
+        # FIX: Treat MONSTER as walkable tile
+        # Temporary workaround: Treat MONSTER as walkable until a combat system is implemented.
+        # This ensures players can navigate mazes when the only path to stairs crosses a monster.
+        [MONSTER, EMPTY, FLOOR, DOOR, STAIRS, GOLD].include?(tile)
       end
 
       # Check if the tile is a wall type (blocks movement)

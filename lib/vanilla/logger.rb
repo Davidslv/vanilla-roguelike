@@ -1,3 +1,11 @@
+# module Vanilla
+#   class Logger
+#     def self.instance
+#       @instance ||= ::Logger.new(STDOUT).tap { |l| l.level = ::Logger::DEBUG }
+#     end
+#   end
+# end
+
 require 'fileutils'
 require 'singleton'
 
@@ -60,8 +68,6 @@ module Vanilla
     private
 
     def log(level, message)
-      return if LOG_LEVELS[level] < LOG_LEVELS[@level]
-
       timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S.%L')
       formatted_message = "[#{timestamp}] [#{level.to_s.upcase}] #{message}"
 

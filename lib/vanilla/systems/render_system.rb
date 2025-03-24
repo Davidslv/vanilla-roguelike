@@ -1,49 +1,39 @@
 module Vanilla
   module Systems
-    class RenderSystem
-      def initialize(renderer)
-        @renderer = renderer
+    class RenderSystem < System
+      def initialize(world, difficulty, seed)
+        super(world)
+        @renderer = Vanilla::Renderers::TerminalRenderer.new
+        @difficulty = difficulty
+        @seed = seed
         @logger = Vanilla::Logger.instance
       end
 
-      # Clear the screen completely (for transitions, etc.)
-      # @return [void]
-      def clear_screen
-        @renderer.clear_screen
+      def update(_delta_time)
+        @renderer.clear
+        @renderer.draw_title_screen(@difficulty, @seed)
+        render_grid
+        render_messages
+        @renderer.present
       end
 
-      def render(entities, grid)
-        @logger.debug("Rendering scene with #{entities.size} entities")
+      private
 
-        # Start with a fresh canvas
-        @renderer.clear
+      def render_grid
+        grid = @world.current_level&.grid
+        @renderer.draw_grid(grid, @world.current_level&.algorithm&.demodulize || "Unknown")
+      end
 
-        # Draw the grid first (background)
-        @renderer.draw_grid(grid)
-
-        # Find entities with both position and render components
-        drawable_entities = entities.select do |entity|
-          entity.has_component?(:position) && entity.has_component?(:render)
+      def render_messages
+        message_system = Vanilla::ServiceRegistry.get(:message_system)
+        game = Vanilla::ServiceRegistry.get(:game)
+        turn = game&.turn || 0
+        print "\n=== MESSAGES ===\n"
+        if message_system
+          print "Turn #{turn}: Player moved.\n"
+        else
+          print "No messages yet. Play the game to see messages here.\n"
         end
-
-        # Sort by layer (z-index) for proper drawing order
-        drawable_entities.sort_by! { |e| e.get_component(:render).layer }
-
-        # Draw each entity
-        drawable_entities.each do |entity|
-          render_component = entity.get_component(:render)
-          position = entity.get_component(:position)
-
-          @renderer.draw_character(
-            position.row,
-            position.column,
-            render_component.character,
-            render_component.color
-          )
-        end
-
-        # Present the final rendered scene
-        @renderer.present
       end
     end
   end

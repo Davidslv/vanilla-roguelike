@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
 
+# USAGE:
+# .scripts/log_monitor.rb
+
 require 'json'
 require 'time'
 require 'fileutils'
@@ -136,6 +139,8 @@ class LogMonitor
         puts "👹 Player collided with monster"
       elsif entry.include?("Player exiting game")
         puts "👋 Player exited game"
+      else
+        puts entry
       end
     end
   end
@@ -169,7 +174,7 @@ class LogMonitor
 
   def display_status
     # Show a simple status indicator
-    print "." if rand < 0.3
+    print "." if rand < 0.5
     STDOUT.flush
   end
 

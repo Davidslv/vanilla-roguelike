@@ -1,107 +1,103 @@
-require_relative 'cell'
-require_relative 'cell_type_factory'
-
 module Vanilla
   module MapUtils
     class Grid
       attr_reader :rows, :columns
-      attr_accessor :distances
 
-      # Get the shared cell type factory for all grids
-      # @return [CellTypeFactory] The shared factory instance
-      def self.cell_type_factory
-        @cell_type_factory ||= CellTypeFactory.new
+      def initialize(rows, columns)
+        @rows = rows
+        @columns = columns
+        @grid = Array.new(rows * columns) { |i| Cell.new(self, i / columns, i % columns) }
+        # Set neighbors for each cell
+        each_cell do |cell|
+          row, col = cell.row, cell.column
+          cell.north = self[row - 1, col] if row > 0
+          cell.south = self[row + 1, col] if row < @rows - 1
+          cell.east  = self[row, col + 1] if col < @columns - 1
+          cell.west  = self[row, col - 1] if col > 0
+        end
       end
 
-      def initialize(rows:, columns:)
-        raise ArgumentError, "Rows must be greater than 0" if rows <= 0
-        raise ArgumentError, "Columns must be greater than 0" if columns <= 0
-
-        @rows, @columns = rows, columns
-
-        @grid = prepare_grid
-
-        configure_cells
+      def [](row, col)
+        return nil unless row.is_a?(Integer) && col.is_a?(Integer)
+        return nil unless row.between?(0, @rows - 1) && col.between?(0, @columns - 1)
+        @grid[row * @columns + col]
       end
 
-      # custom array accessor
-      # primarily for granting random access to arbitrary cells in the grid
-      # but also do bounds checking, so when a coordinate is passed that
-      # is out of bounds, it returns nil.
-      def [](row, column)
-        return nil unless row.between?(0, @rows - 1)
-        return nil unless column.between?(0, @grid[row].count - 1)
-
-        @grid[row][column]
+      def each_cell
+        @grid.each { |cell| yield cell }
       end
 
       def random_cell
-        row = rand(@rows)
-        column = rand(@grid[row].count)
-
-        self[row, column]
+        @grid.sample
       end
 
       def size
         @rows * @columns
       end
+    end
 
-      def contents_of(cell)
-        if cell.player?
-          cell.cell_type.to_s
-        elsif cell.cell_type && cell.cell_type.tile_character != Vanilla::Support::TileType::EMPTY
-          cell.cell_type.to_s
-        elsif distances && distances[cell]
-          distances[cell].to_s(36)
-        else
-          " "
-        end
+    class Cell
+      attr_reader :row, :column, :grid
+      attr_accessor :north, :south, :east, :west, :tile
+
+      def initialize(grid, row, column)
+        @grid = grid
+        @row = row
+        @column = column
+        @links = {}
+        @tile = Vanilla::Support::TileType::EMPTY # Default to walkable
       end
 
-      def dead_ends
-        each_cell do |cell|
-          cell.dead_end = cell.links.count == 1
-        end
+      def link(cell:, bidirectional: true)
+        @links[cell] = true
+        cell.links[self] = true if bidirectional && cell
       end
 
-      # iterator to loop over cells on the grid
-      # some algorithms want to look at cells a row at a time (Sidewinder)
-      # others just want to look at cells (Binary Tree)
-      def each_row
-        @grid.each do |row|
-          yield row
-        end
+      def unlink(cell:, bidirectional: true)
+        @links.delete(cell)
+        cell.links.delete(self) if bidirectional && cell
       end
 
-      def each_cell
-        each_row do |row|
-          row.each do |cell|
-            yield cell if cell
-          end
-        end
+      def linked?(cell)
+        @links.key?(cell)
       end
 
-      private
-
-      # initial grid setup with cells
-      def prepare_grid
-        Array.new(rows) do |row|
-          Array.new(columns) do |column|
-            Cell.new(row: row, column: column, type_factory: self.class.cell_type_factory)
-          end
-        end
+      def links
+        @links
       end
 
-      # each cell is assigned a neighbor
-      def configure_cells
-        each_cell do |cell|
-          row, col = cell.row, cell.column
+      def neighbors
+        [north, south, east, west].compact
+      end
 
-          cell.north = self[row - 1, col]
-          cell.south = self[row + 1, col]
-          cell.west  = self[row, col - 1]
-          cell.east  = self[row, col + 1]
-        end
+      def distances
+        Distances.new(self)
+      end
+    end
+
+    class Distances
+      def initialize(root)
+        @root = root
+        @cells = { root => 0 }
+      end
+
+      def [](cell)
+        @cells[cell]
+      end
+
+      def path_to(goal)
+        self # Placeholder
+      end
+
+      def cells
+        @cells.keys
+      end
+
+      def max
+        max_distance = 0
+        max_cell = @root
+        @cells.each { |cell, distance| max_cell, max_distance = cell, distance if distance > max_distance }
+        [max_cell, max_distance]
       end
     end
   end

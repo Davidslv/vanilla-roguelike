@@ -50,7 +50,7 @@ RSpec.describe Vanilla::Systems::RenderSystem do
       # Complete entity
       entity3 = Vanilla::Components::Entity.new
       entity3.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 6))
-      entity3.add_component(Vanilla::Components::RenderComponent.new(character: '>', layer: 0))
+      entity3.add_component(Vanilla::Components::RenderComponent.new(character: '%', layer: 0)) # Stairs
 
       # Expectations
       expect(renderer).to receive(:clear)

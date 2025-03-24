@@ -18,6 +18,13 @@ module Vanilla
           @component_classes[type] = klass
         end
 
+        # Get a component class by type
+        # @param type [Symbol] the component type
+        # @return [Class, nil] the component class, or nil if not found
+        def get_class(type)
+          @component_classes[type]
+        end
+
         # Create a component from a hash representation
         # @param hash [Hash] serialized component data
         # @return [Component] the deserialized component
