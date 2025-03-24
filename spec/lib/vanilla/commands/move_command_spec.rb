@@ -8,7 +8,6 @@ RSpec.describe Vanilla::Commands::MoveCommand do
   let(:entity) do
     entity = Vanilla::Entities::Entity.new
     entity.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 5))
-    entity.add_component(Vanilla::Components::TileComponent.new(tile: '@'))
     entity
   end
   let(:movement_system) { instance_double('Vanilla::Systems::MovementSystem') }
@@ -97,7 +96,6 @@ RSpec.describe Vanilla::Commands::MoveCommand do
       let(:level_entity) do
         entity = Vanilla::Entities::Entity.new
         entity.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 5))
-        entity.add_component(Vanilla::Components::TileComponent.new(tile: '@'))
         entity
       end
       let(:entities_collection) { [level_entity] }

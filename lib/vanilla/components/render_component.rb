@@ -5,8 +5,6 @@ module Vanilla
     # RenderComponent stores visual representation data for entities.
     # It defines how an entity appears in the rendering system, including
     # its character, color, and rendering layer (z-index).
-    #
-    # It also stores the entity type information to replace TileComponent.
     class RenderComponent < Component
       attr_reader :character, :color, :layer, :entity_type
 
@@ -34,47 +32,9 @@ module Vanilla
         :render
       end
 
-      # For backward compatibility with TileComponent
-      # @return [String] The character
-      def tile
-        @character
-      end
-
-      # Update the visual appearance
-      # @param character [String] The new character to display
-      # @param color [Symbol, nil] The new color, or nil to leave unchanged
-      # @param layer [Integer, nil] The new layer, or nil to leave unchanged
-      # @param entity_type [String, nil] The new entity_type, or nil to leave unchanged
-      # @return [void]
-      # @raise [ArgumentError] If the character is invalid
-      def update_appearance(character: nil, color: nil, layer: nil, entity_type: nil)
-        if character && !Vanilla::Support::TileType.valid?(character)
-          raise ArgumentError, "Invalid character type: #{character}"
-        end
-
-        @character = character unless character.nil?
-        @color = color unless color.nil?
-        @layer = layer unless layer.nil?
-        @entity_type = entity_type unless entity_type.nil?
-      end
-
-      # Set the rendering layer
-      # @param layer [Integer] The new layer value
-      # @return [void]
-      def set_layer(layer)
-        @layer = layer
-      end
-
-      # Set the color
-      # @param color [Symbol, nil] The new color value
-      # @return [void]
-      def set_color(color)
-        @color = color
-      end
-
-      # Get serialized component data for persistence
-      # @return [Hash] Serialized component data
-      def data
+      # Convert to hash for serialization
+      # @return [Hash] Serialized component data as hash
+      def to_hash
         {
           character: @character,
           color: @color,

@@ -9,7 +9,6 @@ module Vanilla
     # This entity uses the ECS architecture by combining various components:
     # * PositionComponent - For tracking position in the grid
     # * MovementComponent - For movement capabilities
-    # * TileComponent - For visual representation
     # * StairsComponent - For tracking stairs discovery
     # * RenderComponent - For visual representation and rendering
     #
@@ -43,10 +42,7 @@ module Vanilla
         # Add required components
         add_component(Components::PositionComponent.new(row: row, column: column))
         add_component(Components::MovementComponent.new)
-        add_component(Components::TileComponent.new(tile: Support::TileType::PLAYER))
         add_component(Components::StairsComponent.new)
-
-        # Add RenderComponent (replacing TileComponent)
         add_component(Components::RenderComponent.new(
                         character: Support::TileType::PLAYER,
                         entity_type: Support::TileType::PLAYER,

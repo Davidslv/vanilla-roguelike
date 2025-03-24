@@ -49,15 +49,17 @@ RSpec.describe Vanilla::Components::RenderComponent do
     end
   end
 
-  describe '#data' do
+  describe '#to_hash' do
     it 'serializes render component data' do
       component = described_class.new(character: '@', color: :blue, layer: 3, entity_type: 'player')
-      expect(component.data).to eq({
-                                     character: '@',
-                                     color: :blue,
-                                     layer: 3,
-                                     entity_type: 'player'
-                                   })
+      expect(component.to_hash).to eq(
+        {
+          character: '@',
+          color: :blue,
+          layer: 3,
+          entity_type: 'player'
+        }
+      )
     end
   end
 
@@ -88,13 +90,6 @@ RSpec.describe Vanilla::Components::RenderComponent do
       expect(component.color).to eq(:yellow)
       expect(component.layer).to eq(0) # Default value
       expect(component.entity_type).to eq('@') # Default to character
-    end
-  end
-
-  describe '#tile' do
-    it 'returns character for backward compatibility with TileComponent' do
-      component = described_class.new(character: '@')
-      expect(component.tile).to eq('@')
     end
   end
 end
