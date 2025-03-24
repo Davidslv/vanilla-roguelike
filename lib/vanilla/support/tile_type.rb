@@ -30,7 +30,21 @@ module Vanilla
       def self.walkable?(tile)
         return false unless valid?(tile)
 
-        [EMPTY, FLOOR, DOOR, STAIRS, GOLD].include?(tile)
+        # FIX: MONSTER is a walkable tile
+        # This is only until we have a combat/battle system
+        # By doing this we allow the player to be able to move through the
+        # Maze when the only possible path is to walkthrough the monster
+        # to get to the stairs
+        [MONSTER, EMPTY, FLOOR, DOOR, STAIRS, GOLD].include?(tile)
+      end
+
+      def self.walkable?(tile)
+        return false unless valid?(tile)
+
+        # FIX: Treat MONSTER as walkable tile
+        # Temporary workaround: Treat MONSTER as walkable until a combat system is implemented.
+        # This ensures players can navigate mazes when the only path to stairs crosses a monster.
+        [MONSTER, EMPTY, FLOOR, DOOR, STAIRS, GOLD].include?(tile)
       end
 
       # Check if the tile is a wall type (blocks movement)
