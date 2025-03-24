@@ -92,15 +92,18 @@ module Vanilla
         walkable_cells = []
         grid.each_cell do |cell|
           next unless cell.tile == Vanilla::Support::TileType::EMPTY
+
           player_pos = @player.get_component(:position)
           distance = (cell.row - player_pos.row).abs + (cell.column - player_pos.column).abs
           next if distance < 5
+
           has_nearby_monster = @monsters.any? do |m|
             m_pos = m.get_component(:position)
             nearby_distance = (cell.row - m_pos.row).abs + (cell.column - m_pos.column).abs
             nearby_distance < 3
           end
           next if has_nearby_monster
+
           walkable_cells << cell
         end
         walkable_cells.empty? ? nil : walkable_cells.sample(random: @rng)
@@ -122,6 +125,7 @@ module Vanilla
         cell = grid[row, column]
         return false unless cell
         return false unless Vanilla::Support::TileType.walkable?(cell.tile)
+
         @monsters.none? do |other|
           other_pos = other.get_component(:position)
           other_pos.row == row && other_pos.column == column

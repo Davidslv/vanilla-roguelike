@@ -81,15 +81,15 @@ module Vanilla
         # Apply each effect
         @effects.each do |effect|
           applied = case effect[:type]
-                   when :heal
+                    when :heal
                      heal_entity(entity, effect[:amount])
-                   when :damage
+                    when :damage
                      damage_entity(entity, effect[:amount], effect[:damage_type])
-                   when :buff
+                    when :buff
                      apply_buff(entity, effect[:stat], effect[:amount], effect[:duration])
-                   when :teleport
+                    when :teleport
                      teleport_entity(entity)
-                   else
+                    else
                      false
                    end
 

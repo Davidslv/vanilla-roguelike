@@ -65,9 +65,9 @@ RSpec.describe "System Interactions", type: :integration do
       # Get message system through game or registry
       message_system = if game.respond_to?(:message_system)
         game.message_system
-      elsif Vanilla::ServiceRegistry.respond_to?(:get)
+                       elsif Vanilla::ServiceRegistry.respond_to?(:get)
         Vanilla::ServiceRegistry.get(:message_system)
-      else
+                       else
         pending "Cannot access message system for testing"
         next
       end
@@ -96,9 +96,9 @@ RSpec.describe "System Interactions", type: :integration do
       # Get render system through game or registry
       render_system = if game.respond_to?(:render_system)
         game.render_system
-      elsif Vanilla::ServiceRegistry.respond_to?(:get)
+                      elsif Vanilla::ServiceRegistry.respond_to?(:get)
         Vanilla::ServiceRegistry.get(:render_system)
-      else
+                      else
         pending "Cannot access render system for testing"
         next
       end

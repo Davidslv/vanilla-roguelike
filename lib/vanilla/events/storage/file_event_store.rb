@@ -83,6 +83,7 @@ module Vanilla
           File.open(filename, "r") do |file|
             file.each_line do |line|
               next if line.strip.empty?
+
               events << Event.from_json(line)
             end
           end

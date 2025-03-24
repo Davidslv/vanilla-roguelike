@@ -27,6 +27,7 @@ module Vanilla
 
       def divide(row, column, height, width)
         return if height <= TOO_SMALL || width <= TOO_SMALL || (height < MINIMUM_SIZE && width < MINIMUM_SIZE && rand(HOW_OFTEN) == 0)
+
         if height > width
           divide_horizontally(row, column, height, width)
         else
@@ -39,6 +40,7 @@ module Vanilla
         passage_at = rand(width)
         width.times do |x|
           next if passage_at == x
+
           cell = @grid[row + divide_south_of, column + x]
           cell.unlink(cell: cell.south)
         end
@@ -51,6 +53,7 @@ module Vanilla
         passage_at = rand(height)
         height.times do |y|
           next if passage_at == y
+
           cell = @grid[row + y, column + divide_east_of]
           cell.unlink(cell: cell.east)
         end

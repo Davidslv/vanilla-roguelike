@@ -44,6 +44,7 @@ def analyze_codebase(dir)
 
       traverse_ast(ast) do |node|
         next unless node.is_a?(Parser::AST::Node) && node.type == :class
+
         class_name = node.children[0].children[1].to_s
         parent = node.children[1]&.children&.[](1)&.to_s
         classes[class_name] ||= ClassInfo.new(class_name, parent, file)
@@ -76,6 +77,7 @@ end
 # Recursively traverse AST nodes
 def traverse_ast(node, &block)
   return unless node.is_a?(Parser::AST::Node)
+
   yield node
   node.children.each { |child| traverse_ast(child, &block) if child.is_a?(Parser::AST::Node) }
 end

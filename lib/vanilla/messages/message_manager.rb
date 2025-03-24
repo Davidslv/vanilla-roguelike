@@ -137,6 +137,7 @@ module Vanilla
         end
 
         return unless @panel
+
         @panel.render(render_system, @selection_mode)
       end
 

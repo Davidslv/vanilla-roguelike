@@ -61,6 +61,7 @@ module Vanilla
 
     def close
       return unless @file
+
       @file.puts "=== Vanilla Game Log Ended at #{Time.now} ==="
       @file.close
       @file = nil

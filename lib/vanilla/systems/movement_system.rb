@@ -18,10 +18,12 @@ module Vanilla
 
       def process_entity_movement(entity)
         return unless entity.has_component?(:input)
+
         input = entity.get_component(:input)
         direction = input.move_direction
         @logger.debug("Entity #{entity.id} direction: #{direction}")
         return unless direction
+
         success = move(entity, direction)
         @logger.debug("Movement success: #{success}")
         input.set_move_direction(nil) if success

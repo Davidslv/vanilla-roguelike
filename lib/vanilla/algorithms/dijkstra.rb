@@ -5,6 +5,7 @@ module Vanilla
       def self.on(grid, start:, goal: nil)
         distances = start.distances
         return distances.path_to(goal) if goal
+
         distances
       end
 

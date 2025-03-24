@@ -84,6 +84,7 @@ module Vanilla
                     end
 
         return nil if templates.empty?
+
         templates.keys.sample
       end
 

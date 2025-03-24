@@ -21,6 +21,7 @@ module Vanilla
       def [](row, col)
         return nil unless row.is_a?(Integer) && col.is_a?(Integer)
         return nil unless row.between?(0, @rows - 1) && col.between?(0, @columns - 1)
+
         @grid[row * @columns + col]
       end
 

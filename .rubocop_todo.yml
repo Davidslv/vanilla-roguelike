@@ -21,44 +21,6 @@ ECS/ComponentBehavior:
     - 'lib/vanilla/components/tile_component.rb'
     - 'spec/lib/vanilla/components/component_spec.rb'
 
-# Offense count: 4
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle, IndentOneStep, IndentationWidth.
-# SupportedStyles: case, end
-Layout/CaseIndentation:
-  Exclude:
-    - 'lib/vanilla/components/consumable_component.rb'
-
-# Offense count: 1
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: AllowForAlignment.
-Layout/CommentIndentation:
-  Exclude:
-    - 'spec/lib/vanilla/map_utils/cell_spec.rb'
-
-# Offense count: 7
-# This cop supports safe autocorrection (--autocorrect).
-Layout/ElseAlignment:
-  Exclude:
-    - 'lib/vanilla/systems/inventory_system.rb'
-    - 'spec/integration/level_transition_spec.rb'
-    - 'spec/integration/system_interactions_spec.rb'
-
-# Offense count: 19
-# This cop supports safe autocorrection (--autocorrect).
-Layout/EmptyLineAfterGuardClause:
-  Exclude:
-    - 'lib/vanilla/algorithms/dijkstra.rb'
-    - 'lib/vanilla/algorithms/recursive_division.rb'
-    - 'lib/vanilla/events/storage/file_event_store.rb'
-    - 'lib/vanilla/inventory/item_registry.rb'
-    - 'lib/vanilla/level.rb'
-    - 'lib/vanilla/logger.rb'
-    - 'lib/vanilla/map_utils/grid.rb'
-    - 'lib/vanilla/messages/message_manager.rb'
-    - 'lib/vanilla/systems/monster_system.rb'
-    - 'lib/vanilla/systems/movement_system.rb'
-    - 'scripts/analyze_codebase_mermaid.rb'
 
 # Offense count: 144
 # This cop supports safe autocorrection (--autocorrect).

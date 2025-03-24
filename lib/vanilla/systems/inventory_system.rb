@@ -60,9 +60,9 @@ module Vanilla
         # Handle different item use cases
         result = if item.has_component?(:consumable)
           use_consumable(entity, item)
-        elsif item.has_component?(:equippable)
+                 elsif item.has_component?(:equippable)
           toggle_equip(entity, item)
-        else
+                 else
           # Default generic use behavior
           log_message("items.use", { item: item_name(item) })
           true
