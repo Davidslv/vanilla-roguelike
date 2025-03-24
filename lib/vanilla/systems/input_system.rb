@@ -18,9 +18,7 @@ module Vanilla
       end
 
       def quit?
-        @logger.debug("[InputSystem]======================================================")
         @logger.debug("<InputSystem>: Quit? #{@quit}")
-        @logger.debug("[InputSystem]======================================================")
 
         @quit
       end

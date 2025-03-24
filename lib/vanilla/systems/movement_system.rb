@@ -41,8 +41,7 @@ module Vanilla
         @logger.debug("Movement active: #{movement.active?}")
         return false unless movement&.active?
 
-        direction = normalize_direction(direction)
-        @logger.debug("Normalized direction: #{direction}")
+        @logger.debug("Movement direction: #{direction}")
 
         grid = @world.current_level.grid
         @logger.debug("Grid rows: #{grid.rows}, columns: #{grid.columns}")
@@ -89,16 +88,6 @@ module Vanilla
         result
       end
 
-      def normalize_direction(direction)
-        case direction.to_s.downcase
-        when 'n', 'north', 'up', 'u', 'key_up' then :north
-        when 's', 'south', 'down', 'd', 'key_down' then :south
-        when 'e', 'east', 'right', 'r', 'key_right' then :east
-        when 'w', 'west', 'left', 'l', 'key_left' then :west
-        else direction
-        end
-      end
-
       def get_target_cell(cell, direction)
         case direction
         when :north then cell.north
@@ -124,15 +113,6 @@ module Vanilla
           queue_command(:change_level, { difficulty: @world.current_level.difficulty + 1, player_id: entity.id })
         end
       end
-
-      # def update_position(position, direction, _speed)
-      #   case direction
-      #   when :north then position.set_position(position.row - 1, position.column)
-      #   when :south then position.set_position(position.row + 1, position.column)
-      #   when :east then position.set_position(position.row, position.column + 1)
-      #   when :west then position.set_position(position.row, position.column - 1)
-      #   end
-      # end
 
       def log_movement(_entity, direction, old_position, new_position)
         @logger.info("Entity moved #{direction} from [#{old_position[:row]}, #{old_position[:column]}] to [#{new_position[:row]}, #{new_position[:column]}]")

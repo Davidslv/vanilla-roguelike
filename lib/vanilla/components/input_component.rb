@@ -21,13 +21,6 @@ module Vanilla
         :input
       end
 
-      # TODO: remove this method for pure ECS
-      # Set the movement direction
-      # @param direction [Symbol] The direction to move (:north, :south, :east, :west)
-      # def set_move_direction(direction)
-      #   @move_direction = direction
-      # end
-
       # Convert to hash for serialization
       # @return [Hash] Serialized representation
       def to_hash
