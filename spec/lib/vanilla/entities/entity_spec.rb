@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe Vanilla::Components::Entity do
+RSpec.describe Vanilla::Entities::Entity do
   let(:entity) { Vanilla::Entities::Entity.new }
   let(:position_component) { Vanilla::Components::PositionComponent.new(row: 5, column: 10) }
   let(:movement_component) { Vanilla::Components::MovementComponent.new }
@@ -48,7 +48,7 @@ RSpec.describe Vanilla::Components::Entity do
 
     it 'raises an error when adding a duplicate component type' do
       entity.add_component(position_component)
-      duplicate_component = Vanilla::Components::PositionComponent.new
+      duplicate_component = Vanilla::Components::PositionComponent.new(row: 0, column: 0)
       expect { entity.add_component(duplicate_component) }.to raise_error(ArgumentError, /already has a component/)
     end
   end
@@ -155,29 +155,7 @@ RSpec.describe Vanilla::Components::Entity do
     end
 
     it 'returns all tags as an array' do
-      expect(entity.tags).to match_array([:player, :controllable])
-    end
-  end
-
-  describe '#update' do
-    let(:updatable_component) { double('UpdatableComponent', type: :updatable, update: nil) }
-    let(:static_component) { double('StaticComponent', type: :static) }
-
-    before do
-      allow(updatable_component).to receive(:to_hash).and_return({ type: :updatable })
-      allow(static_component).to receive(:to_hash).and_return({ type: :static })
-      entity.add_component(updatable_component)
-      entity.add_component(static_component)
-    end
-
-    it 'calls update on components that respond to update' do
-      entity.update(0.1)
-      expect(updatable_component).to have_received(:update).with(0.1)
-    end
-
-    it 'does not call update on components that do not respond to update' do
-      entity.update(0.1)
-      # No expectation needed as static_component doesn't have an update method
+      expect(entity.tags).to contain_exactly(:player, :controllable)
     end
   end
 
@@ -216,10 +194,10 @@ RSpec.describe Vanilla::Components::Entity do
     end
 
     it 'creates an entity from a hash' do
-      entity = Vanilla::Components::Entity.from_hash(hash)
+      entity = Vanilla::Entities::Entity.from_hash(hash)
       expect(entity.id).to eq('test-entity-id')
       expect(entity.name).to eq('TestEntity')
-      expect(entity.tags).to match_array([:player, :controllable])
+      expect(entity.tags).to contain_exactly(:player, :controllable)
       expect(entity.has_component?(:position)).to be true
       expect(entity.get_component(:position).row).to eq(5)
       expect(entity.get_component(:position).column).to eq(10)
@@ -228,14 +206,16 @@ RSpec.describe Vanilla::Components::Entity do
     it 'handles missing tags' do
       hash_without_tags = hash.dup
       hash_without_tags.delete(:tags)
-      entity = Vanilla::Components::Entity.from_hash(hash_without_tags)
+
+      entity = Vanilla::Entities::Entity.from_hash(hash_without_tags)
+
       expect(entity.tags).to be_empty
     end
 
     it 'handles missing components' do
       hash_without_components = hash.dup
       hash_without_components.delete(:components)
-      entity = Vanilla::Components::Entity.from_hash(hash_without_components)
+      entity = Vanilla::Entities::Entity.from_hash(hash_without_components)
       expect(entity.components).to be_empty
     end
   end

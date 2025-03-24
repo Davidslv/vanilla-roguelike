@@ -129,7 +129,7 @@ module Vanilla
         # Add components
         hash[:components]&.each do |component_hash|
           component_type = component_hash[:type]
-          component_class = Component.get_class(component_type)
+          component_class = Vanilla::Components::Component.get_class(component_type)
 
           if component_class
             component = component_class.from_hash(component_hash)
