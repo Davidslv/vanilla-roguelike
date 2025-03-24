@@ -50,4 +50,4 @@ RSpec.describe Vanilla::Algorithms::AldousBroder do
       expect(cell_count_after).to eq(cell_count_before)
     end
   end
-end 
+end

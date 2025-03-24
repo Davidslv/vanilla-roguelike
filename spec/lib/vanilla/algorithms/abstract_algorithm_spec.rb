@@ -8,4 +8,4 @@ RSpec.describe Vanilla::Algorithms::AbstractAlgorithm do
       expect(described_class.demodulize).to eq('AbstractAlgorithm')
     end
   end
-end 
+end

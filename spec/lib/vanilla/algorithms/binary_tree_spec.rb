@@ -77,4 +77,4 @@ RSpec.describe Vanilla::Algorithms::BinaryTree do
       end
     end
   end
-end 
+end

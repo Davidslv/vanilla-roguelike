@@ -50,4 +50,4 @@ RSpec.describe Vanilla::Algorithms::LongestPath do
       end
     end
   end
-end 
+end

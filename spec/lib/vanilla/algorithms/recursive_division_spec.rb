@@ -68,4 +68,4 @@ RSpec.describe Vanilla::Algorithms::RecursiveDivision do
       end
     end
   end
-end 
+end

@@ -49,4 +49,4 @@ RSpec.describe Vanilla::Algorithms::RecursiveBacktracker do
       end
     end
   end
-end 
+end
