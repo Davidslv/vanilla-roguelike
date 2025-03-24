@@ -13,3 +13,8 @@ inherit_from: .rubocop_todo.yml
 
 plugins:
   - rubocop-rspec
+
+require:
+  - ./rubocop/cop/ecs/component_behavior
+ECS/ComponentBehavior:
+  Enabled: true
