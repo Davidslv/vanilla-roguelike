@@ -53,16 +53,9 @@ module Vanilla
 
     def game_loop
       @turn = 0
-
       loop do
-        @world.update(nil)
-        render
-
-        if @world.level_changed?
-          @world.update(nil)
-          render
-        end
-
+        @world.update(nil)  # Input, Movement, Commands (level change), Render
+        render              # Shows new level immediately
         @turn += 1
         break if @world.quit?
       end
