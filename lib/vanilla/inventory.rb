@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Main entry point for the inventory system
 # This file requires all individual inventory system components
 

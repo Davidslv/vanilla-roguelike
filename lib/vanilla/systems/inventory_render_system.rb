@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Vanilla
   module Systems
     # System for rendering inventory UI and handling inventory display

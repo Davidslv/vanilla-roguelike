@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Vanilla
   # The World class is the central container for all entities and systems.
   # It manages entities, systems, events, and commands.

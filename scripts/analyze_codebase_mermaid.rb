@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 # analyze_codebase_mermaid.rb
 #
 # This script analyzes the codebase and generates a Mermaid class diagram.

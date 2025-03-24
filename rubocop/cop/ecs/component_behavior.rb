@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # lib/rubocop/cop/ecs/component_behavior.rb
 module RuboCop
   module Cop

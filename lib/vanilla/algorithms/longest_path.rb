@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Vanilla
   module Algorithms
     # Uses Dijkstra's distance to calculate the longest path

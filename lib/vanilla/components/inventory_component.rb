@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Vanilla
   module Components
     # Component for managing an entity's inventory of items

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Vanilla
   module Components
     # Component for items that can unlock doors, chests, or other locked objects

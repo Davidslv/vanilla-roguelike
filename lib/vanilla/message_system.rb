@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Main entry point for the message system
 # This file requires all individual message system components
 

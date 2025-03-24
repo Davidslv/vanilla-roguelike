@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Vanilla
   module Messages
     # Message represents a single message in the game's message log.

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Vanilla
   # Components module contains all the component types
   # used in the entity-component-system architecture.

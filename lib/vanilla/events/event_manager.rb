@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Vanilla
   module Events
     # Central event management class that handles event publication and subscription

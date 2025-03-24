@@ -1,3 +1,4 @@
+# frozen_string_literal: true
   require 'spec_helper'
   require 'vanilla/support/tile_type'
   require 'vanilla/map_utils/cell'

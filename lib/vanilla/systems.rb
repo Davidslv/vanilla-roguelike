@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Vanilla
   # Systems module contains the logic for processing entities and components
   # in the Entity-Component-System architecture.

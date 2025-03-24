@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Vanilla
   class Map
     def initialize(rows: 10, columns: 10, algorithm:, seed: nil)

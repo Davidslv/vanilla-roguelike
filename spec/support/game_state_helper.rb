@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Helper module for capturing game state snapshots
 module GameStateHelper
   # Captures the current state of the game in a structured format

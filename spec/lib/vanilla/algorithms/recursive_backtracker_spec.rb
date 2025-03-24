@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'vanilla/algorithms/recursive_backtracker'
 require 'vanilla/map_utils/grid'

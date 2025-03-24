@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # lib/vanilla/renderers/terminal_renderer.rb
 module Vanilla
   module Renderers

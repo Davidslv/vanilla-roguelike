@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Vanilla
   module Systems
     # System for managing entity inventories and item interactions

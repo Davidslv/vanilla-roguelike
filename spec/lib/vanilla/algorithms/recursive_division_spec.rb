@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'vanilla/algorithms/recursive_division'
 require 'vanilla/map_utils/grid'

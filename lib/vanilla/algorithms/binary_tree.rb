@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # lib/vanilla/algorithms/binary_tree.rb
 module Vanilla
   module Algorithms

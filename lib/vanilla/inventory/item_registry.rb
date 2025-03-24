@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Vanilla
   module Inventory
     # Registry for item definitions that can be used to create items consistently
