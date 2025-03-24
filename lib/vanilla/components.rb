@@ -12,7 +12,6 @@ module Vanilla
 
     # Load specific components
     require_relative 'components/position_component'
-    require_relative 'components/tile_component'
     require_relative 'components/stairs_component'
     require_relative 'components/movement_component'
     require_relative 'components/render_component'
