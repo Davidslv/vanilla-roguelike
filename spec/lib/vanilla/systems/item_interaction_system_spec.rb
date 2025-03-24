@@ -11,14 +11,14 @@ module Vanilla
       let(:item_interaction_system) { ItemInteractionSystem.new(inventory_system) }
 
       let(:entity) do
-        entity = Vanilla::Components::Entity.new
+        entity = Vanilla::Entities::Entity.new
         entity.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 10))
         entity.add_component(Vanilla::Components::InventoryComponent.new)
         entity
       end
 
       let(:item) do
-        item = Vanilla::Components::Entity.new
+        item = Vanilla::Entities::Entity.new
         item.add_component(Vanilla::Components::ItemComponent.new(name: "Test Item"))
         item.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 10))
         item
@@ -77,7 +77,7 @@ module Vanilla
 
         it "logs a message when multiple items are found" do
           # Add another item at the same position
-          other_item = Vanilla::Components::Entity.new
+          other_item = Vanilla::Entities::Entity.new
           other_item.add_component(Vanilla::Components::ItemComponent.new(name: "Other Item"))
           other_item.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 10))
 
@@ -108,21 +108,21 @@ module Vanilla
         end
 
         it "returns false when entity has no position component" do
-          entity_without_position = Vanilla::Components::Entity.new
+          entity_without_position = Vanilla::Entities::Entity.new
           entity_without_position.add_component(Vanilla::Components::InventoryComponent.new)
 
           expect(item_interaction_system.pickup_item(entity_without_position, level, item)).to be false
         end
 
         it "returns false when entity has no inventory component" do
-          entity_without_inventory = Vanilla::Components::Entity.new
+          entity_without_inventory = Vanilla::Entities::Entity.new
           entity_without_inventory.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 10))
 
           expect(item_interaction_system.pickup_item(entity_without_inventory, level, item)).to be false
         end
 
         it "returns false when item has no position component" do
-          item_without_position = Vanilla::Components::Entity.new
+          item_without_position = Vanilla::Entities::Entity.new
           item_without_position.add_component(Vanilla::Components::ItemComponent.new(name: "No Position Item"))
 
           expect(item_interaction_system.pickup_item(entity, level, item_without_position)).to be false
@@ -182,7 +182,7 @@ module Vanilla
 
       describe "#pickup_all_items" do
         let(:item2) do
-          item = Vanilla::Components::Entity.new
+          item = Vanilla::Entities::Entity.new
           item.add_component(Vanilla::Components::ItemComponent.new(name: "Another Item"))
           item.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 10))
           item
@@ -202,7 +202,7 @@ module Vanilla
         end
 
         it "returns 0 when entity has no position component" do
-          entity_without_position = Vanilla::Components::Entity.new
+          entity_without_position = Vanilla::Entities::Entity.new
 
           expect(item_interaction_system.pickup_all_items(entity_without_position, level)).to eq(0)
         end

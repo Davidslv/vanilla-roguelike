@@ -9,7 +9,7 @@ module Vanilla
     # This entity uses the ECS architecture by combining:
     # * PositionComponent - For tracking position in the grid
     # * RenderComponent - For visual rendering in the system
-    class Stairs < Components::Entity
+    class Stairs < Entities::Entity
       # Initialize a new stairs entity
       # @param row [Integer] the row position
       # @param column [Integer] the column position

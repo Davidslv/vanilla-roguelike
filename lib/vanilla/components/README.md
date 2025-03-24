@@ -62,10 +62,10 @@ The `Entity` class is the container for components and provides core ECS functio
 
 ```ruby
 # Create a new entity with an auto-generated ID
-entity = Vanilla::Components::Entity.new
+entity = Vanilla::Entities::Entity.new
 
 # Create an entity with a specific ID
-custom_entity = Vanilla::Components::Entity.new(id: "player-001")
+custom_entity = Vanilla::Entities::Entity.new(id: "player-001")
 ```
 
 ### Adding Components to an Entity

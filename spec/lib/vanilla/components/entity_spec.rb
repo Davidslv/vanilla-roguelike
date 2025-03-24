@@ -3,20 +3,20 @@
 require 'spec_helper'
 
 RSpec.describe Vanilla::Components::Entity do
-  let(:entity) { Vanilla::Components::Entity.new }
+  let(:entity) { Vanilla::Entities::Entity.new }
   let(:position_component) { Vanilla::Components::PositionComponent.new(row: 5, column: 10) }
   let(:movement_component) { Vanilla::Components::MovementComponent.new }
   let(:input_component) { Vanilla::Components::InputComponent.new }
 
   describe '#initialize' do
     it 'creates an entity with a default ID' do
-      entity = Vanilla::Components::Entity.new
+      entity = Vanilla::Entities::Entity.new
       expect(entity.id).not_to be_nil
       expect(entity.id).to be_a(String)
     end
 
     it 'creates an entity with a provided ID' do
-      entity = Vanilla::Components::Entity.new(id: 'custom-id')
+      entity = Vanilla::Entities::Entity.new(id: 'custom-id')
       expect(entity.id).to eq('custom-id')
     end
 
@@ -25,7 +25,7 @@ RSpec.describe Vanilla::Components::Entity do
     end
 
     it 'initializes with a default name based on id' do
-      entity = Vanilla::Components::Entity.new(id: '12345678-abcd-efgh')
+      entity = Vanilla::Entities::Entity.new(id: '12345678-abcd-efgh')
       expect(entity.name).to eq('Entity_12345678')
     end
   end

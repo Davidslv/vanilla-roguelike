@@ -3,7 +3,7 @@
 module Vanilla
   class EntityFactory
     def self.create_player(row, column)
-      player = Vanilla::Components::Entity.new
+      player = Vanilla::Entities::Entity.new
       player.name = "Player"
       player.add_tag(:player)
       player.add_component(Vanilla::Components::PositionComponent.new(row: row, column: column))
@@ -14,7 +14,7 @@ module Vanilla
     end
 
     def self.create_stairs(row, column)
-      stairs = Vanilla::Components::Entity.new
+      stairs = Vanilla::Entities::Entity.new
       stairs.name = "Stairs"
       stairs.add_tag(:stairs)
       stairs.add_component(Vanilla::Components::PositionComponent.new(row: row, column: column))
@@ -23,7 +23,7 @@ module Vanilla
     end
 
     def self.create_monster(type, row, column, health, damage)
-      monster = Vanilla::Components::Entity.new
+      monster = Vanilla::Entities::Entity.new
       monster.name = type.capitalize
       monster.add_tag(:monster)
       monster.add_component(Vanilla::Components::PositionComponent.new(row: row, column: column))

@@ -15,7 +15,7 @@ module Vanilla
     #
     # The entity maintains backward compatibility with the old Unit-based system
     # by delegating methods to the appropriate components.
-    class Player < Components::Entity
+    class Player < Entities::Entity
       # @return [String] the player's name
       attr_accessor :name
 

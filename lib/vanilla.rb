@@ -42,6 +42,7 @@ module Vanilla
 
   # entities
   require_relative 'vanilla/entities'
+  require_relative 'vanilla/entities/entity'
   require_relative 'vanilla/entities/player'
 
   # event system

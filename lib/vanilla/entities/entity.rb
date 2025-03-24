@@ -3,7 +3,7 @@
 require 'securerandom'
 
 module Vanilla
-  module Components
+  module Entities
     # An entity is a container for components
     class Entity
       # @return [String] unique identifier for this entity

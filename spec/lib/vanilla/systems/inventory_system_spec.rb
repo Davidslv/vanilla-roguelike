@@ -10,14 +10,14 @@ module Vanilla
       let(:inventory_system) { InventorySystem.new(logger) }
 
       let(:entity) do
-        entity = Vanilla::Components::Entity.new
+        entity = Vanilla::Entities::Entity.new
         inventory = Vanilla::Components::InventoryComponent.new
         entity.add_component(inventory)
         entity
       end
 
       let(:item) do
-        item = Vanilla::Components::Entity.new
+        item = Vanilla::Entities::Entity.new
         item.add_component(Vanilla::Components::ItemComponent.new(name: "Test Item"))
         item
       end
@@ -58,14 +58,14 @@ module Vanilla
         end
 
         it "returns false when entity has no inventory component" do
-          entity_without_inventory = Vanilla::Components::Entity.new
+          entity_without_inventory = Vanilla::Entities::Entity.new
           expect(inventory_system.add_item(entity_without_inventory, item)).to be false
         end
 
         it "returns false when inventory is full" do
           # Create a full inventory
           full_inventory = Vanilla::Components::InventoryComponent.new(max_size: 0)
-          entity_with_full_inventory = Vanilla::Components::Entity.new
+          entity_with_full_inventory = Vanilla::Entities::Entity.new
           entity_with_full_inventory.add_component(full_inventory)
 
           expect(inventory_system.add_item(entity_with_full_inventory, item)).to be false
@@ -86,7 +86,7 @@ module Vanilla
         it "logs a warning message when inventory is full" do
           # Create a full inventory
           full_inventory = Vanilla::Components::InventoryComponent.new(max_size: 0)
-          entity_with_full_inventory = Vanilla::Components::Entity.new
+          entity_with_full_inventory = Vanilla::Entities::Entity.new
           entity_with_full_inventory.add_component(full_inventory)
 
           expect(message_system).to receive(:log_message).with(
@@ -125,12 +125,12 @@ module Vanilla
         end
 
         it "returns nil when entity has no inventory component" do
-          entity_without_inventory = Vanilla::Components::Entity.new
+          entity_without_inventory = Vanilla::Entities::Entity.new
           expect(inventory_system.remove_item(entity_without_inventory, item)).to be_nil
         end
 
         it "returns nil when item is not in the inventory" do
-          other_item = Vanilla::Components::Entity.new
+          other_item = Vanilla::Entities::Entity.new
           other_item.add_component(Vanilla::Components::ItemComponent.new(name: "Other Item"))
 
           expect(inventory_system.remove_item(entity, other_item)).to be_nil
@@ -151,14 +151,14 @@ module Vanilla
 
       describe "#use_item" do
         let(:consumable_item) do
-          item = Vanilla::Components::Entity.new
+          item = Vanilla::Entities::Entity.new
           item.add_component(Vanilla::Components::ItemComponent.new(name: "Potion"))
           item.add_component(Vanilla::Components::ConsumableComponent.new)
           item
         end
 
         let(:equippable_item) do
-          item = Vanilla::Components::Entity.new
+          item = Vanilla::Entities::Entity.new
           item.add_component(Vanilla::Components::ItemComponent.new(name: "Sword"))
           item.add_component(Vanilla::Components::EquippableComponent.new(slot: :right_hand))
           item
@@ -180,12 +180,12 @@ module Vanilla
         end
 
         it "returns false when entity has no inventory component" do
-          entity_without_inventory = Vanilla::Components::Entity.new
+          entity_without_inventory = Vanilla::Entities::Entity.new
           expect(inventory_system.use_item(entity_without_inventory, item)).to be false
         end
 
         it "returns false when item is not in inventory" do
-          other_item = Vanilla::Components::Entity.new
+          other_item = Vanilla::Entities::Entity.new
           expect(inventory_system.use_item(entity, other_item)).to be false
         end
 
@@ -218,7 +218,7 @@ module Vanilla
 
       describe "#equip_item" do
         let(:equippable_item) do
-          item = Vanilla::Components::Entity.new
+          item = Vanilla::Entities::Entity.new
           item.add_component(Vanilla::Components::ItemComponent.new(name: "Sword"))
           item.add_component(Vanilla::Components::EquippableComponent.new(slot: :right_hand))
           item
@@ -238,12 +238,12 @@ module Vanilla
         end
 
         it "returns false when entity has no inventory component" do
-          entity_without_inventory = Vanilla::Components::Entity.new
+          entity_without_inventory = Vanilla::Entities::Entity.new
           expect(inventory_system.equip_item(entity_without_inventory, equippable_item)).to be false
         end
 
         it "returns false when item is not in inventory" do
-          other_item = Vanilla::Components::Entity.new
+          other_item = Vanilla::Entities::Entity.new
           other_item.add_component(Vanilla::Components::EquippableComponent.new(slot: :left_hand))
           expect(inventory_system.equip_item(entity, other_item)).to be false
         end
@@ -294,7 +294,7 @@ module Vanilla
 
       describe "#unequip_item" do
         let(:equipped_item) do
-          item = Vanilla::Components::Entity.new
+          item = Vanilla::Entities::Entity.new
           item.add_component(Vanilla::Components::ItemComponent.new(name: "Sword"))
           equippable = Vanilla::Components::EquippableComponent.new(slot: :right_hand, equipped: true)
           item.add_component(equippable)
@@ -315,12 +315,12 @@ module Vanilla
         end
 
         it "returns false when entity has no inventory component" do
-          entity_without_inventory = Vanilla::Components::Entity.new
+          entity_without_inventory = Vanilla::Entities::Entity.new
           expect(inventory_system.unequip_item(entity_without_inventory, equipped_item)).to be false
         end
 
         it "returns false when item is not in inventory" do
-          other_item = Vanilla::Components::Entity.new
+          other_item = Vanilla::Entities::Entity.new
           other_item.add_component(Vanilla::Components::EquippableComponent.new(slot: :left_hand, equipped: true))
           expect(inventory_system.unequip_item(entity, other_item)).to be false
         end
@@ -330,7 +330,7 @@ module Vanilla
         end
 
         it "returns false when item is not equipped" do
-          unequipped_item = Vanilla::Components::Entity.new
+          unequipped_item = Vanilla::Entities::Entity.new
           unequipped_item.add_component(Vanilla::Components::ItemComponent.new(name: "Shield"))
           unequipped_item.add_component(Vanilla::Components::EquippableComponent.new(slot: :left_hand, equipped: false))
           entity.get_component(:inventory).add(unequipped_item)
@@ -367,8 +367,8 @@ module Vanilla
       end
 
       describe "#drop_item" do
-        let(:entity) { Vanilla::Components::Entity.new }
-        let(:item) { Vanilla::Components::Entity.new }
+        let(:entity) { Vanilla::Entities::Entity.new }
+        let(:item) { Vanilla::Entities::Entity.new }
         let(:inventory) { Vanilla::Components::InventoryComponent.new }
         let(:level) { double("Level") }
         let(:position_component) {
@@ -414,13 +414,13 @@ module Vanilla
         end
 
         it "returns false when entity has no inventory component" do
-          entity_without_inventory = Vanilla::Components::Entity.new
+          entity_without_inventory = Vanilla::Entities::Entity.new
           allow(entity_without_inventory).to receive(:has_component?).with(:inventory).and_return(false)
           expect(inventory_system.drop_item(entity_without_inventory, item, level)).to be false
         end
 
         it "returns false when entity has no position component" do
-          entity_without_position = Vanilla::Components::Entity.new
+          entity_without_position = Vanilla::Entities::Entity.new
           allow(entity_without_position).to receive(:has_component?).with(:inventory).and_return(true)
           allow(entity_without_position).to receive(:has_component?).with(:position).and_return(false)
           expect(inventory_system.drop_item(entity_without_position, item, level)).to be false
@@ -470,7 +470,7 @@ module Vanilla
 
         context "with equipped items" do
           let(:equipped_item) do
-            item = Vanilla::Components::Entity.new
+            item = Vanilla::Entities::Entity.new
             item.add_component(Vanilla::Components::ItemComponent.new(name: "Sword"))
             equippable = Vanilla::Components::EquippableComponent.new(slot: :right_hand, equipped: true)
             item.add_component(equippable)

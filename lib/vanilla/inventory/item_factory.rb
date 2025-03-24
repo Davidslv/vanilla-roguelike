@@ -15,7 +15,7 @@ module Vanilla
       # @param options [Hash] Additional item options
       # @return [Entity] The created item entity
       def create_item(name, options = {})
-        item = Vanilla::Components::Entity.new
+        item = Vanilla::Entities::Entity.new
 
         # Add a render component - without validation
         # We're creating a special version since item characters don't need to be valid TileTypes
