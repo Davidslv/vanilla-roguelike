@@ -12,6 +12,7 @@ module Vanilla
       # Initialize a new stairs component
       # @param found_stairs [Boolean] whether stairs have been found
       def initialize(found_stairs: false)
+        super()
         @found_stairs = found_stairs
       end
 
@@ -21,8 +22,9 @@ module Vanilla
       end
 
       # @return [Hash] serialized component data
-      def data
+      def to_hash
         {
+          type: type,
           found_stairs: @found_stairs
         }
       end

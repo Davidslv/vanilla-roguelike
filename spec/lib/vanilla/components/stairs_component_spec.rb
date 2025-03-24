@@ -28,6 +28,7 @@ RSpec.describe Vanilla::Components::StairsComponent do
     it 'serializes stairs data' do
       component = described_class.new(found_stairs: true)
       hash = component.to_hash
+
       expect(hash[:type]).to eq(:stairs)
       expect(hash[:found_stairs]).to be true
     end
