@@ -29,7 +29,7 @@ module Vanilla
 
     def setup_world
       @world = Vanilla::World.new
-      @display = Vanilla::DisplayHandler.new
+      @display = @world.display
       @level = LevelGenerator.new.generate(@difficulty, @seed)
       @world.set_level(@level)
 
