@@ -8,13 +8,19 @@ module Vanilla
       def initialize(world)
         super(world)
         @logger = Vanilla::Logger.instance
+
+        @input_handler = InputHandler.new(world)
         @quit = false
       end
 
       def update(_unused)
-        entities_with(:input).each do |entity|
-          process_input(entity)
-        end
+        entities = entities_with(:input)
+        return if entities.empty?
+
+        key = @world.display.keyboard_handler.wait_for_input
+        command = @input_handler.handle_input(key, entities)
+
+        @world.queue_command(command)
       end
 
       def quit?
@@ -25,6 +31,7 @@ module Vanilla
 
       private
 
+      # TODO: remove this method, Let InputHandler handle input
       def process_input(entity)
         return unless entity.has_tag?(:player)
 
