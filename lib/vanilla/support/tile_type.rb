@@ -13,6 +13,7 @@ module Vanilla
         STAIRS  = '%'.freeze,
         VERTICAL_WALL = '|'.freeze,
         GOLD = '$'.freeze
+        DRAGON = 'D'.freeze
       ].freeze
 
       def self.values
