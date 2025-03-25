@@ -12,7 +12,7 @@ module Vanilla
         MONSTER = 'M'.freeze,
         STAIRS  = '%'.freeze,
         VERTICAL_WALL = '|'.freeze,
-        GOLD = '$'.freeze
+        GOLD = '$'.freeze,
         DRAGON = 'D'.freeze
       ].freeze
 
