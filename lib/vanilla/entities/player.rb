@@ -50,33 +50,6 @@ module Vanilla
                       ))
       end
 
-      # Gain experience points
-      # @param amount [Integer] the amount of experience to gain
-      def gain_experience(amount)
-        @experience += amount
-        check_for_level_ups
-      end
-
-      # Level up the player
-      def level_up
-        xp_needed = experience_to_next_level
-        @level += 1
-        @experience -= xp_needed
-        # Add level up bonuses here
-      end
-
-      # Add an item to the player's inventory
-      # @param item [Object] the item to add
-      def add_to_inventory(item)
-        @inventory << item
-      end
-
-      # Remove an item from the player's inventory
-      # @param item [Object] the item to remove
-      def remove_from_inventory(item)
-        @inventory.delete(item)
-      end
-
       # Convert the player entity to a hash representation
       # @return [Hash] serialized player data
       def to_hash
@@ -88,18 +61,6 @@ module Vanilla
         )
       end
 
-      # For backward compatibility - get the tile character
-      def tile
-        render_component = get_component(:render)
-        render_component&.character || Support::TileType::PLAYER
-      end
-
-      # For backward compatibility - check if stairs were found
-      def found_stairs?
-        stairs_component = get_component(:stairs)
-        stairs_component&.found_stairs || false
-      end
-
       # Create a player entity from a hash representation
       # @param hash [Hash] serialized player data
       # @return [Player] the deserialized player entity
@@ -108,51 +69,11 @@ module Vanilla
         position = extract_position_from_components(hash[:components])
 
         # Create a new player with the position information
-        player = new(
+        new(
           name: hash[:name],
           row: position[:row],
           column: position[:column]
         )
-
-        # Set entity ID to match original
-        player.instance_variable_set(:@id, hash[:id])
-
-        # Update player attributes
-        player.level = hash[:level]
-        player.experience = hash[:experience]
-        player.inventory = hash[:inventory]
-
-        player
-      end
-
-      private
-
-      # Extract position information from serialized components
-      # @param components [Array<Hash>] serialized components
-      # @return [Hash] position information with :row and :column keys
-      def self.extract_position_from_components(components)
-        position_component = components.find { |c| c[:type] == :position }
-
-        if position_component
-          { row: position_component[:data][:row], column: position_component[:data][:column] }
-        else
-          { row: 0, column: 0 } # Default if not found
-        end
-      end
-
-      # Check if the player should level up based on current experience
-      def check_for_level_ups
-        while @experience >= experience_to_next_level
-          next_level_xp = experience_to_next_level
-          @level += 1
-          @experience -= next_level_xp
-        end
-      end
-
-      # Calculate experience needed for next level
-      # @return [Integer] experience points needed for next level
-      def experience_to_next_level
-        @level * 100 # Simple formula, can be adjusted
       end
     end
   end
