@@ -15,6 +15,7 @@ module Vanilla
     # and providing a way to browse through message history.
 
     # MessageSystem serves as a facade for the message subsystem
+    # TODO: Separete Concerns: MessageSystem and MessageSystemFacade?
     # This follows the Facade pattern to provide a simplified interface
     class MessageSystem
       attr_reader :manager
