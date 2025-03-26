@@ -59,10 +59,13 @@ module Vanilla
 
         old_position = { row: position.row, column: position.column }
 
-        clear_old_position(grid, old_position)
+        # Clear old position before moving
+        old_cell = grid[old_position[:row], old_position[:column]]
+        old_cell.tile = Vanilla::Support::TileType::EMPTY
+        @logger.debug("Cleared old position [#{old_position[:row]}, #{old_position[:column]}] to EMPTY")
 
+        # Update position and new cell
         position.set_position(target_cell.row, target_cell.column)
-
         @world.current_level.update_grid_with_entity(entity)
         @logger.info("Entity moved #{direction} from [#{old_position[:row]}, #{old_position[:column]}] to [#{position.row}, #{position.column}]")
 
@@ -76,28 +79,14 @@ module Vanilla
           }
         )
 
+        # Restore underlying entities (e.g: stairs) at old position
+        @world.current_level.update_grid_with_entities
+        @logger.debug("[MovementSystem] Grid updated with all entities after moving")
+
         true
       rescue StandardError => e
         @logger.error("Error in move: #{e.message}\n#{e.backtrace.join("\n")}")
         false
-      end
-
-      def clear_old_position(grid, old_position)
-        # Clear old position unless it’s a special cell (e.g., stairs)
-        old_cell = grid[old_position[:row], old_position[:column]]
-
-        unless old_cell.cell_type.stairs? || occupied_by_another_entity_except_player?(old_position)
-          old_cell.tile = Vanilla::Support::TileType::EMPTY
-          @logger.debug("Cleared old position [#{old_position[:row]}, #{old_position[:column]}] to EMPTY")
-        end
-      end
-
-      def occupied_by_another_entity_except_player?(old_position)
-        @world.current_level.entities.any? do |entity|
-          entity.get_component(:position)&.row == old_position[:row] &&
-            entity.get_component(:position)&.column == old_position[:column] &&
-            entity.has_tag?(:player)
-        end
       end
 
       private

@@ -71,6 +71,7 @@ module Vanilla
       end
       # Process stairs first, then other entities, then player last
       @entities.sort_by { |e| e.has_tag?(:player) ? 1 : e.has_tag?(:stairs) ? 0 : 2 }.each { |e| update_grid_with_entity(e) }
+      @logger.debug("[Level#update_grid_with_entities] Grid updated with all entities")
     end
   end
 end
