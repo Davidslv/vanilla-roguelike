@@ -14,32 +14,29 @@ module Vanilla
     # @param world [World]
     # @param logger [Logger] Logger instance
     # @param event_manager [Vanilla::Events::EventManager, nil] Optional event manager
-    # @param render_system [Vanilla::Systems::RenderSystem, nil] Optional render system
-    def initialize(world, logger = Vanilla::Logger.instance, event_manager = nil, render_system = nil)
+    def initialize(world, logger = Vanilla::Logger.instance, event_manager = nil)
       @world = world
       @logger = logger
       @event_manager = event_manager
-      @render_system = render_system || Vanilla::Systems::RenderSystemFactory.create
     end
 
     # Handle a key press from the user
     # @param key [String, Symbol] The key that was pressed
     # @param entity [Vanilla::Entity] The entity to control (typically the player)
-    # @param grid [Vanilla::MapUtils::Grid] The current game grid
     # @return [Vanilla::Commands::Command] The command that was executed
-    def handle_input(key, entity, grid)
+    def handle_input(key)
       # Log the key press
       @logger.info("[InputHandler] User pressed key: #{key}")
+
+      entity = @world.get_entity_by_name('Player')
 
       publish_key_press_event(key, entity)
 
       # Create and execute the command
-      command = process_command(key, entity, grid)
+      command = process_command(key, entity)
 
       publish_command_issued_event(command)
 
-      # Execute the command and return it
-      command.execute
       command
     end
 
@@ -47,46 +44,46 @@ module Vanilla
 
     def publish_key_press_event(key, entity)
       # Publish key press event if event manager is available
-      if @event_manager
-        @event_manager.publish_event(
-          Vanilla::Events::Types::KEY_PRESSED,
-          self,
-          { key: key, entity_id: entity.id }
-        )
-      end
+      return unless @event_manager
+
+      @event_manager.publish_event(
+        Vanilla::Events::Types::KEY_PRESSED,
+        self,
+        { key: key, entity_id: entity.id }
+      )
     end
 
     def publish_command_issued_event(command)
       # Publish command issued event if event manager is available
-      if @event_manager
-        @event_manager.publish_event(
-          Vanilla::Events::Types::COMMAND_ISSUED,
-          self,
-          { command: command }
-        )
-      end
+      return unless @event_manager
+
+      @event_manager.publish_event(
+        Vanilla::Events::Types::COMMAND_ISSUED,
+        self,
+        { command: command }
+      )
     end
 
     # Create a command based on the key that was pressed
     # @param key [String, Symbol] The key that was pressed
     # @param entity [Vanilla::Entity] The entity to control
-    # @param grid [Vanilla::MapUtils::Grid] The current game grid
     # @return [Vanilla::Commands::Command] The command to execute
-    def process_command(key, entity, grid)
+    def process_command(key, entity)
       case key
       when "k", "K", :KEY_UP
-        @logger.info("[InputHandler] User attempting to move UP")
-        Commands::MoveCommand.new(entity, :up, grid, @render_system)
+        @logger.info("[InputHandler] User attempting to move NORTH")
+        Commands::MoveCommand.new(entity, :north)
       when "j", "J", :KEY_DOWN
-        @logger.info("[InputHandler] User attempting to move DOWN")
-        Commands::MoveCommand.new(entity, :down, grid, @render_system)
+        @logger.info("[InputHandler] User attempting to move SOUTH")
+        Commands::MoveCommand.new(entity, :south)
       when "l", "L", :KEY_RIGHT
-        @logger.info("[InputHandler] User attempting to move RIGHT")
-        Commands::MoveCommand.new(entity, :right, grid, @render_system)
+        @logger.info("[InputHandler] User attempting to move EAST")
+        Commands::MoveCommand.new(entity, :east)
       when "h", "H", :KEY_LEFT
-        @logger.info("[InputHandler] User attempting to move LEFT")
-        Commands::MoveCommand.new(entity, :left, grid, @render_system)
+        @logger.info("[InputHandler] User attempting to move WEST")
+        Commands::MoveCommand.new(entity, :west)
       when "q", "\C-c", "\u0003" # 'q' or Ctrl+C
+        @logger.info("[InputHandler] User attempting to exit game")
         Commands::ExitCommand.new
       else
         @logger.debug("[InputHandler] Unknown key pressed: #{key.inspect}")

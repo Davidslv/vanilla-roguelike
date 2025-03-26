@@ -6,8 +6,10 @@ require_relative 'system'
 module Vanilla
   module Systems
     class MovementSystem < System
-      def initialize(world_or_grid)
-        super(world_or_grid)
+      class InvalidDirectionError < StandardError; end
+
+      def initialize(world)
+        super(world)
         @logger = Vanilla::Logger.instance
       end
 
@@ -20,7 +22,7 @@ module Vanilla
       def process_entity_movement(entity)
         input = entity.get_component(:input)
         direction = input.move_direction
-        @logger.debug("Entity #{entity.id} direction: #{direction}")
+        @logger.debug("Entity #{entity} direction: #{direction}")
         return unless direction
 
         success = move(entity, direction)
@@ -29,7 +31,7 @@ module Vanilla
       end
 
       def move(entity, direction)
-        @logger.debug("Starting move for entity #{entity.id}")
+        @logger.debug("Starting move for entity <<#{entity.class.name}>>")
 
         position = entity.get_component(:position)
         @logger.debug("Position: [#{position.row}, #{position.column}]")
@@ -84,7 +86,7 @@ module Vanilla
 
       def can_process?(entity)
         result = entity.has_component?(:position) && entity.has_component?(:movement) && entity.has_component?(:render)
-        @logger.debug("Can process entity #{entity.id}? #{result}")
+        @logger.debug("Can process entity #{entity}? #{result}")
         result
       end
 
@@ -108,9 +110,9 @@ module Vanilla
       def handle_special_cell_attributes(entity, target_cell)
         @logger.debug("Checking cell: [#{target_cell.row}, #{target_cell.column}]")
         if target_cell.tile == Vanilla::Support::TileType::STAIRS
-          @logger.info("Stairs at [#{target_cell.row}, #{target_cell.column}] reached by entity #{entity.id}")
-          emit_event(:stairs_found, { entity_id: entity.id })
-          queue_command(:change_level, { difficulty: @world.current_level.difficulty + 1, player_id: entity.id })
+          @logger.info("Stairs at [#{target_cell.row}, #{target_cell.column}] reached by entity #{entity}")
+          emit_event(:stairs_found, { entity_id: entity })
+          queue_command(:change_level, { difficulty: @world.current_level.difficulty + 1, player_id: entity })
         end
       end
 

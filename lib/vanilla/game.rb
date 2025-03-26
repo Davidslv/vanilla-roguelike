@@ -12,6 +12,13 @@ module Vanilla
       @turn = 0
       setup_world
       Vanilla::ServiceRegistry.register(:game, self)
+
+      # Handle SIGINT (Ctrl+C)
+      Signal.trap("SIGINT") do
+        @world.quit = true
+        @logger.info("Received CTRL+C, quitting game")
+        exit
+      end
     end
 
     def start
@@ -36,6 +43,7 @@ module Vanilla
       @world.set_level(@level)
 
       @player = Vanilla::EntityFactory.create_player(0, 0)
+      @logger.debug("[Game] Adding player to world: #{@player.id}")
       @world.add_entity(@player)
       @level.add_entity(@player)
 
@@ -53,11 +61,11 @@ module Vanilla
 
     def game_loop
       @turn = 0
-      loop do
-        @world.update(nil)  # Input, Movement, Commands (level change), Render
-        render              # Shows new level immediately
+
+      until @world.quit?
+        @world.update(nil)
+        render
         @turn += 1
-        break if @world.quit?
       end
     end
 

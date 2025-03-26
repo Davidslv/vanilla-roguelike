@@ -4,6 +4,7 @@ module Vanilla
   class EntityFactory
     def self.create_player(row, column)
       player = Vanilla::Entities::Entity.new
+
       player.name = "Player"
       player.add_tag(:player)
       player.add_component(Vanilla::Components::PositionComponent.new(row: row, column: column))
