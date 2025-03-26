@@ -14,13 +14,12 @@ module Vanilla
       end
 
       def update(_unused)
-        entities = entities_with(:input)
-        return if entities.empty?
-
         key = @world.display.keyboard_handler.wait_for_input
-        command = @input_handler.handle_input(key)
+        @input_handler.handle_input(key)
+      end
 
-        @world.queue_command(command)
+      def quit?
+        @quit
       end
     end
   end

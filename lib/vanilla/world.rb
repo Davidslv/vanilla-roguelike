@@ -181,7 +181,7 @@ module Vanilla
         @logger.debug("[World#process_commands] #{@command_queue.size} commands in queue")
 
         command, params = @command_queue.shift
-        @logger.debug("[World#process_commands] Command #{command.class.name}, params: #{params}")
+        @logger.debug("[World#process_commands]---------------------------- Command #{command.class.name}, params: #{params}")
 
         if command.is_a?(Vanilla::Commands::Command)
           command.execute(self)
@@ -199,7 +199,10 @@ module Vanilla
       @logger.debug("[World#handle_command] command_type: #{command_type}, params: #{params}")
       case command_type
       when :change_level
-        change_level(params[:difficulty], params[:player_id])
+        @logger.error("[World#handle_command] this method is deprecated, use ChangeLevelCommand instead")
+
+        # No longer call change_level; let it fail gracefully or remove entirely
+        # change_level(params[:difficulty], params[:player_id])
       when :add_entity
         add_entity(params[:entity])
       when :remove_entity
@@ -209,37 +212,6 @@ module Vanilla
       else
         @logger.error("[World#handle_command] Unknown command type: #{command_type}")
       end
-    end
-
-    # TODO: Consider refactoring it into smaller methods to improve maintainability.
-    # Setting the flag (@level_changed) after level transition ensures the rendering system knows when to refresh the display, which is essential for the game loop.
-    # The change_level method is quite long and handles multiple responsibilities.
-    def change_level(difficulty, player_id)
-      level_generator = LevelGenerator.new
-      new_level = level_generator.generate(difficulty)
-      player = get_entity_by_name("Player")
-      if player
-        @logger.debug("[World#change_level] Player found: #{player.id}")
-        @logger.debug("[World#change_level] Player position: #{player.get_component(:position).to_hash}")
-
-        position = player.get_component(:position)
-        entrance_row = new_level.respond_to?(:entrance_row) ? new_level.entrance_row : 0
-        entrance_column = new_level.respond_to?(:entrance_column) ? new_level.entrance_column : 0
-
-        position.set_position(entrance_row, entrance_column)
-        @logger.debug("[World#change_level] Player position set: #{position.to_hash}")
-        new_level.add_entity(player) # Ensure player is added to new level's entities
-      end
-      set_level(new_level)
-
-      # Spawn monsters for the new level
-      monster_system = systems.find { |sys, _| sys.is_a?(Vanilla::Systems::MonsterSystem) }&.first
-      monster_system&.spawn_monsters(difficulty)
-
-      emit_event(:level_transitioned, { difficulty: difficulty, player_id: player_id })
-
-      # Flag to inform world that there's a new level to be rendered
-      @level_changed = true
     end
 
     # Add an item to a player's inventory

@@ -1,47 +1,45 @@
 # frozen_string_literal: true
 
 require_relative 'command'
+require_relative 'change_level_command'
 
 module Vanilla
   module Commands
-    # MoveCommand handles entity movement in a specified direction
-    # This is a critical command used by the player and NPCs for movement
     class MoveCommand < Command
       VALID_DIRECTIONS = [:north, :south, :east, :west].freeze
       class InvalidDirectionError < StandardError; end
 
       attr_reader :entity, :direction
 
-      # Create a new movement command
-      #
-      # @param entity [Object] the entity to move (usually player or monster)
-      # @param direction [Symbol] the direction to move in (:north, :south, :east, :west)
       def initialize(entity, direction)
         raise InvalidDirectionError, "Invalid direction: #{direction}" unless VALID_DIRECTIONS.include?(direction)
 
         super()
         @entity = entity
+        @logger = Vanilla::Logger.instance
         @direction = direction
-
         @logger.debug("[MoveCommand] Initializing move command for entity in direction #{@direction}")
       end
 
       def execute(world)
-        @logger.debug("[MoveCommand] Executing move command for entity in direction #{@direction}")
-        @logger.debug("[MoveCommand] Executed? #{@executed}")
         return if @executed
 
-        @logger.debug("[MoveCommand] Executing move command for entity in direction #{@direction}")
+        movement_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::MovementSystem) }&.first
+        unless movement_system
+          @logger.error("[MoveCommand] No MovementSystem found")
+          return
+        end
 
-        movement_system = world.systems.find { |system, _priority| system.is_a?(Vanilla::Systems::MovementSystem) }[0]
-        @logger.debug("[MoveCommand] Movement system: #{movement_system.nil?}")
-        return unless movement_system
-
-        @logger.debug("[MoveCommand] Executing move command for entity in direction #{@direction}")
-
-        @logger.debug("[MoveCommand] Moving entity #{@entity.class.name}")
         movement_system.move(@entity, @direction)
+        new_pos = @entity.get_component(:position)
+        target_cell = world.grid[new_pos.row, new_pos.column]
 
+        @logger.debug("[MoveCommand] Target cell stairs?: #{target_cell.stairs?}")
+
+        if target_cell&.stairs?
+          @logger.info("[MoveCommand] Stairs reached at [#{new_pos.row}, #{new_pos.column}]")
+          world.queue_command(ChangeLevelCommand.new(world.current_level.difficulty + 1, @entity))
+        end
         @executed = true
       end
     end

@@ -4,6 +4,7 @@ require_relative 'commands/move_command'
 require_relative 'commands/exit_command'
 require_relative 'commands/null_command'
 require_relative 'commands/no_op_command'
+require_relative 'commands/change_level_command'
 
 # Update Flow:
 # KeyboardHandler → InputHandler → Creates commands → InputSystem queues them in World.
@@ -12,11 +13,10 @@ module Vanilla
   class InputHandler
     # Initialize a new input handler
     # @param world [World]
-    # @param logger [Logger] Logger instance
     # @param event_manager [Vanilla::Events::EventManager, nil] Optional event manager
-    def initialize(world, logger = Vanilla::Logger.instance, event_manager = nil)
+    def initialize(world, event_manager = nil)
       @world = world
-      @logger = logger
+      @logger = Vanilla::Logger.instance
       @event_manager = event_manager
     end
 
@@ -29,11 +29,15 @@ module Vanilla
       @logger.info("[InputHandler] User pressed key: #{key}")
 
       entity = @world.get_entity_by_name('Player')
+      unless entity
+        @logger.error("[InputHandler] No player entity found")
+        return
+      end
 
       publish_key_press_event(key, entity)
-
       # Create and execute the command
       command = process_command(key, entity)
+      @world.queue_command(command) if command # Queue directly to World
 
       publish_command_issued_event(command)
 

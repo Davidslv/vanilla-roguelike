@@ -97,7 +97,8 @@ module Vanilla
       # Check if this cell contains stairs
       # @return [Boolean] True if it contains stairs, false otherwise
       def stairs?
-        @cell_type.stairs?
+        # TODO: HACKED here... should look at @cell_type.stairs?
+        tile == Vanilla::Support::TileType::STAIRS
       end
 
       # Get all neighboring cells (north, south, east, west)
