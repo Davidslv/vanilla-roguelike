@@ -2,8 +2,11 @@
 
 # Combines Ruby files into a single file
 # Usage:
-#   - Run without arguments: combines all .rb files in default directory
+#   - Run without arguments: combines all .rb files in default directory + bin/play.rb
 #   - Pass file paths as arguments: combines only specified files
+#   - Use --folder PATH or -f PATH: combines all .rb files in specified folder
+
+require 'optparse'
 
 def combine_files(output_filename, file_list)
   File.open(output_filename, "w") do |output|
@@ -28,8 +31,27 @@ output_file = "combined_game.rb"
 default_directory = "/Users/davidslv/projects/vanilla/lib"
 bin_play_location = "/Users/davidslv/projects/vanilla/bin/play.rb"
 
-# Check if arguments were provided
-if ARGV.empty?
+# Parse command-line options
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename(__FILE__)} [options] [files...]"
+
+  opts.on("-f", "--folder PATH", "Specify a folder to combine all .rb files from") do |path|
+    options[:folder] = path
+  end
+end.parse!
+
+# Process based on arguments
+if options[:folder]
+  # Folder specified: combine all .rb files from that folder
+  folder = options[:folder]
+  unless Dir.exist?(folder)
+    puts "Error: Directory '#{folder}' does not exist"
+    exit 1
+  end
+  files = Dir.glob("#{folder}/**/*.rb")
+  combine_files(output_file, files)
+elsif ARGV.empty?
   # No arguments: combine all files from default directory plus bin/play.rb
   files = Dir.glob("#{default_directory}/**/*.rb")
   files.append(bin_play_location)
