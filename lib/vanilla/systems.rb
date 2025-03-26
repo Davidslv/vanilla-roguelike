@@ -24,5 +24,6 @@ module Vanilla
     require_relative 'systems/monster_system'
     require_relative 'systems/render_system'
     require_relative 'systems/render_system_factory'
+    require_relative 'systems/maze_system'
   end
 end
