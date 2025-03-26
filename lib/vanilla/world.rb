@@ -9,11 +9,14 @@ module Vanilla
 
   class World
     attr_reader :entities, :systems, :display, :current_level
+    attr_accessor :quit, :level_changed
 
     # Initialize a new world
     def initialize
       @entities = {}
       @systems = []
+
+      @quit = false
 
       @display = DisplayHandler.new
       @logger = Vanilla::Logger.instance
@@ -26,11 +29,9 @@ module Vanilla
       @command_queue = Queue.new
     end
 
-    # Works by delegating it to InputSystem
     def quit?
-      input_system, _priority = @systems.find { |system, _priority| system.is_a?(Vanilla::Systems::InputSystem) }
-
-      input_system&.quit? || false
+      @logger.debug("[World#quit?] quit: #{@quit}")
+      @quit
     end
 
     # Check if the level changed this frame (resets after checking)
@@ -53,6 +54,10 @@ module Vanilla
     # @return [Entity, nil] The removed entity or nil if not found
     def remove_entity(entity_id)
       @entities.delete(entity_id)
+    end
+
+    def get_entity_by_name(name)
+      @entities.values.find { |e| e.name == name }
     end
 
     # Get an entity by ID
@@ -115,6 +120,7 @@ module Vanilla
     # @param command_type [Symbol] The type of command
     # @param params [Hash] The command parameters
     def queue_command(command_type, params = {})
+      @logger.debug("[World#queue_command] Queueing command: #{command_type}, params: #{params}")
       @command_queue << [command_type, params]
     end
 
@@ -156,8 +162,13 @@ module Vanilla
     # Process all queued events
     def process_events
       until @event_queue.empty?
+        @logger.debug("[World#process_events] Processing events")
+
         event_type, data = @event_queue.pop
+        @logger.debug("[World#process_events] Event type: #{event_type}, data: #{data}")
+
         @event_subscribers[event_type].each do |subscriber|
+          @logger.debug("[World#process_events] Subscriber: #{subscriber}")
           subscriber.handle_event(event_type, data)
         end
       end
@@ -165,9 +176,18 @@ module Vanilla
 
     # Process all queued commands
     def process_commands
+      @logger.debug("[World#process_commands] Processing commands")
       until @command_queue.empty?
-        command_type, params = @command_queue.pop
-        handle_command(command_type, params)
+        @logger.debug("[World#process_commands] #{@command_queue.size} commands in queue")
+
+        command, params = @command_queue.shift
+        @logger.debug("[World#process_commands] Command #{command.class.name}, params: #{params}")
+
+        if command.is_a?(Vanilla::Commands::Command)
+          command.execute(self)
+        else
+          handle_command(command, params)
+        end
       end
     end
 
@@ -175,43 +195,23 @@ module Vanilla
     # @param command_type [Symbol] The type of command
     # @param params [Hash] The command parameters
     def handle_command(command_type, params)
+      @logger.warn("[World#handle_command] this method is deprecated, use command.execute(self) instead")
+      @logger.debug("[World#handle_command] command_type: #{command_type}, params: #{params}")
       case command_type
       when :change_level
-        change_level(params[:difficulty], params[:player_id])
+        @logger.error("[World#handle_command] this method is deprecated, use ChangeLevelCommand instead")
+
+        # No longer call change_level; let it fail gracefully or remove entirely
+        # change_level(params[:difficulty], params[:player_id])
       when :add_entity
         add_entity(params[:entity])
       when :remove_entity
         remove_entity(params[:entity_id])
       when :add_to_inventory
         add_to_inventory(params[:player_id], params[:item_id])
-        # Other command handlers...
+      else
+        @logger.error("[World#handle_command] Unknown command type: #{command_type}")
       end
-    end
-
-    # TODO: Consider refactoring it into smaller methods to improve maintainability.
-    # Setting the flag (@level_changed) after level transition ensures the rendering system knows when to refresh the display, which is essential for the game loop.
-    # The change_level method is quite long and handles multiple responsibilities.
-    def change_level(difficulty, player_id)
-      level_generator = LevelGenerator.new
-      new_level = level_generator.generate(difficulty)
-      player = get_entity(player_id)
-      if player
-        position = player.get_component(:position)
-        entrance_row = new_level.respond_to?(:entrance_row) ? new_level.entrance_row : 0
-        entrance_column = new_level.respond_to?(:entrance_column) ? new_level.entrance_column : 0
-        position.set_position(entrance_row, entrance_column)
-        new_level.add_entity(player) # Ensure player is added to new level's entities
-      end
-      set_level(new_level)
-
-      # Spawn monsters for the new level
-      monster_system = systems.find { |sys, _| sys.is_a?(Vanilla::Systems::MonsterSystem) }&.first
-      monster_system&.spawn_monsters(difficulty)
-
-      emit_event(:level_transitioned, { difficulty: difficulty, player_id: player_id })
-
-      # Flag to inform world that there's a new level to be rendered
-      @level_changed = true
     end
 
     # Add an item to a player's inventory

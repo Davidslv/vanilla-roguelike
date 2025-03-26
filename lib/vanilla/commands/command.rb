@@ -8,6 +8,7 @@ module Vanilla
 
       def initialize
         @executed = false
+        @logger = Vanilla::Logger.instance
       end
 
       def execute

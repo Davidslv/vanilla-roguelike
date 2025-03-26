@@ -5,7 +5,7 @@ require_relative 'command'
 module Vanilla
   module Commands
     class NullCommand < Command
-      def execute
+      def execute(_world)
         # Do nothing
         # NullCommand is not considered a successful execution
         @executed = false

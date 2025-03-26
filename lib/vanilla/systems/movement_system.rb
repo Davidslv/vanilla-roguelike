@@ -6,8 +6,10 @@ require_relative 'system'
 module Vanilla
   module Systems
     class MovementSystem < System
-      def initialize(world_or_grid)
-        super(world_or_grid)
+      class InvalidDirectionError < StandardError; end
+
+      def initialize(world)
+        super(world)
         @logger = Vanilla::Logger.instance
       end
 
@@ -20,7 +22,7 @@ module Vanilla
       def process_entity_movement(entity)
         input = entity.get_component(:input)
         direction = input.move_direction
-        @logger.debug("Entity #{entity.id} direction: #{direction}")
+        @logger.debug("Entity #{entity} direction: #{direction}")
         return unless direction
 
         success = move(entity, direction)
@@ -29,7 +31,7 @@ module Vanilla
       end
 
       def move(entity, direction)
-        @logger.debug("Starting move for entity #{entity.id}")
+        @logger.debug("Starting move for entity <<#{entity.class.name}>>")
 
         position = entity.get_component(:position)
         @logger.debug("Position: [#{position.row}, #{position.column}]")
@@ -56,10 +58,16 @@ module Vanilla
         return false unless target_cell && can_move_to?(current_cell, target_cell, direction)
 
         old_position = { row: position.row, column: position.column }
-        position.set_position(target_cell.row, target_cell.column)
 
-        handle_special_cell_attributes(entity, target_cell)
-        log_movement(entity, direction, old_position, { row: position.row, column: position.column })
+        # Clear old position before moving
+        old_cell = grid[old_position[:row], old_position[:column]]
+        old_cell.tile = Vanilla::Support::TileType::EMPTY
+        @logger.debug("Cleared old position [#{old_position[:row]}, #{old_position[:column]}] to EMPTY")
+
+        # Update position and new cell
+        position.set_position(target_cell.row, target_cell.column)
+        @world.current_level.update_grid_with_entity(entity)
+        @logger.info("Entity moved #{direction} from [#{old_position[:row]}, #{old_position[:column]}] to [#{position.row}, #{position.column}]")
 
         emit_event(
           :entity_moved,
@@ -71,8 +79,9 @@ module Vanilla
           }
         )
 
-        grid[old_position[:row], old_position[:column]].tile = Vanilla::Support::TileType::EMPTY
-        grid[position.row, position.column].tile = render.character
+        # Restore underlying entities (e.g: stairs) at old position
+        @world.current_level.update_grid_with_entities
+        @logger.debug("[MovementSystem] Grid updated with all entities after moving")
 
         true
       rescue StandardError => e
@@ -84,7 +93,7 @@ module Vanilla
 
       def can_process?(entity)
         result = entity.has_component?(:position) && entity.has_component?(:movement) && entity.has_component?(:render)
-        @logger.debug("Can process entity #{entity.id}? #{result}")
+        @logger.debug("Can process entity #{entity}? #{result}")
         result
       end
 
@@ -100,22 +109,10 @@ module Vanilla
 
       def can_move_to?(current_cell, target_cell, _direction)
         linked = current_cell.linked?(target_cell)
+        # TODO: Check CellTypeFactory #setup_standard_types for walkable
         walkable = Vanilla::Support::TileType.walkable?(target_cell.tile)
         @logger.debug("Can move to [#{target_cell.row}, #{target_cell.column}]? Linked: #{linked}, Walkable: #{walkable}")
         linked && walkable
-      end
-
-      def handle_special_cell_attributes(entity, target_cell)
-        @logger.debug("Checking cell: [#{target_cell.row}, #{target_cell.column}]")
-        if target_cell.tile == Vanilla::Support::TileType::STAIRS
-          @logger.info("Stairs at [#{target_cell.row}, #{target_cell.column}] reached by entity #{entity.id}")
-          emit_event(:stairs_found, { entity_id: entity.id })
-          queue_command(:change_level, { difficulty: @world.current_level.difficulty + 1, player_id: entity.id })
-        end
-      end
-
-      def log_movement(_entity, direction, old_position, new_position)
-        @logger.info("Entity moved #{direction} from [#{old_position[:row]}, #{old_position[:column]}] to [#{new_position[:row]}, #{new_position[:column]}]")
       end
     end
   end

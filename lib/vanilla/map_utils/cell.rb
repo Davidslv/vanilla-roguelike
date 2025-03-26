@@ -32,12 +32,12 @@ module Vanilla
       # @param row [Integer] The row position of the cell
       # @param column [Integer] The column position of the cell
       # @param type_factory [CellTypeFactory] Factory for cell types
-      def initialize(row:, column:, type_factory: nil)
+      def initialize(row:, column:, type_factory: CellTypeFactory.new)
         @row, @column = row, column
         @links = {}
 
         # Use the provided factory or create a default one
-        @type_factory = type_factory || CellTypeFactory.new
+        @type_factory = type_factory
         @cell_type = @type_factory.get_cell_type(:empty)
       end
 
@@ -121,6 +121,7 @@ module Vanilla
       # Calculate distances from this cell to all other cells in the maze
       # @return [DistanceBetweenCells] A DistanceBetweenCells object containing distances
       def distances
+        Logger.instance.debug("[MapUtils::Cell#distances] Calculating distances for #{self}")
         distances = Vanilla::MapUtils::DistanceBetweenCells.new(self)
         frontier = [self]
 

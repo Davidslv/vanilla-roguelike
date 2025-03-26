@@ -27,6 +27,9 @@ module Vanilla
       # Check if this cell type represents stairs
       # @return [Boolean] True if stairs, false otherwise
       def stairs?
+        # TODO: HACKED here... should look at properties instead
+        # @tile_character == Vanilla::Support::TileType::STAIRS # Adjust based on your TileType definition
+
         @properties.fetch(:stairs, false)
       end
 

@@ -4,6 +4,7 @@ module Vanilla
   class EntityFactory
     def self.create_player(row, column)
       player = Vanilla::Entities::Entity.new
+
       player.name = "Player"
       player.add_tag(:player)
       player.add_component(Vanilla::Components::PositionComponent.new(row: row, column: column))
@@ -17,8 +18,11 @@ module Vanilla
       stairs = Vanilla::Entities::Entity.new
       stairs.name = "Stairs"
       stairs.add_tag(:stairs)
+
       stairs.add_component(Vanilla::Components::PositionComponent.new(row: row, column: column))
       stairs.add_component(Vanilla::Components::RenderComponent.new(character: Vanilla::Support::TileType::STAIRS, color: :white))
+      stairs.add_component(Vanilla::Components::StairsComponent.new)
+
       stairs
     end
 

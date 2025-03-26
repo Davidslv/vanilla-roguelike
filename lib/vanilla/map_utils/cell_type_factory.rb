@@ -47,7 +47,6 @@ module Vanilla
         register(:wall, Vanilla::Support::TileType::WALL, walkable: false)
         register(:player, Vanilla::Support::TileType::PLAYER, walkable: true, player: true)
         register(:stairs, Vanilla::Support::TileType::STAIRS, walkable: true, stairs: true)
-        register(:door, Vanilla::Support::TileType::DOOR, walkable: true)
         register(:floor, Vanilla::Support::TileType::FLOOR, walkable: true)
         register(:monster, Vanilla::Support::TileType::MONSTER, walkable: false)
         register(:vertical_wall, Vanilla::Support::TileType::VERTICAL_WALL, walkable: false)
