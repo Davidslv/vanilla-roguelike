@@ -3,10 +3,14 @@
 # lib/vanilla/level_generator.rb
 module Vanilla
   class LevelGenerator
+    def initialize
+      @logger = Vanilla::Logger.instance
+      @type_factory = Vanilla::MapUtils::CellTypeFactory.new
+    end
+
     def generate(difficulty, seed = Random.new_seed, algorithm = nil)
       $seed = seed
       srand($seed)
-      @logger = Vanilla::Logger.instance
       @logger.debug("Starting level generation with difficulty: #{difficulty}, seed: #{$seed}")
 
       begin

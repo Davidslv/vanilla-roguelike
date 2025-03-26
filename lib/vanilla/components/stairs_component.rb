@@ -13,19 +13,18 @@ module Vanilla
       # @param found_stairs [Boolean] whether stairs have been found
       def initialize(found_stairs: false)
         super()
-        @found_stairs = found_stairs
+        @type = :stairs
       end
 
       # @return [Symbol] the component type
       def type
-        :stairs
+        @type
       end
 
       # @return [Hash] serialized component data
       def to_hash
         {
-          type: type,
-          found_stairs: @found_stairs
+          type: @type,
         }
       end
 
@@ -33,7 +32,7 @@ module Vanilla
       # @param hash [Hash] serialized component data
       # @return [StairsComponent] deserialized component
       def self.from_hash(hash)
-        new(found_stairs: hash[:found_stairs])
+        new
       end
     end
 

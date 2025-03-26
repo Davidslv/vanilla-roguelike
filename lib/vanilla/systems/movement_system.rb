@@ -58,10 +58,13 @@ module Vanilla
         return false unless target_cell && can_move_to?(current_cell, target_cell, direction)
 
         old_position = { row: position.row, column: position.column }
+
+        clear_old_position(grid, old_position)
+
         position.set_position(target_cell.row, target_cell.column)
 
-        handle_special_cell_attributes(entity, target_cell)
-        log_movement(entity, direction, old_position, { row: position.row, column: position.column })
+        @world.current_level.update_grid_with_entity(entity)
+        @logger.info("Entity moved #{direction} from [#{old_position[:row]}, #{old_position[:column]}] to [#{position.row}, #{position.column}]")
 
         emit_event(
           :entity_moved,
@@ -73,13 +76,28 @@ module Vanilla
           }
         )
 
-        grid[old_position[:row], old_position[:column]].tile = Vanilla::Support::TileType::EMPTY
-        grid[position.row, position.column].tile = render.character
-
         true
       rescue StandardError => e
         @logger.error("Error in move: #{e.message}\n#{e.backtrace.join("\n")}")
         false
+      end
+
+      def clear_old_position(grid, old_position)
+        # Clear old position unless it’s a special cell (e.g., stairs)
+        old_cell = grid[old_position[:row], old_position[:column]]
+
+        unless old_cell.cell_type.stairs? || occupied_by_another_entity_except_player?(old_position)
+          old_cell.tile = Vanilla::Support::TileType::EMPTY
+          @logger.debug("Cleared old position [#{old_position[:row]}, #{old_position[:column]}] to EMPTY")
+        end
+      end
+
+      def occupied_by_another_entity_except_player?(old_position)
+        @world.current_level.entities.any? do |entity|
+          entity.get_component(:position)&.row == old_position[:row] &&
+            entity.get_component(:position)&.column == old_position[:column] &&
+            entity.has_tag?(:player)
+        end
       end
 
       private
@@ -102,22 +120,10 @@ module Vanilla
 
       def can_move_to?(current_cell, target_cell, _direction)
         linked = current_cell.linked?(target_cell)
+        # TODO: Check CellTypeFactory #setup_standard_types for walkable
         walkable = Vanilla::Support::TileType.walkable?(target_cell.tile)
         @logger.debug("Can move to [#{target_cell.row}, #{target_cell.column}]? Linked: #{linked}, Walkable: #{walkable}")
         linked && walkable
-      end
-
-      def handle_special_cell_attributes(entity, target_cell)
-        @logger.debug("Checking cell: [#{target_cell.row}, #{target_cell.column}]")
-        if target_cell.tile == Vanilla::Support::TileType::STAIRS
-          @logger.info("Stairs at [#{target_cell.row}, #{target_cell.column}] reached by entity #{entity}")
-          emit_event(:stairs_found, { entity_id: entity })
-          queue_command(:change_level, { difficulty: @world.current_level.difficulty + 1, player_id: entity })
-        end
-      end
-
-      def log_movement(_entity, direction, old_position, new_position)
-        @logger.info("Entity moved #{direction} from [#{old_position[:row]}, #{old_position[:column]}] to [#{new_position[:row]}, #{new_position[:column]}]")
       end
     end
   end

@@ -32,12 +32,14 @@ module Vanilla
       # @param row [Integer] The row position of the cell
       # @param column [Integer] The column position of the cell
       # @param type_factory [CellTypeFactory] Factory for cell types
-      def initialize(row:, column:, type_factory: nil)
+      def initialize(row:, column:, type_factory: CellTypeFactory.new)
         @row, @column = row, column
         @links = {}
+        @logger = Vanilla::Logger.instance
+        @logger.debug("[MapUtils::Cell#initialize] Initializing cell at [#{row}, #{column}]")
 
         # Use the provided factory or create a default one
-        @type_factory = type_factory || CellTypeFactory.new
+        @type_factory = type_factory
         @cell_type = @type_factory.get_cell_type(:empty)
       end
 
@@ -97,8 +99,10 @@ module Vanilla
       # Check if this cell contains stairs
       # @return [Boolean] True if it contains stairs, false otherwise
       def stairs?
+        @logger.debug("[MapUtils::Cell#stairs?] Checking if #{self} contains stairs")
         # TODO: HACKED here... should look at @cell_type.stairs?
-        tile == Vanilla::Support::TileType::STAIRS
+        # tile == Vanilla::Support::TileType::STAIRS
+        @cell_type.stairs?
       end
 
       # Get all neighboring cells (north, south, east, west)
@@ -122,6 +126,7 @@ module Vanilla
       # Calculate distances from this cell to all other cells in the maze
       # @return [DistanceBetweenCells] A DistanceBetweenCells object containing distances
       def distances
+        @logger.debug("[MapUtils::Cell#distances] Calculating distances for #{self}")
         distances = Vanilla::MapUtils::DistanceBetweenCells.new(self)
         frontier = [self]
 

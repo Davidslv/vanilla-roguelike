@@ -6,7 +6,7 @@ module Vanilla
   module Commands
     class ChangeLevelCommand < Command
       def initialize(difficulty, player)
-        super(logger)
+        super()
         @difficulty = difficulty
         @player = player
         @logger = Vanilla::Logger.instance
@@ -18,7 +18,7 @@ module Vanilla
 
         @logger.info("[ChangeLevelCommand] Changing level to difficulty #{@difficulty}")
 
-        level_generator = LevelGenerator.new(@logger)
+        level_generator = LevelGenerator.new
         new_level = level_generator.generate(@difficulty) # Assuming generate returns a Level
 
         if @player
@@ -37,7 +37,8 @@ module Vanilla
         monster_system&.spawn_monsters(@difficulty)
 
         world.emit_event(:level_transitioned, { difficulty: @difficulty, player_id: @player&.id })
-        world.instance_variable_set(:@level_changed, true)
+        world.level_changed = true
+
         @executed = true
       end
     end

@@ -6,11 +6,15 @@ module Vanilla
     attr_reader :grid, :difficulty, :entities, :stairs, :algorithm, :entrance_row, :entrance_column
 
     def initialize(rows:, columns:, difficulty:)
-      @grid = Vanilla::MapUtils::Grid.new(rows, columns)
+      @grid = Vanilla::MapUtils::Grid.new(
+        rows, columns, type_factory: Vanilla::MapUtils::CellTypeFactory.new
+      )
+
       @difficulty = difficulty
       @entities = []
       @entrance_row = 0
       @entrance_column = 0
+
       @logger = Vanilla::Logger.instance
     end
 
@@ -49,9 +53,12 @@ module Vanilla
       return unless cell
 
       render = entity.get_component(:render)
+
       if render && render.character
-        # Only update if cell isn’t already occupied by a higher-priority entity (e.g., player over stairs)
-        if cell.tile == Vanilla::Support::TileType::EMPTY || entity.has_tag?(:player)
+        empty_cell = cell.cell_type.key == :empty # || cell.tile == Vanilla::Support::TileType::EMPTY
+
+        # Only update if cell is empty or entity is player (preserve stairs otherwise)
+        if empty_cell || entity.has_tag?(:player)
           cell.tile = render.character
           @logger.debug("Updated grid with entity at: [#{position.row}, #{position.column}] to tile: #{cell.tile}")
         end

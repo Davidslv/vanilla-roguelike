@@ -9,7 +9,7 @@ module Vanilla
 
   class World
     attr_reader :entities, :systems, :display, :current_level
-    attr_accessor :quit
+    attr_accessor :quit, :level_changed
 
     # Initialize a new world
     def initialize
@@ -181,7 +181,7 @@ module Vanilla
         @logger.debug("[World#process_commands] #{@command_queue.size} commands in queue")
 
         command, params = @command_queue.shift
-        @logger.debug("[World#process_commands]---------------------------- Command #{command.class.name}, params: #{params}")
+        @logger.debug("[World#process_commands] Command #{command.class.name}, params: #{params}")
 
         if command.is_a?(Vanilla::Commands::Command)
           command.execute(self)
