@@ -33,8 +33,6 @@ module Vanilla
 
         @logger.debug("[MoveCommand] Executing move command for entity in direction #{@direction}")
 
-        @logger.debug("[MoveCommand] System: #{world.systems.first.first.class.name}")
-
         movement_system = world.systems.find { |system, _priority| system.is_a?(Vanilla::Systems::MovementSystem) }[0]
         @logger.debug("[MoveCommand] Movement system: #{movement_system.nil?}")
         return unless movement_system
