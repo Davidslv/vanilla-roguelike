@@ -8,8 +8,6 @@ classDiagram
       +initialize()
       +type()
       +to_hash()
-      +data()
-      +update()
     }
     class Entity {
       -id
@@ -26,7 +24,6 @@ classDiagram
       +remove_tag()
       +has_tag?()
       +tags()
-      +update()
       +to_hash()
       +method_missing()
       +respond_to_missing?()
@@ -43,14 +40,20 @@ classDiagram
     class World {
       -entities
       -systems
+      -quit
       -display
+      -logger
       -current_level
+      -level_changed
       -event_subscribers
       -event_queue
       -command_queue
       +initialize()
+      +quit?()
+      +level_changed?()
       +add_entity()
       +remove_entity()
+      +get_entity_by_name()
       +get_entity()
       +find_entity_by_tag()
       +query_entities()
@@ -65,7 +68,6 @@ classDiagram
       +process_events()
       +process_commands()
       +handle_command()
-      +change_level()
       +add_to_inventory()
     }
   end
@@ -78,8 +80,6 @@ classDiagram
       +initialize()
       +type()
       +to_hash()
-      +data()
-      +update()
     }
     style Component fill:#ffcccc
   end
@@ -96,7 +96,6 @@ classDiagram
   end
   %% Relationships
   Entity --> Component : uses
-  World --> World :  emits_level_transitioned
   Entity o--> "many" Component : contains
   World o--> "many" Entity : manages
   World o--> "many" System : manages

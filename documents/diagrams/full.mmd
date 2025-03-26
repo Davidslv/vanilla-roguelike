@@ -8,8 +8,6 @@ classDiagram
       +initialize()
       +type()
       +to_hash()
-      +data()
-      +update()
     }
     class Entity {
       -id
@@ -26,7 +24,6 @@ classDiagram
       +remove_tag()
       +has_tag?()
       +tags()
-      +update()
       +to_hash()
       +method_missing()
       +respond_to_missing?()
@@ -43,14 +40,20 @@ classDiagram
     class World {
       -entities
       -systems
+      -quit
       -display
+      -logger
       -current_level
+      -level_changed
       -event_subscribers
       -event_queue
       -command_queue
       +initialize()
+      +quit?()
+      +level_changed?()
       +add_entity()
       +remove_entity()
+      +get_entity_by_name()
       +get_entity()
       +find_entity_by_tag()
       +query_entities()
@@ -65,7 +68,6 @@ classDiagram
       +process_events()
       +process_commands()
       +handle_command()
-      +change_level()
       +add_to_inventory()
     }
   end
@@ -78,8 +80,6 @@ classDiagram
       +initialize()
       +type()
       +to_hash()
-      +data()
-      +update()
     }
     style Component fill:#ffcccc
     class ConsumableComponent {
@@ -88,14 +88,7 @@ classDiagram
       -auto_identify
       +initialize()
       +type()
-      +has_charges?()
-      +consume()
       +to_hash()
-      +apply_effects()
-      +heal_entity()
-      +damage_entity()
-      +apply_buff()
-      +teleport_entity()
     }
     Component <|-- ConsumableComponent
     style ConsumableComponent fill:#ffcccc
@@ -149,28 +142,16 @@ classDiagram
       -equipped
       +initialize()
       +type()
-      +equipped?()
-      +equip()
-      +unequip()
       +to_hash()
       +validate_slot()
-      +slot_occupied?()
-      +apply_stat_modifiers()
-      +remove_stat_modifiers()
     }
     Component <|-- EquippableComponent
     style EquippableComponent fill:#ffcccc
     class InputComponent {
       -move_direction
-      -action_triggered
-      -action_params
       +initialize()
       +type()
-      +set_move_direction()
-      +set_action_triggered()
-      +action_params()
-      +clear()
-      +data()
+      +to_hash()
     }
     Component <|-- InputComponent
     style InputComponent fill:#ffcccc
@@ -199,12 +180,7 @@ classDiagram
       -stack_size
       +initialize()
       +type()
-      +stackable?()
-      +increase_stack()
-      +decrease_stack()
-      +use()
       +to_hash()
-      +display_string()
     }
     Component <|-- ItemComponent
     style ItemComponent fill:#ffcccc
@@ -247,31 +223,18 @@ classDiagram
       -entity_type
       +initialize()
       +type()
-      +tile()
-      +update_appearance()
-      +set_layer()
-      +set_color()
-      +data()
+      +to_hash()
     }
     Component <|-- RenderComponent
     style RenderComponent fill:#ffcccc
     class StairsComponent {
-      -found_stairs
+      -type
       +initialize()
       +type()
-      +data()
+      +to_hash()
     }
     Component <|-- StairsComponent
     style StairsComponent fill:#ffcccc
-    class TileComponent {
-      -tile
-      +initialize()
-      +type()
-      +change_tile()
-      +data()
-    }
-    Component <|-- TileComponent
-    style TileComponent fill:#ffcccc
     class TestPositionComponent {
       -row
       -column
@@ -316,9 +279,11 @@ classDiagram
     System <|-- CollisionSystem
     class InputSystem {
       -logger
+      -input_handler
+      -quit
       +initialize()
       +update()
-      +process_input()
+      +quit?()
     }
     System <|-- InputSystem
     class InventoryRenderSystem {
@@ -387,12 +352,8 @@ classDiagram
       +process_entity_movement()
       +move()
       +can_process?()
-      +normalize_direction()
       +get_target_cell()
       +can_move_to?()
-      +handle_special_cell_attributes()
-      +update_position()
-      +log_movement()
     }
     System <|-- MovementSystem
     class RenderSystem {
@@ -417,6 +378,76 @@ classDiagram
     }
   end
   subgraph Others
+    class Cell {
+      -row
+      -column
+      -links
+      -type_factory
+      -cell_type
+      -grid
+      -tile
+      +initialize()
+      +position()
+      +link()
+      +unlink()
+      +links()
+      +linked?()
+      +dead_end?()
+      +player?()
+      +stairs?()
+      +neighbors()
+      +tile=()
+      +tile()
+      +distances()
+    }
+    class CellType {
+      -key
+      -tile_character
+      -properties
+      +initialize()
+      +walkable?()
+      +stairs?()
+      +player?()
+      +to_s()
+    }
+    class CellTypeFactory {
+      -types
+      +initialize()
+      +get_cell_type()
+      +get_by_character()
+      +register()
+      +setup_standard_types()
+    }
+    class DistanceBetweenCells {
+      -root
+      -cells
+      +initialize()
+      +[]()
+      +[]=()
+      +cells()
+      +path_to()
+      +max()
+    }
+    class Grid {
+      -rows
+      -columns
+      -grid
+      -type_factory
+      +initialize()
+      +[]()
+      +each_cell()
+      +random_cell()
+      +size()
+    }
+    class Distances {
+      -root
+      -cells
+      +initialize()
+      +[]()
+      +path_to()
+      +cells()
+      +max()
+    }
     class AbstractAlgorithm {
     }
     class AldousBroder {
@@ -443,28 +474,39 @@ classDiagram
       +divide_vertically()
     }
     AbstractAlgorithm <|-- RecursiveDivision
+    class ChangeLevelCommand {
+      -difficulty
+      -player
+      -logger
+      -executed
+      +initialize()
+      +execute()
+    }
+    Command <|-- ChangeLevelCommand
     class Command {
       -executed
+      -logger
       +initialize()
       +execute()
     }
     class ExitCommand {
       -logger
+      -executed
       +initialize()
       +execute()
     }
     Command <|-- ExitCommand
     class MoveCommand {
       -entity
+      -logger
       -direction
-      -grid
-      -movement_system
-      -render_system
       -executed
       +initialize()
       +execute()
     }
     Command <|-- MoveCommand
+    class InvalidDirectionError {
+    }
     class NoOpCommand {
       -logger
       -reason
@@ -499,15 +541,7 @@ classDiagram
       -experience
       -inventory
       +initialize()
-      +gain_experience()
-      +level_up()
-      +add_to_inventory()
-      +remove_from_inventory()
       +to_hash()
-      +tile()
-      +found_stairs?()
-      +check_for_level_ups()
-      +experience_to_next_level()
     }
     Entity <|-- Player
     class Stairs {
@@ -585,15 +619,16 @@ classDiagram
       +setup_world()
       +game_loop()
       +render()
-      +input_to_direction()
     }
     class InputHandler {
+      -world
       -logger
       -event_manager
-      -render_system
       +initialize()
       +handle_input()
-      +create_command()
+      +publish_key_press_event()
+      +publish_command_issued_event()
+      +process_command()
     }
     class Item {
       -entity
@@ -696,7 +731,9 @@ classDiagram
     }
     class LevelGenerator {
       -logger
+      -type_factory
       -algorithm
+      +initialize()
       +generate()
       +ensure_path()
     }
@@ -722,75 +759,6 @@ classDiagram
       -algorithm
       +initialize()
       +create()
-    }
-    class Cell {
-      -row
-      -column
-      -links
-      -type_factory
-      -cell_type
-      -grid
-      -tile
-      +initialize()
-      +position()
-      +link()
-      +unlink()
-      +links()
-      +linked?()
-      +dead_end?()
-      +player?()
-      +stairs?()
-      +neighbors()
-      +tile=()
-      +tile()
-      +distances()
-    }
-    class CellType {
-      -key
-      -tile_character
-      -properties
-      +initialize()
-      +walkable?()
-      +stairs?()
-      +player?()
-      +to_s()
-    }
-    class CellTypeFactory {
-      -types
-      +initialize()
-      +get_cell_type()
-      +get_by_character()
-      +register()
-      +setup_standard_types()
-    }
-    class DistanceBetweenCells {
-      -root
-      -cells
-      +initialize()
-      +[]()
-      +[]=()
-      +cells()
-      +path_to()
-      +max()
-    }
-    class Grid {
-      -rows
-      -columns
-      -grid
-      +initialize()
-      +[]()
-      +each_cell()
-      +random_cell()
-      +size()
-    }
-    class Distances {
-      -root
-      -cells
-      +initialize()
-      +[]()
-      +path_to()
-      +cells()
-      +max()
     }
     class Message {
       -content
@@ -912,6 +880,15 @@ classDiagram
       +unregister()
       +update()
     }
+    class ComponentBehavior {
+      -full_class_name
+      -parent_class_name
+      -is_component
+      +on_class()
+      +on_def()
+      +on_defs()
+      +full_name()
+    }
     class ClassInfo {
       -name
       -parent
@@ -921,6 +898,27 @@ classDiagram
       -has_behavior
       -file
       +initialize()
+    }
+    class CodeAnalyzer {
+      -directory_path
+      -debug
+      -classes
+      -modules
+      -methods_defined
+      -classes_used
+      -modules_used
+      -methods_called
+      -analyzed_files
+      -processed_locations
+      -current_class_context
+      +initialize()
+      +analyze()
+      +process_node()
+      +unused_methods()
+      +unused_classes()
+      +unused_modules()
+      +report()
+      +print_report()
     }
     class LogMonitor {
       -current_log
@@ -939,11 +937,38 @@ classDiagram
     }
   end
   %% Relationships
+  Cell --> Cell : uses
+  Cell --> CellTypeFactory : uses
+  Cell --> DistanceBetweenCells : uses
+  Cell --> CellType : uses
+  Cell --> Logger : uses
+  CellType --> Cell : uses
+  CellType --> CellType : uses
+  CellTypeFactory --> Cell : uses
+  CellTypeFactory --> CellTypeFactory : uses
+  CellTypeFactory --> CellType : uses
+  DistanceBetweenCells --> Cell : uses
+  DistanceBetweenCells --> CellTypeFactory : uses
+  DistanceBetweenCells --> DistanceBetweenCells : uses
+  DistanceBetweenCells --> CellType : uses
+  Grid --> Cell : uses
+  Grid --> CellTypeFactory : uses
+  Grid --> DistanceBetweenCells : uses
+  Grid --> CellType : uses
+  Distances --> Cell : uses
+  Distances --> CellTypeFactory : uses
+  Distances --> DistanceBetweenCells : uses
+  Distances --> CellType : uses
+  Distances --> Distances : uses
+  ChangeLevelCommand --> World :  emits_level_transitioned
+  MoveCommand --> ChangeLevelCommand : uses
+  InvalidDirectionError --> ChangeLevelCommand : uses
+  InvalidDirectionError --> Logger : uses
+  InvalidDirectionError --> TileType : uses
   ConsumableComponent --> Component : uses
   CurrencyComponent --> Component : uses
   DurabilityComponent --> Component : uses
   EffectComponent --> Component : uses
-  Entity --> Component : uses
   EquippableComponent --> Component : uses
   InputComponent --> Component : uses
   InventoryComponent --> Component : uses
@@ -953,13 +978,12 @@ classDiagram
   PositionComponent --> Component : uses
   RenderComponent --> Component : uses
   StairsComponent --> Component : uses
-  TileComponent --> Component : uses
+  Entity --> Component : uses
   Monster --> PositionComponent : uses
   Monster --> MovementComponent : uses
   Monster --> RenderComponent : uses
   Player --> PositionComponent : uses
   Player --> MovementComponent : uses
-  Player --> TileComponent : uses
   Player --> StairsComponent : uses
   Player --> RenderComponent : uses
   Stairs --> PositionComponent : uses
@@ -969,6 +993,7 @@ classDiagram
   EntityFactory --> RenderComponent : uses
   EntityFactory --> InputComponent : uses
   EntityFactory --> MovementComponent : uses
+  EntityFactory --> StairsComponent : uses
   EventManager --> Event : uses
   FileEventStore --> Event : uses
   Game --> EntityFactory : uses
@@ -984,16 +1009,14 @@ classDiagram
   ItemRegistry --> CurrencyComponent : uses
   InventorySystemFacade --> ItemFactory : uses
   InventorySystemFacade --> ItemRegistry : uses
+  Level --> Grid : uses
+  Level --> CellTypeFactory : uses
   Level --> EntityFactory : uses
+  LevelGenerator --> CellTypeFactory : uses
   LevelGenerator --> Level : uses
   Logger --> Logger : uses
   Map --> Logger : uses
-  Cell --> Cell : uses
-  CellTypeFactory --> CellType : uses
-  DistanceBetweenCells --> DistanceBetweenCells : uses
-  Grid --> Cell : uses
-  Distances --> Cell : uses
-  Distances --> Distances : uses
+  Map --> Grid : uses
   MessageLog --> Message : uses
   MessageManager --> MessageLog : uses
   MessageManager --> Message : uses
@@ -1004,15 +1027,13 @@ classDiagram
   CollisionSystem --> World :  queues_add_to_inventory
   CollisionSystem --> World :  queues_remove_entity
   InputSystem --> Logger : uses
+  InputSystem --> InputHandler : uses
   InventorySystem --> PositionComponent : uses
   MonsterSystem --> Logger : uses
   MonsterSystem --> EntityFactory : uses
   MonsterSystem --> TileType : uses
   MovementSystem --> Logger : uses
   MovementSystem --> TileType : uses
-  MovementSystem --> World :  emits_entity_moved
-  MovementSystem --> World :  emits_stairs_found
-  MovementSystem --> World :  queues_change_level
   RenderSystem --> TerminalRenderer : uses
   RenderSystem --> Logger : uses
   RenderSystemFactory --> RenderSystem : uses
@@ -1020,13 +1041,13 @@ classDiagram
   RenderSystemFactory --> TerminalRenderer : uses
   RenderSystemFactory --> Logger : uses
   World --> DisplayHandler : uses
-  World --> LevelGenerator : uses
-  World --> World :  emits_level_transitioned
+  World --> Logger : uses
   ServiceRegistry --> ServiceRegistry : uses
   ServiceRegistry --> Game : uses
   Scheduler --> ServiceRegistry : uses
   Scheduler --> Game : uses
   ClassInfo --> ClassInfo : uses
+  CodeAnalyzer --> CodeAnalyzer : uses
   LogMonitor --> LogMonitor : uses
   TestPositionComponent --> Component : uses
   Entity o--> "many" Component : contains

@@ -45,9 +45,11 @@ classDiagram
     System <|-- CollisionSystem
     class InputSystem {
       -logger
+      -input_handler
+      -quit
       +initialize()
       +update()
-      +process_input()
+      +quit?()
     }
     System <|-- InputSystem
     class InventoryRenderSystem {
@@ -116,12 +118,8 @@ classDiagram
       +process_entity_movement()
       +move()
       +can_process?()
-      +normalize_direction()
       +get_target_cell()
       +can_move_to?()
-      +handle_special_cell_attributes()
-      +update_position()
-      +log_movement()
     }
     System <|-- MovementSystem
     class RenderSystem {

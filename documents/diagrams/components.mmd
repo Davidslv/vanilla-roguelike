@@ -8,8 +8,6 @@ classDiagram
       +initialize()
       +type()
       +to_hash()
-      +data()
-      +update()
     }
   end
   subgraph Components
@@ -21,8 +19,6 @@ classDiagram
       +initialize()
       +type()
       +to_hash()
-      +data()
-      +update()
     }
     style Component fill:#ffcccc
     class ConsumableComponent {
@@ -31,14 +27,7 @@ classDiagram
       -auto_identify
       +initialize()
       +type()
-      +has_charges?()
-      +consume()
       +to_hash()
-      +apply_effects()
-      +heal_entity()
-      +damage_entity()
-      +apply_buff()
-      +teleport_entity()
     }
     Component <|-- ConsumableComponent
     style ConsumableComponent fill:#ffcccc
@@ -92,28 +81,16 @@ classDiagram
       -equipped
       +initialize()
       +type()
-      +equipped?()
-      +equip()
-      +unequip()
       +to_hash()
       +validate_slot()
-      +slot_occupied?()
-      +apply_stat_modifiers()
-      +remove_stat_modifiers()
     }
     Component <|-- EquippableComponent
     style EquippableComponent fill:#ffcccc
     class InputComponent {
       -move_direction
-      -action_triggered
-      -action_params
       +initialize()
       +type()
-      +set_move_direction()
-      +set_action_triggered()
-      +action_params()
-      +clear()
-      +data()
+      +to_hash()
     }
     Component <|-- InputComponent
     style InputComponent fill:#ffcccc
@@ -142,12 +119,7 @@ classDiagram
       -stack_size
       +initialize()
       +type()
-      +stackable?()
-      +increase_stack()
-      +decrease_stack()
-      +use()
       +to_hash()
-      +display_string()
     }
     Component <|-- ItemComponent
     style ItemComponent fill:#ffcccc
@@ -190,31 +162,18 @@ classDiagram
       -entity_type
       +initialize()
       +type()
-      +tile()
-      +update_appearance()
-      +set_layer()
-      +set_color()
-      +data()
+      +to_hash()
     }
     Component <|-- RenderComponent
     style RenderComponent fill:#ffcccc
     class StairsComponent {
-      -found_stairs
+      -type
       +initialize()
       +type()
-      +data()
+      +to_hash()
     }
     Component <|-- StairsComponent
     style StairsComponent fill:#ffcccc
-    class TileComponent {
-      -tile
-      +initialize()
-      +type()
-      +change_tile()
-      +data()
-    }
-    Component <|-- TileComponent
-    style TileComponent fill:#ffcccc
     class TestPositionComponent {
       -row
       -column
@@ -238,5 +197,4 @@ classDiagram
   PositionComponent --> Component : uses
   RenderComponent --> Component : uses
   StairsComponent --> Component : uses
-  TileComponent --> Component : uses
   TestPositionComponent --> Component : uses
