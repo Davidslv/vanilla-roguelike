@@ -50,17 +50,20 @@ module Vanilla
       @player = Vanilla::EntityFactory.create_player(0, 0)
       @world.add_entity(@player)
 
-      # @monster_system = Vanilla::Systems::MonsterSystem.new(@world, player: @player, logger: @logger)
+      # instance variable as since it's used in the game loop
       @maze_system = Vanilla::Systems::MazeSystem.new(@world, difficulty: @difficulty, seed: @seed)
 
-      @world.add_system(@maze_system, 0) # Run first to generate maze
+      # Run first to generate maze
+      @world.add_system(@maze_system, 0)
+
       @world.add_system(Vanilla::Systems::InputSystem.new(@world), 1)
       @world.add_system(Vanilla::Systems::MovementSystem.new(@world), 2)
       @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
-      @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 4)
-      # @world.add_system(@monster_system, 4)
+      @world.add_system(Vanilla::Systems::MonsterSystem.new(@world, player: @player), 4)
 
-      # @monster_system.spawn_monsters(@difficulty)
+      # Render system runs last
+      @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 10)
+
       Vanilla::ServiceRegistry.register(:message_system, Vanilla::Systems::MessageSystem.new(@world))
     end
 
