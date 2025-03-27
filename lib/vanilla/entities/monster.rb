@@ -45,6 +45,8 @@ module Vanilla
                         entity_type: @monster_type,
                         layer: 5 # Monsters are below player
                       ))
+
+        add_component(Components::HealthComponent.new(max_health: health))
       end
 
       # Check if the monster is alive
