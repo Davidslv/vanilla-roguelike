@@ -11,6 +11,7 @@ module Vanilla
       def initialize(world)
         super
         @logger = Vanilla::Logger.instance
+        @logger.debug("[CollisionSystem] Initializing")
         @world.subscribe(:entity_moved, self)
       end
 
@@ -40,6 +41,7 @@ module Vanilla
           row = position.row
           column = position.column
         else
+          @logger.debug("[CollisionSystem] No position component found for entity #{entity_id}")
           return
         end
 
@@ -77,9 +79,11 @@ module Vanilla
       # @param other_entity [Entity] The second entity
       def handle_specific_collisions(entity, other_entity)
         # Handle player-stairs collision
+        @logger.debug("[CollisionSystem] Handling specific collisions for entity #{entity.id} and #{other_entity.id}")
         if (entity.has_tag?(:player) && other_entity.has_tag?(:stairs)) ||
            (entity.has_tag?(:stairs) && other_entity.has_tag?(:player))
           player = entity.has_tag?(:player) ? entity : other_entity
+          @logger.debug("[CollisionSystem] Level transition requested for player #{player.id}")
           emit_event(:level_transition_requested, { player_id: player.id })
         end
 

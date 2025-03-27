@@ -9,6 +9,7 @@ module Vanilla
       end
 
       def draw_grid(grid, algorithm)
+        Vanilla::Logger.instance.warn("[TerminalRenderer] Drawing grid with algorithm: #{algorithm}")
         output = [
           "Vanilla Roguelike - Difficulty: 1 - Seed: #{$seed}",
           "Rows: #{grid.rows} | Columns: #{grid.columns} | Algorithm: #{algorithm}",
@@ -34,10 +35,6 @@ module Vanilla
         end
 
         print output.join("\n") + "\n"
-      end
-
-      def draw_title_screen(difficulty, seed)
-        # Moved to draw_grid
       end
 
       def present
