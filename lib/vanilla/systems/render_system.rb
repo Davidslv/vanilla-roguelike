@@ -9,11 +9,11 @@ module Vanilla
         @difficulty = difficulty
         @seed = seed
         @logger = Vanilla::Logger.instance
+        @logger.debug("[RenderSystem] Initializing with difficulty: #{difficulty}, seed: #{seed}")
       end
 
       def update(_delta_time)
         @renderer.clear
-        @renderer.draw_title_screen(@difficulty, @seed)
         render_grid
         render_messages
         @renderer.present

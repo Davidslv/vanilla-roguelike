@@ -18,26 +18,32 @@ module Vanilla
 
         @logger.info("[ChangeLevelCommand] Changing level to difficulty #{@difficulty}")
 
-        level_generator = LevelGenerator.new
-        new_level = level_generator.generate(@difficulty) # Assuming generate returns a Level
+        # Update MazeSystem difficulty and trigger regeneration
+        maze_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::MazeSystem) }&.first
+        if maze_system
+          maze_system.difficulty = @difficulty # Update difficulty
+          world.level_changed = true # Signal MazeSystem to regenerate
+          maze_system.update(nil) # Force immediate regeneration
+        else
+          @logger.error("[ChangeLevelCommand] No MazeSystem found")
+          return
+        end
 
         if @player
           position = @player.get_component(:position)
-          entrance_row = new_level.entrance_row
-          entrance_column = new_level.entrance_column
-          position.set_position(entrance_row, entrance_column)
-          @logger.debug("[ChangeLevelCommand] Player position reset to [#{entrance_row}, #{entrance_column}]")
-          new_level.add_entity(@player) # This updates the grid via Level#add_entity
+          position.set_position(0, 0) # Reset to [0, 0] as per MazeSystem
+          @logger.debug("[ChangeLevelCommand] Player position reset to [0, 0]")
+          world.current_level.add_entity(@player) # Ensure player is in new level's entities
         else
           @logger.error("[ChangeLevelCommand] No player provided")
         end
 
-        world.set_level(new_level)
-        monster_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::MonsterSystem) }&.first
-        monster_system&.spawn_monsters(@difficulty)
+        # Monster Spawning here... but not yet. Game needs to work first.
+        # monster_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::MonsterSystem) }&.first
+        # monster_system&.spawn_monsters(@difficulty)
 
         world.emit_event(:level_transitioned, { difficulty: @difficulty, player_id: @player&.id })
-        world.level_changed = true
+        world.level_changed = false # Reset flag after transition
 
         @executed = true
       end

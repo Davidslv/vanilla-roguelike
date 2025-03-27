@@ -32,13 +32,10 @@ module Vanilla
 
       def move(entity, direction)
         @logger.debug("Starting move for entity <<#{entity.class.name}>>")
-
         position = entity.get_component(:position)
         @logger.debug("Position: [#{position.row}, #{position.column}]")
-
         render = entity.get_component(:render)
         @logger.debug("Render: to_hash #{render.to_hash}")
-
         movement = entity.get_component(:movement)
         @logger.debug("Movement active: #{movement.active?}")
         return false unless movement&.active?
@@ -58,28 +55,25 @@ module Vanilla
         return false unless target_cell && can_move_to?(current_cell, target_cell, direction)
 
         old_position = { row: position.row, column: position.column }
-
-        # Clear old position before moving
         old_cell = grid[old_position[:row], old_position[:column]]
         old_cell.tile = Vanilla::Support::TileType::EMPTY
         @logger.debug("Cleared old position [#{old_position[:row]}, #{old_position[:column]}] to EMPTY")
 
-        # Update position and new cell
         position.set_position(target_cell.row, target_cell.column)
         @world.current_level.update_grid_with_entity(entity)
+        @logger.debug("[MovementSystem] New position tile: #{@world.current_level.grid[position.row, position.column].tile.inspect}")
         @logger.info("Entity moved #{direction} from [#{old_position[:row]}, #{old_position[:column]}] to [#{position.row}, #{position.column}]")
 
-        emit_event(
-          :entity_moved,
-          {
-            entity_id: entity.id,
-            old_position: old_position,
-            new_position: { row: position.row, column: position.column },
-            direction: direction
-          }
-        )
+        emit_event(:entity_moved, {
+                     entity_id: entity.id,
+                     old_position: old_position,
+                     new_position: { row: position.row, column: position.column },
+                     direction: direction
+                   })
 
-        # Restore underlying entities (e.g: stairs) at old position
+        # Sync Level entities with World entities
+        @world.current_level.entities.clear
+        @world.entities.values.each { |e| @world.current_level.add_entity(e) }
         @world.current_level.update_grid_with_entities
         @logger.debug("[MovementSystem] Grid updated with all entities after moving")
 

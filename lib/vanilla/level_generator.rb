@@ -14,8 +14,9 @@ module Vanilla
       @logger.debug("Starting level generation with difficulty: #{difficulty}, seed: #{$seed}")
 
       begin
-        level = Level.new(rows: 10, columns: 10, difficulty: difficulty)
         @algorithm = algorithm || Vanilla::Algorithms::AVAILABLE.sample(random: Random.new($seed))
+        level = Level.new(rows: 10, columns: 10, difficulty: difficulty, algorithm: @algorithm)
+
         @logger.debug("Selected algorithm: #{@algorithm.demodulize}")
         level.generate(@algorithm)
 
