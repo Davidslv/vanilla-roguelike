@@ -40,9 +40,12 @@ module Vanilla
       end
 
       def generate_maze
+        # 8x14 is a good aspect ratio, similar to 16:9
+        # which makes the game a bit more cinematic
+        # this will leave enough room for a message system underneath the maze
         grid = Vanilla::MapUtils::Grid.new(
-          10,
-          10,
+          8,
+          14,
           type_factory: @type_factory
         )
 
@@ -69,6 +72,10 @@ module Vanilla
         @logger.debug("[MazeSystem] Stairs tile set: #{stairs_cell.tile}")
 
         ensure_path(grid, player_cell, stairs_cell)
+
+        # Delegate monster spawning to MonsterSystem
+        monster_system = @world.systems.find { |s, _| s.is_a?(Vanilla::Systems::MonsterSystem) }&.first
+        monster_system&.spawn_monsters(@difficulty, grid)
 
         # Sync Level entities with World entities
         level = Vanilla::Level.new(grid: grid, difficulty: @difficulty, algorithm: @algorithm)

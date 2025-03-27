@@ -50,32 +50,33 @@ module Vanilla
       @player = Vanilla::EntityFactory.create_player(0, 0)
       @world.add_entity(@player)
 
-      # @monster_system = Vanilla::Systems::MonsterSystem.new(@world, player: @player, logger: @logger)
+      # Maze system is the first system to run
+      # it needs to be an instance variable because it's used in the game loop
       @maze_system = Vanilla::Systems::MazeSystem.new(@world, difficulty: @difficulty, seed: @seed)
 
-      @world.add_system(@maze_system, 0) # Run first to generate maze
+      # Run first to generate maze
+      @world.add_system(@maze_system, 0)
+
       @world.add_system(Vanilla::Systems::InputSystem.new(@world), 1)
       @world.add_system(Vanilla::Systems::MovementSystem.new(@world), 2)
       @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
-      @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 4)
-      # @world.add_system(@monster_system, 4)
+      @world.add_system(Vanilla::Systems::MonsterSystem.new(@world, player: @player), 4)
 
-      # @monster_system.spawn_monsters(@difficulty)
+      # Render system runs last
+      @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 10)
+
       Vanilla::ServiceRegistry.register(:message_system, Vanilla::Systems::MessageSystem.new(@world))
     end
 
     def game_loop
       @turn = 0
-      @logger.debug("[Game] Starting game loop, turn: #{@turn}")
 
       until @world.quit?
-        @logger.debug("[Game] Updating, turn: #{@turn}")
+        @logger.debug("[Game] Running game loop, turn: #{@turn}")
+
         @world.update(nil)
-        @logger.debug("[Game] Updated, turn: #{@turn}")
         render
-        @logger.debug("[Game] Rendered, turn: #{@turn}")
         @turn += 1
-        @logger.debug("[Game] Turn incremented, turn: #{@turn}")
       end
     end
 

@@ -11,6 +11,8 @@ module Vanilla
       player.add_component(Vanilla::Components::RenderComponent.new(character: Vanilla::Support::TileType::PLAYER, color: :white))
       player.add_component(Vanilla::Components::InputComponent.new)
       player.add_component(Vanilla::Components::MovementComponent.new(active: true))
+      player.add_component(Vanilla::Components::HealthComponent.new(max_health: 100))
+
       player
     end
 
@@ -32,10 +34,8 @@ module Vanilla
       monster.add_tag(:monster)
       monster.add_component(Vanilla::Components::PositionComponent.new(row: row, column: column))
       monster.add_component(Vanilla::Components::RenderComponent.new(character: Vanilla::Support::TileType::MONSTER, color: :white))
-      # Placeholder for health/damage; add HealthComponent later if needed
-      monster.instance_variable_set(:@health, health)
-      monster.instance_variable_set(:@damage, damage)
-      monster.define_singleton_method(:alive?) { @health > 0 }
+      monster.add_component(Vanilla::Components::HealthComponent.new(max_health: health))
+      monster.instance_variable_set(:@damage, damage) # Temporary until CombatComponent
       monster
     end
   end
