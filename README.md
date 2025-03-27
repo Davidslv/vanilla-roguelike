@@ -93,6 +93,25 @@ Vanilla is built using a combination of design patterns that provide flexibility
 - **Maze Generation**: Various algorithms for procedural maze creation
 - **Rendering System**: Handles the visual representation of the game state
 
+
+```text
+
+bin/play.rb (Entry Point)
+   |
+   +--> Vanilla::Game (Game Logic)
+          |
+          +--> @world = Vanilla::World (ECS Coordinator)
+          |       |
+          |       +--> @entities (Hash of Entity objects)
+          |       +--> @systems (Array of [System, Priority] pairs)
+          |       +--> @event_queue, @command_queue, @display, etc.
+          |
+          +--> @player (Entity created via EntityFactory)
+          +--> @maze_system (and other systems, added to @world)
+          +--> Game Loop (calls @world.update)
+```
+
+
 ### Key Design Patterns
 
 #### Entity-Component-System (ECS)
