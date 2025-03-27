@@ -70,6 +70,10 @@ module Vanilla
 
         ensure_path(grid, player_cell, stairs_cell)
 
+        # Delegate monster spawning to MonsterSystem
+        monster_system = @world.systems.find { |s, _| s.is_a?(Vanilla::Systems::MonsterSystem) }&.first
+        monster_system&.spawn_monsters(@difficulty, grid)
+
         # Sync Level entities with World entities
         level = Vanilla::Level.new(grid: grid, difficulty: @difficulty, algorithm: @algorithm)
         @world.entities.values.each { |e| level.add_entity(e) }
