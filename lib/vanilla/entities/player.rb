@@ -48,6 +48,7 @@ module Vanilla
                         entity_type: Support::TileType::PLAYER,
                         layer: 10 # Player is usually drawn on top
                       ))
+        add_component(Components::HealthComponent.new(max_health: 100))
       end
 
       # Convert the player entity to a hash representation

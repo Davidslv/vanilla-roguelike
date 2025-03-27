@@ -11,6 +11,8 @@ module Vanilla
       player.add_component(Vanilla::Components::RenderComponent.new(character: Vanilla::Support::TileType::PLAYER, color: :white))
       player.add_component(Vanilla::Components::InputComponent.new)
       player.add_component(Vanilla::Components::MovementComponent.new(active: true))
+      player.add_component(Vanilla::Components::HealthComponent.new(max_health: 100))
+
       player
     end
 

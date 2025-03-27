@@ -24,5 +24,6 @@ module Vanilla
     require_relative 'components/durability_component'
     require_relative 'components/currency_component'
     require_relative 'components/input_component'
+    require_relative 'components/health_component'
   end
 end
