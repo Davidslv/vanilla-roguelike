@@ -362,7 +362,6 @@ Style/GlobalStdStream:
 Style/GlobalVars:
   Exclude:
     - 'lib/vanilla.rb'
-    - 'lib/vanilla/level_generator.rb'
     - 'lib/vanilla/map.rb'
     - 'lib/vanilla/renderers/terminal_renderer.rb'
     - 'spec/lib/vanilla/map_spec.rb'
