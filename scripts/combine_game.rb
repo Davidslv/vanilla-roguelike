@@ -28,9 +28,8 @@ end
 
 # Default settings
 output_file = "combined_game.rb"
-# TODO: remove hardcoded path
-default_directory = "/Users/davidslv/projects/vanilla/lib"
-bin_play_location = "/Users/davidslv/projects/vanilla/bin/play.rb"
+default_directory = File.join(Dir.pwd, 'lib')
+bin_play_location = File.join(Dir.pwd, 'bin', 'play.rb')
 
 # Parse command-line options
 options = {}
