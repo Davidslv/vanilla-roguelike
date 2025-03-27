@@ -13,7 +13,6 @@ module Vanilla
   require_relative 'vanilla/keyboard_handler'
   require_relative 'vanilla/display_handler'
   require_relative 'vanilla/entity_factory'
-  require_relative 'vanilla/level_generator'
   require_relative 'vanilla/game'
 
   # Systems
