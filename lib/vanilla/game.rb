@@ -69,16 +69,13 @@ module Vanilla
 
     def game_loop
       @turn = 0
-      @logger.debug("[Game] Starting game loop, turn: #{@turn}")
 
       until @world.quit?
-        @logger.debug("[Game] Updating, turn: #{@turn}")
+        @logger.debug("[Game] Running game loop, turn: #{@turn}")
+
         @world.update(nil)
-        @logger.debug("[Game] Updated, turn: #{@turn}")
         render
-        @logger.debug("[Game] Rendered, turn: #{@turn}")
         @turn += 1
-        @logger.debug("[Game] Turn incremented, turn: #{@turn}")
       end
     end
 

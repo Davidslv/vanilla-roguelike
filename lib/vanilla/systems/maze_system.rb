@@ -40,9 +40,12 @@ module Vanilla
       end
 
       def generate_maze
+        # 8x14 is a good aspect ratio, similar to 16:9
+        # which makes the game a bit more cinematic
+        # this will leave enough room for a message system underneath the maze
         grid = Vanilla::MapUtils::Grid.new(
-          10,
-          10,
+          8,
+          14,
           type_factory: @type_factory
         )
 
