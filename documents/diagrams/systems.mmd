@@ -11,6 +11,52 @@ classDiagram
     }
   end
   subgraph Systems
+    class MazeSystem {
+      -logger
+      -difficulty
+      -seed
+      -algorithm
+      -type_factory
+      +initialize()
+      +update()
+      +handle_event()
+      +generate_maze()
+      +populate_entities()
+      +find_stairs_position()
+      +ensure_path()
+    }
+    System <|-- MazeSystem
+    class MovementSystem {
+      -logger
+      +initialize()
+      +update()
+      +process_entity_movement()
+      +move()
+      +can_process?()
+      +get_target_cell()
+      +can_move_to?()
+    }
+    System <|-- MovementSystem
+    class RenderSystem {
+      -renderer
+      -difficulty
+      -seed
+      -logger
+      +initialize()
+      +update()
+      +render_grid()
+      +render_messages()
+    }
+    System <|-- RenderSystem
+    class CollisionSystem {
+      -logger
+      +initialize()
+      +update()
+      +handle_event()
+      +find_entities_at_position()
+      +handle_specific_collisions()
+    }
+    System <|-- CollisionSystem
     class MessageSystem {
       -logger
       -manager
@@ -34,15 +80,6 @@ classDiagram
       +trim_message_queue()
       +importance_value()
     }
-    class CollisionSystem {
-      -logger
-      +initialize()
-      +update()
-      +handle_event()
-      +find_entities_at_position()
-      +handle_specific_collisions()
-    }
-    System <|-- CollisionSystem
     class InputSystem {
       -logger
       -input_handler
@@ -111,28 +148,6 @@ classDiagram
       +valid_move?()
     }
     System <|-- MonsterSystem
-    class MovementSystem {
-      -logger
-      +initialize()
-      +update()
-      +process_entity_movement()
-      +move()
-      +can_process?()
-      +get_target_cell()
-      +can_move_to?()
-    }
-    System <|-- MovementSystem
-    class RenderSystem {
-      -renderer
-      -difficulty
-      -seed
-      -logger
-      +initialize()
-      +update()
-      +render_grid()
-      +render_messages()
-    }
-    System <|-- RenderSystem
     class System {
       -world
       +initialize()
@@ -144,3 +159,13 @@ classDiagram
     }
   end
   %% Relationships
+  MazeSystem --> MazeSystem : uses
+  MovementSystem --> MazeSystem : uses
+  MovementSystem --> MovementSystem : uses
+  RenderSystem --> MazeSystem : uses
+  RenderSystem --> MovementSystem : uses
+  RenderSystem --> RenderSystem : uses
+  CollisionSystem --> MazeSystem : uses
+  CollisionSystem --> MovementSystem : uses
+  CollisionSystem --> CollisionSystem : uses
+  CollisionSystem --> RenderSystem : uses
