@@ -6,11 +6,20 @@ module Vanilla
 
       def initialize(max_health:, current_health: nil)
         @max_health = max_health
-        @current_health = current_health || max_health
+
+        proposed_current_health = current_health || max_health
+
+        # Ensure current health is not greater than max health
+        @current_health = [proposed_current_health, max_health].min
       end
 
       def type
         :health
+      end
+
+      # Ensure current health is not greater than max health
+      def current_health=(value)
+        @current_health = [value, max_health].min
       end
 
       def to_hash

@@ -50,7 +50,8 @@ module Vanilla
       @player = Vanilla::EntityFactory.create_player(0, 0)
       @world.add_entity(@player)
 
-      # instance variable as since it's used in the game loop
+      # Maze system is the first system to run
+      # it needs to be an instance variable because it's used in the game loop
       @maze_system = Vanilla::Systems::MazeSystem.new(@world, difficulty: @difficulty, seed: @seed)
 
       # Run first to generate maze

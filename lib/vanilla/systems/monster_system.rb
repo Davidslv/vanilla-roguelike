@@ -74,7 +74,7 @@ module Vanilla
           if monster&.has_tag?(:monster)
             health = monster.get_component(:health)
             new_health = [health.current_health - data[:damage], 0].max
-            health.instance_variable_set(:@current_health, new_health)
+            health.current_health = new_health
             @logger.debug("Monster #{data[:target_id]} took #{data[:damage]} damage, health now #{new_health}")
           end
         end
