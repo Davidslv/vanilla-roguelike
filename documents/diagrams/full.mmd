@@ -147,6 +147,16 @@ classDiagram
     }
     Component <|-- EquippableComponent
     style EquippableComponent fill:#ffcccc
+    class HealthComponent {
+      -max_health
+      -current_health
+      +initialize()
+      +type()
+      +current_health=()
+      +to_hash()
+    }
+    Component <|-- HealthComponent
+    style HealthComponent fill:#ffcccc
     class InputComponent {
       -move_direction
       +initialize()
@@ -245,43 +255,6 @@ classDiagram
     style TestPositionComponent fill:#ffcccc
   end
   subgraph Systems
-    class MazeSystem {
-      -logger
-      -difficulty
-      -seed
-      -algorithm
-      -type_factory
-      +initialize()
-      +update()
-      +handle_event()
-      +generate_maze()
-      +populate_entities()
-      +find_stairs_position()
-      +ensure_path()
-    }
-    System <|-- MazeSystem
-    class MovementSystem {
-      -logger
-      +initialize()
-      +update()
-      +process_entity_movement()
-      +move()
-      +can_process?()
-      +get_target_cell()
-      +can_move_to?()
-    }
-    System <|-- MovementSystem
-    class RenderSystem {
-      -renderer
-      -difficulty
-      -seed
-      -logger
-      +initialize()
-      +update()
-      +render_grid()
-      +render_messages()
-    }
-    System <|-- RenderSystem
     class CollisionSystem {
       -logger
       +initialize()
@@ -291,29 +264,6 @@ classDiagram
       +handle_specific_collisions()
     }
     System <|-- CollisionSystem
-    class MessageSystem {
-      -logger
-      -manager
-      -message_queue
-      +initialize()
-      +setup_panel()
-      +render()
-      +log_message()
-      +log_success()
-      +log_warning()
-      +log_critical()
-      +get_recent_messages()
-      +handle_input()
-      +toggle_selection_mode()
-      +selection_mode?()
-      +cleanup()
-      +update()
-      +handle_event()
-      +add_message()
-      +process_message_queue()
-      +trim_message_queue()
-      +importance_value()
-    }
     class InputSystem {
       -logger
       -input_handler
@@ -365,6 +315,44 @@ classDiagram
       +pickup_all_items()
       +find_items_at_position()
     }
+    class MazeSystem {
+      -logger
+      -difficulty
+      -seed
+      -algorithm
+      -type_factory
+      +initialize()
+      +update()
+      +handle_event()
+      +generate_maze()
+      +populate_entities()
+      +find_stairs_position()
+      +ensure_path()
+    }
+    System <|-- MazeSystem
+    class MessageSystem {
+      -message_queue
+      -logger
+      -manager
+      +initialize()
+      +update()
+      +render()
+      +selection_mode?()
+      +toggle_selection_mode()
+      +valid_menu_option?()
+      +handle_input()
+      +log_message()
+      +log_success()
+      +log_warning()
+      +log_critical()
+      +get_recent_messages()
+      +handle_event()
+      +add_message()
+      +process_message_queue()
+      +trim_message_queue()
+      +importance_value()
+    }
+    System <|-- MessageSystem
     class MonsterSystem {
       -player
       -monsters
@@ -375,13 +363,35 @@ classDiagram
       +update()
       +monster_at()
       +player_collision?()
+      +handle_event()
       +determine_monster_count()
       +spawn_monster()
       +find_spawn_location()
       +select_weighted_monster_type()
-      +valid_move?()
     }
     System <|-- MonsterSystem
+    class MovementSystem {
+      -logger
+      +initialize()
+      +update()
+      +process_entity_movement()
+      +move()
+      +can_process?()
+      +get_target_cell()
+      +can_move_to?()
+    }
+    System <|-- MovementSystem
+    class RenderSystem {
+      -renderer
+      -difficulty
+      -seed
+      -logger
+      +initialize()
+      +update()
+      +render_grid()
+      +render_messages()
+    }
+    System <|-- RenderSystem
     class System {
       -world
       +initialize()
@@ -393,44 +403,6 @@ classDiagram
     }
   end
   subgraph Others
-    class Game {
-      -difficulty
-      -seed
-      -logger
-      -turn
-      -world
-      -display
-      -player
-      -maze_system
-      +initialize()
-      +start()
-      +cleanup()
-      +setup_world()
-      +game_loop()
-      +render()
-    }
-    class Level {
-      -grid
-      -algorithm
-      -difficulty
-      -entities
-      -logger
-      +initialize()
-      +add_entity()
-      +remove_entity()
-      +all_entities()
-      +update_grid_with_entity()
-      +update_grid_with_entities()
-    }
-    class TerminalRenderer {
-      +clear()
-      +draw_grid()
-      +present()
-    }
-    class InvalidDirectionError {
-    }
-    class TileType {
-    }
     class AbstractAlgorithm {
     }
     class AldousBroder {
@@ -488,6 +460,8 @@ classDiagram
       +execute()
     }
     Command <|-- MoveCommand
+    class InvalidDirectionError {
+    }
     class NoOpCommand {
       -logger
       -reason
@@ -499,6 +473,10 @@ classDiagram
       +execute()
     }
     Command <|-- NullCommand
+    class ToggleMenuModeCommand {
+      +execute()
+    }
+    Command <|-- ToggleMenuModeCommand
     class DisplayHandler {
       -keyboard_handler
       +initialize()
@@ -506,14 +484,8 @@ classDiagram
     }
     class Monster {
       -monster_type
-      -health
-      -damage
       +initialize()
-      +alive?()
-      +take_damage()
-      +attack()
       +to_hash()
-      +tile()
     }
     Entity <|-- Monster
     class Player {
@@ -584,6 +556,22 @@ classDiagram
       +ensure_file_open()
     }
     EventStore <|-- FileEventStore
+    class Game {
+      -difficulty
+      -seed
+      -logger
+      -turn
+      -world
+      -display
+      -player
+      -maze_system
+      +initialize()
+      +start()
+      +cleanup()
+      +setup_world()
+      +game_loop()
+      +render()
+    }
     class InputHandler {
       -world
       -logger
@@ -675,13 +663,18 @@ classDiagram
     class KeyboardHandler {
       +wait_for_input()
     }
-    class LevelGenerator {
-      -logger
-      -type_factory
+    class Level {
+      -grid
       -algorithm
+      -difficulty
+      -entities
+      -logger
       +initialize()
-      +generate()
-      +ensure_path()
+      +add_entity()
+      +remove_entity()
+      +all_entities()
+      +update_grid_with_entity()
+      +update_grid_with_entities()
     }
     class Logger {
       -level
@@ -769,6 +762,7 @@ classDiagram
       -content
       -category
       -importance
+      -options
       -turn
       -timestamp
       -metadata
@@ -791,31 +785,34 @@ classDiagram
       +initialize()
       +add_observer()
       +remove_observer()
-      +notify_observers()
       +current_game_turn()
-      +add()
       +add_message()
+      +add()
       +get_by_category()
       +get_by_importance()
       +get_recent()
       +get_selectable_messages()
-      +register_formatter()
+      +options()
       +clear()
+      +register_formatter()
+      +notify_observers()
       +register_default_formatters()
       +apply_formatters()
     }
     class MessageManager {
       -logger
-      -render_system
+      -renderer
       -message_log
       -panel
       -selection_mode
       -selection_index
       +initialize()
+      +options()
       +log_message()
       +log_translated()
       +add_message()
       +toggle_selection_mode()
+      +selection_mode?()
       +handle_input()
       +currently_selected_message()
       +select_current_message()
@@ -861,6 +858,13 @@ classDiagram
       +draw_grid()
       +draw_character()
       +present()
+    }
+    class TerminalRenderer {
+      +clear()
+      +draw_grid()
+      +present()
+    }
+    class TileType {
     }
     class RenderSystemFactory {
       -renderer
@@ -934,126 +938,36 @@ classDiagram
     }
   end
   %% Relationships
-  Game --> World :  emits_entities_collided
-  Game --> World :  emits_level_transition_requested
-  Game --> World :  emits_item_picked_up
-  Game --> World :  queues_add_to_inventory
-  Game --> World :  queues_remove_entity
-  Game --> EntityFactory : uses
-  Game --> MazeSystem : uses
-  Game --> MovementSystem : uses
-  Game --> CollisionSystem : uses
-  Game --> RenderSystem : uses
-  Level --> Level : uses
-  Level --> World :  emits_entities_collided
-  Level --> World :  emits_level_transition_requested
-  Level --> World :  emits_item_picked_up
-  Level --> World :  queues_add_to_inventory
-  Level --> World :  queues_remove_entity
-  TerminalRenderer --> Level : uses
-  TerminalRenderer --> TerminalRenderer : uses
-  TerminalRenderer --> World :  emits_entities_collided
-  TerminalRenderer --> World :  emits_level_transition_requested
-  TerminalRenderer --> World :  emits_item_picked_up
-  TerminalRenderer --> World :  queues_add_to_inventory
-  TerminalRenderer --> World :  queues_remove_entity
-  TerminalRenderer --> Logger : uses
-  MazeSystem --> MazeSystem : uses
-  MazeSystem --> Level : uses
-  MazeSystem --> TerminalRenderer : uses
-  MazeSystem --> World :  emits_entities_collided
-  MazeSystem --> World :  emits_level_transition_requested
-  MazeSystem --> World :  emits_item_picked_up
-  MazeSystem --> World :  queues_add_to_inventory
-  MazeSystem --> World :  queues_remove_entity
-  MazeSystem --> Logger : uses
-  MazeSystem --> CellTypeFactory : uses
-  MazeSystem --> Grid : uses
-  MazeSystem --> EntityFactory : uses
-  MovementSystem --> MazeSystem : uses
-  MovementSystem --> MovementSystem : uses
-  MovementSystem --> Level : uses
-  MovementSystem --> TerminalRenderer : uses
-  MovementSystem --> World :  emits_entities_collided
-  MovementSystem --> World :  emits_level_transition_requested
-  MovementSystem --> World :  emits_item_picked_up
-  MovementSystem --> World :  queues_add_to_inventory
-  MovementSystem --> World :  queues_remove_entity
-  MovementSystem --> Logger : uses
-  MovementSystem --> TileType : uses
-  MovementSystem --> World :  emits_entity_moved
-  InvalidDirectionError --> MazeSystem : uses
-  InvalidDirectionError --> MovementSystem : uses
-  InvalidDirectionError --> Level : uses
-  InvalidDirectionError --> TerminalRenderer : uses
-  InvalidDirectionError --> World :  emits_entities_collided
-  InvalidDirectionError --> World :  emits_level_transition_requested
-  InvalidDirectionError --> World :  emits_item_picked_up
-  InvalidDirectionError --> World :  queues_add_to_inventory
-  InvalidDirectionError --> World :  queues_remove_entity
+  ChangeLevelCommand --> World :  emits_level_transitioned
+  MoveCommand --> ChangeLevelCommand : uses
   InvalidDirectionError --> ChangeLevelCommand : uses
   InvalidDirectionError --> Logger : uses
   InvalidDirectionError --> TileType : uses
   InvalidDirectionError --> World :  emits_entity_moved
-  RenderSystem --> MazeSystem : uses
-  RenderSystem --> MovementSystem : uses
-  RenderSystem --> RenderSystem : uses
-  RenderSystem --> Level : uses
-  RenderSystem --> TerminalRenderer : uses
-  RenderSystem --> World :  emits_entities_collided
-  RenderSystem --> World :  emits_level_transition_requested
-  RenderSystem --> World :  emits_item_picked_up
-  RenderSystem --> World :  queues_add_to_inventory
-  RenderSystem --> World :  queues_remove_entity
-  RenderSystem --> Logger : uses
-  TileType --> MazeSystem : uses
-  TileType --> MovementSystem : uses
-  TileType --> RenderSystem : uses
-  TileType --> Level : uses
-  TileType --> TileType : uses
-  TileType --> TerminalRenderer : uses
-  TileType --> World :  emits_entities_collided
-  TileType --> World :  emits_level_transition_requested
-  TileType --> World :  emits_item_picked_up
-  TileType --> World :  queues_add_to_inventory
-  TileType --> World :  queues_remove_entity
-  CollisionSystem --> MazeSystem : uses
-  CollisionSystem --> MovementSystem : uses
-  CollisionSystem --> CollisionSystem : uses
-  CollisionSystem --> RenderSystem : uses
-  CollisionSystem --> Level : uses
-  CollisionSystem --> TileType : uses
-  CollisionSystem --> TerminalRenderer : uses
-  CollisionSystem --> World :  emits_entities_collided
-  CollisionSystem --> World :  emits_level_transition_requested
-  CollisionSystem --> World :  emits_item_picked_up
-  CollisionSystem --> World :  queues_add_to_inventory
-  CollisionSystem --> World :  queues_remove_entity
-  CollisionSystem --> Logger : uses
-  ChangeLevelCommand --> World :  emits_level_transitioned
-  MoveCommand --> ChangeLevelCommand : uses
   ConsumableComponent --> Component : uses
   CurrencyComponent --> Component : uses
   DurabilityComponent --> Component : uses
   EffectComponent --> Component : uses
   EquippableComponent --> Component : uses
+  HealthComponent --> Component : uses
   InputComponent --> Component : uses
   InventoryComponent --> Component : uses
   ItemComponent --> Component : uses
   KeyComponent --> Component : uses
   MovementComponent --> Component : uses
   PositionComponent --> Component : uses
-  RenderComponent --> TileType : uses
   RenderComponent --> Component : uses
   StairsComponent --> Component : uses
   Entity --> Component : uses
   Monster --> PositionComponent : uses
   Monster --> MovementComponent : uses
   Monster --> RenderComponent : uses
+  Monster --> HealthComponent : uses
   Player --> PositionComponent : uses
   Player --> MovementComponent : uses
   Player --> StairsComponent : uses
   Player --> RenderComponent : uses
+  Player --> HealthComponent : uses
   Stairs --> PositionComponent : uses
   Stairs --> RenderComponent : uses
   EntityFactory --> Entity : uses
@@ -1061,10 +975,13 @@ classDiagram
   EntityFactory --> RenderComponent : uses
   EntityFactory --> InputComponent : uses
   EntityFactory --> MovementComponent : uses
+  EntityFactory --> HealthComponent : uses
   EntityFactory --> StairsComponent : uses
   EventManager --> Event : uses
   FileEventStore --> Event : uses
+  Game --> EntityFactory : uses
   InputHandler --> MoveCommand : uses
+  InputHandler --> ToggleMenuModeCommand : uses
   InputHandler --> ExitCommand : uses
   InputHandler --> NullCommand : uses
   ItemFactory --> Entity : uses
@@ -1076,7 +993,6 @@ classDiagram
   ItemRegistry --> CurrencyComponent : uses
   InventorySystemFacade --> ItemFactory : uses
   InventorySystemFacade --> ItemRegistry : uses
-  LevelGenerator --> Level : uses
   Logger --> Logger : uses
   Map --> Logger : uses
   Cell --> Cell : uses
@@ -1085,15 +1001,38 @@ classDiagram
   DistanceBetweenCells --> DistanceBetweenCells : uses
   Grid --> CellTypeFactory : uses
   Grid --> Cell : uses
+  MessageLog --> Logger : uses
   MessageLog --> Message : uses
+  MessageManager --> Logger : uses
   MessageManager --> MessageLog : uses
   MessageManager --> Message : uses
+  TerminalRenderer --> Logger : uses
+  CollisionSystem --> Logger : uses
+  CollisionSystem --> World :  emits_entities_collided
+  CollisionSystem --> World :  emits_level_transition_requested
+  CollisionSystem --> World :  emits_item_picked_up
+  CollisionSystem --> World :  queues_add_to_inventory
+  CollisionSystem --> World :  queues_remove_entity
   InputSystem --> Logger : uses
   InputSystem --> InputHandler : uses
+  InputSystem --> ToggleMenuModeCommand : uses
   InventorySystem --> PositionComponent : uses
+  MazeSystem --> Logger : uses
+  MazeSystem --> CellTypeFactory : uses
+  MazeSystem --> Level : uses
+  MazeSystem --> Grid : uses
+  MazeSystem --> EntityFactory : uses
+  MessageSystem --> Logger : uses
+  MessageSystem --> MessageManager : uses
   MonsterSystem --> Logger : uses
   MonsterSystem --> EntityFactory : uses
-  MonsterSystem --> TileType : uses
+  MonsterSystem --> World :  emits_monster_despawned
+  MonsterSystem --> World :  emits_monster_spawned
+  MovementSystem --> Logger : uses
+  MovementSystem --> TileType : uses
+  MovementSystem --> World :  emits_entity_moved
+  RenderSystem --> TerminalRenderer : uses
+  RenderSystem --> Logger : uses
   RenderSystemFactory --> RenderSystem : uses
   RenderSystemFactory --> RenderSystemFactory : uses
   RenderSystemFactory --> TerminalRenderer : uses

@@ -11,43 +11,6 @@ classDiagram
     }
   end
   subgraph Systems
-    class MazeSystem {
-      -logger
-      -difficulty
-      -seed
-      -algorithm
-      -type_factory
-      +initialize()
-      +update()
-      +handle_event()
-      +generate_maze()
-      +populate_entities()
-      +find_stairs_position()
-      +ensure_path()
-    }
-    System <|-- MazeSystem
-    class MovementSystem {
-      -logger
-      +initialize()
-      +update()
-      +process_entity_movement()
-      +move()
-      +can_process?()
-      +get_target_cell()
-      +can_move_to?()
-    }
-    System <|-- MovementSystem
-    class RenderSystem {
-      -renderer
-      -difficulty
-      -seed
-      -logger
-      +initialize()
-      +update()
-      +render_grid()
-      +render_messages()
-    }
-    System <|-- RenderSystem
     class CollisionSystem {
       -logger
       +initialize()
@@ -57,29 +20,6 @@ classDiagram
       +handle_specific_collisions()
     }
     System <|-- CollisionSystem
-    class MessageSystem {
-      -logger
-      -manager
-      -message_queue
-      +initialize()
-      +setup_panel()
-      +render()
-      +log_message()
-      +log_success()
-      +log_warning()
-      +log_critical()
-      +get_recent_messages()
-      +handle_input()
-      +toggle_selection_mode()
-      +selection_mode?()
-      +cleanup()
-      +update()
-      +handle_event()
-      +add_message()
-      +process_message_queue()
-      +trim_message_queue()
-      +importance_value()
-    }
     class InputSystem {
       -logger
       -input_handler
@@ -131,6 +71,44 @@ classDiagram
       +pickup_all_items()
       +find_items_at_position()
     }
+    class MazeSystem {
+      -logger
+      -difficulty
+      -seed
+      -algorithm
+      -type_factory
+      +initialize()
+      +update()
+      +handle_event()
+      +generate_maze()
+      +populate_entities()
+      +find_stairs_position()
+      +ensure_path()
+    }
+    System <|-- MazeSystem
+    class MessageSystem {
+      -message_queue
+      -logger
+      -manager
+      +initialize()
+      +update()
+      +render()
+      +selection_mode?()
+      +toggle_selection_mode()
+      +valid_menu_option?()
+      +handle_input()
+      +log_message()
+      +log_success()
+      +log_warning()
+      +log_critical()
+      +get_recent_messages()
+      +handle_event()
+      +add_message()
+      +process_message_queue()
+      +trim_message_queue()
+      +importance_value()
+    }
+    System <|-- MessageSystem
     class MonsterSystem {
       -player
       -monsters
@@ -141,13 +119,35 @@ classDiagram
       +update()
       +monster_at()
       +player_collision?()
+      +handle_event()
       +determine_monster_count()
       +spawn_monster()
       +find_spawn_location()
       +select_weighted_monster_type()
-      +valid_move?()
     }
     System <|-- MonsterSystem
+    class MovementSystem {
+      -logger
+      +initialize()
+      +update()
+      +process_entity_movement()
+      +move()
+      +can_process?()
+      +get_target_cell()
+      +can_move_to?()
+    }
+    System <|-- MovementSystem
+    class RenderSystem {
+      -renderer
+      -difficulty
+      -seed
+      -logger
+      +initialize()
+      +update()
+      +render_grid()
+      +render_messages()
+    }
+    System <|-- RenderSystem
     class System {
       -world
       +initialize()
@@ -159,13 +159,3 @@ classDiagram
     }
   end
   %% Relationships
-  MazeSystem --> MazeSystem : uses
-  MovementSystem --> MazeSystem : uses
-  MovementSystem --> MovementSystem : uses
-  RenderSystem --> MazeSystem : uses
-  RenderSystem --> MovementSystem : uses
-  RenderSystem --> RenderSystem : uses
-  CollisionSystem --> MazeSystem : uses
-  CollisionSystem --> MovementSystem : uses
-  CollisionSystem --> CollisionSystem : uses
-  CollisionSystem --> RenderSystem : uses
