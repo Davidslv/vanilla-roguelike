@@ -5,11 +5,12 @@ module Vanilla
     class MessageManager
       attr_reader :selection_mode
 
-      def initialize(logger = Vanilla::Logger.instance, render_system)
+      # render_system is world?
+      def initialize(logger, render_system)
         @logger = logger || Vanilla::Logger.instance
         @render_system = render_system
         @message_log = MessageLog.new(logger)
-        @panel = MessagePanel.new(0, 8, 60, 5) # Below 8-row maze
+        @panel = MessagePanel.new(0, 8, 60, 5, @message_log) # Below 8-row maze
         @selection_mode = false
         @selection_index = 0
       end
@@ -53,6 +54,10 @@ module Vanilla
         @logger.info("Message selection mode: #{@selection_mode ? 'ON' : 'OFF'}")
 
         @selection_index = 0 if @selection_mode
+        @selection_mode
+      end
+
+      def selection_mode?
         @selection_mode
       end
 

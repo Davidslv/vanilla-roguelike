@@ -13,7 +13,7 @@ module Vanilla
       def initialize(world)
         super
         @message_queue = []
-
+        @manager = Vanilla::Messages::MessageManager.new(Vanilla::Logger.instance, world)
         # Subscribe to relevant events
         # Define what are relevant events for this system
         @world.subscribe(:entity_moved, self)
@@ -23,6 +23,8 @@ module Vanilla
         @world.subscribe(:item_picked_up, self)
         @world.subscribe(:damage_dealt, self)
         @world.subscribe(:entity_died, self)
+
+        Vanilla::ServiceRegistry.register(:message_system, self)
       end
 
       # Update method called once per frame
@@ -30,6 +32,15 @@ module Vanilla
       def update(_delta_time)
         # Process any queued messages
         process_message_queue
+      end
+
+      # Render the message panel via MessageManager
+      def render(renderer)
+        @manager.render(renderer)
+      end
+
+      def selection_mode?
+        @manager.selection_mode?
       end
 
       # Handle events from the world
