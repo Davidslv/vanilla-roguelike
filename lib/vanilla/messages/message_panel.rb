@@ -38,43 +38,22 @@ module Vanilla
       # Render the message panel
       # @param renderer [Vanilla::Renderers::Renderer] The renderer to use
       # @param selection_mode [Boolean] Whether the game is in message selection mode
-      def render(renderer, _selection_mode = false)
-        return unless renderer.respond_to?(:draw_character)
-
-        # Draw a separator line above the message panel
-        draw_separator_line(renderer)
-
-        # Get messages to display with scroll offset
-        messages = @message_log.get_recent(@height + @scroll_offset)
-
-        # Add a default message if no messages exist
-        if messages.nil? || messages.empty?
-          default_msg = "Welcome to Vanilla! Use movement keys to navigate."
-          default_msg.each_char.with_index do |char, i|
-            renderer.draw_character(@y + 1, @x + i, char)
-          end
-          return
+      def render(renderer, selection_mode = false)
+        puts "+#{'-' * (@width - 2)}+"
+        puts "| Messages (Turn #{Vanilla.game_turn}): #{' ' * (@width - 18 - Vanilla.game_turn.to_s.length)}|"
+        messages = @message_log.get_recent(@height - 2)
+        messages.each do |msg|
+          text = "- #{msg.translated_text[0..@width - 5]}".ljust(@width - 2)
+          puts "| #{text} |"
         end
-
-        visible_messages = messages[@scroll_offset, @height] || []
-
-        # Force visibility with a marker
-        renderer.draw_character(@y, @x, "#")
-
-        # Draw messages directly using draw_character
-        visible_messages.each_with_index do |message, idx|
-          y_pos = @y + idx + 1
-
-          # Handle both Message objects and hash-based messages
-          if message.is_a?(Message)
-            render_message_object(renderer, message, y_pos)
-          else
-            render_hash_message(renderer, message, y_pos)
+        if selection_mode
+          puts "| Options: #{' ' * (@width - 10)}|"
+          @message_log.options.each do |opt|
+            text = "#{opt[:key]}) #{opt[:content][0..@width - 5]}".ljust(@width - 2)
+            puts "| #{text} |"
           end
         end
-
-        # Draw message count indicator
-        draw_message_count(renderer, visible_messages.size)
+        puts "+#{'-' * (@width - 2)}+"
       end
 
       # Scroll the panel up
