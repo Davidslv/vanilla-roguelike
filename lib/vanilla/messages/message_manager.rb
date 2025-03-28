@@ -1,14 +1,18 @@
 # frozen_string_literal: true
 
+require_relative 'message'
+require_relative 'message_log'
+require_relative 'message_panel'
+
 module Vanilla
   module Messages
     class MessageManager
       attr_reader :selection_mode
 
-      def initialize(logger, renderer = nil)
-        @logger = logger || Vanilla::Logger.instance
+      def initialize(renderer = nil)
+        @logger = Vanilla::Logger.instance
         @renderer = renderer
-        @message_log = MessageLog.new(logger)
+        @message_log = MessageLog.new
         @panel = MessagePanel.new(0, 8, 60, 5, @message_log) # Below 8-row maze
         @selection_mode = false
         @selection_index = 0

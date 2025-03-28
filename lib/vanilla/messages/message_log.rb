@@ -7,8 +7,8 @@ module Vanilla
 
       DEFAULT_CATEGORIES = [:system, :combat, :movement, :item, :story, :debug]
 
-      def initialize(logger, history_size: 10)
-        @logger = logger
+      def initialize(history_size: 10)
+        @logger = Vanilla::Logger.instance
         @messages = []
         @history_size = history_size
         @formatters = {}
