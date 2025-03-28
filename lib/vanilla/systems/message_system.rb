@@ -11,7 +11,8 @@ module Vanilla
       def initialize(world)
         super
         @message_queue = []
-        @manager = Vanilla::Messages::MessageManager.new(Vanilla::Logger.instance, world)
+        @manager = Vanilla::Messages::MessageManager.new(nil, nil)
+
         @world.subscribe(:entity_moved, self)
         @world.subscribe(:monster_spawned, self)
         @world.subscribe(:monster_despawned, self)

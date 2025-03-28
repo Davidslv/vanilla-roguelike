@@ -5,10 +5,9 @@ module Vanilla
     class MessageManager
       attr_reader :selection_mode
 
-      # render_system is world?
-      def initialize(logger, render_system)
+      def initialize(logger, renderer = nil)
         @logger = logger || Vanilla::Logger.instance
-        @render_system = render_system
+        @renderer = renderer
         @message_log = MessageLog.new(logger)
         @panel = MessagePanel.new(0, 8, 60, 5, @message_log) # Below 8-row maze
         @selection_mode = false
@@ -121,10 +120,17 @@ module Vanilla
       end
 
       # Render the message panel
-      def render(render_system)
+      def render(renderer)
         return unless @panel
 
-        @panel.render(render_system, @selection_mode)
+        @logger.debug("[MessageManager] Rendering message panel with renderer: #{renderer}")
+
+        @logger.debug("[MessageManager] renderer: #{renderer} @renderer: #{@renderer}")
+
+        to_render = renderer || @renderer
+        @logger.debug("[MessageManager] Rendering message panel with renderer: #{to_render}")
+
+        @panel.render(to_render, @selection_mode)
       end
 
       # Get recent messages from the log
