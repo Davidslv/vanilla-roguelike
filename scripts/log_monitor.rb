@@ -140,6 +140,12 @@ class LogMonitor
         puts "👹 Player collided with monster"
       elsif entry.include?("Player exiting game")
         puts "👋 Player exited game"
+      elsif entry.include?("[DEPRECATED]")
+        puts "🚨 DEPRECATION WARNING: #{entry}"
+      elsif entry.include?("[WARN]")
+        puts "😱 WARNING: #{entry}"
+      elsif entry.include?("[ERROR]")
+        puts "🚨😱 ERROR: #{entry}"
       else
         puts entry
       end

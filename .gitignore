@@ -13,3 +13,4 @@ event_visualizations/**/*.html
 test_results/**/*.log
 test_results/
 combined_game.rb
+current_diff.diff

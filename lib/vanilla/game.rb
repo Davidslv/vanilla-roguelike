@@ -71,12 +71,19 @@ module Vanilla
     def game_loop
       @turn = 0
 
-      until @world.quit?
-        @logger.debug("[Game] Running game loop, turn: #{@turn}")
+      @logger.debug("[Game] Game#game_loop - Starting game loop")
 
-        @world.update(nil)
+      message_system = Vanilla::ServiceRegistry.get(:message_system)
+
+      until @world.quit?
+        unless message_system.selection_mode?
+          @logger.debug("[Game] Running game loop, turn: #{@turn}")
+          @world.update(nil)
+          @turn += 1
+        end
+
         render
-        @turn += 1
+        @logger.debug("[Game] Game#game_loop - Rendered, turn: #{@turn}")
       end
     end
 
