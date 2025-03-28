@@ -1,4 +1,7 @@
 en:
+  system:
+    menu_quit_prompt: "Press 'q' to exit menu mode"
+
   game:
     welcome: "Welcome to Vanilla, brave adventurer! Your journey begins..."
     goodbye: "Farewell, adventurer. The dungeon claims another soul."

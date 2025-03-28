@@ -15,6 +15,7 @@ module Vanilla
         super
         @message_queue = []
 
+        @logger = Vanilla::Logger.instance
         @manager = Vanilla::Messages::MessageManager.new
 
         @world.subscribe(:entity_moved, self)
@@ -40,11 +41,26 @@ module Vanilla
       end
 
       def toggle_selection_mode
-        @manager.toggle_menu_mode
+        @manager.toggle_selection_mode
+      end
+
+      def selection_mode?
+        @manager.selection_mode
+      end
+
+      def valid_menu_option?(key)
+        @manager.options.any? { |opt| opt[:key] == key }
       end
 
       def handle_input(key)
-        @manager.handle_input(key)
+        return unless @manager.selection_mode && key.is_a?(String) && key.length == 1
+
+        option = @manager.options.find { |opt| opt[:key] == key }
+        return unless option
+
+        @world.queue_command(option[:callback], {})
+        @logger.info("[MessageSystem] Selected option #{key}")
+        # Don’t toggle off here—command decides
       end
 
       def log_message(key, options = {})

@@ -70,18 +70,20 @@ module Vanilla
 
     def game_loop
       @turn = 0
-
-      @logger.debug("[Game] Game#game_loop - Starting game loop")
-
+      @logger.debug("[Game] Starting game loop, turn: #{@turn}")
       message_system = Vanilla::ServiceRegistry.get(:message_system)
+      input_system = @world.systems.find { |s, _| s.is_a?(Vanilla::Systems::InputSystem) }[0]
 
       until @world.quit?
-        unless message_system.selection_mode?
+        if message_system&.selection_mode?
+          @logger.debug("[Game] In menu mode, waiting for input, turn: #{@turn}")
+          input_system.update(nil) # Wait for input
+          @world.update(nil) # Process queued commands
+        else
           @logger.debug("[Game] Running game loop, turn: #{@turn}")
           @world.update(nil)
           @turn += 1
         end
-
         render
         @logger.debug("[Game] Game#game_loop - Rendered, turn: #{@turn}")
       end

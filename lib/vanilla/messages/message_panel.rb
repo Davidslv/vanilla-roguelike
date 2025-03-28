@@ -39,27 +39,30 @@ module Vanilla
       # @param renderer [Vanilla::Renderers::Renderer] The renderer to use
       # @param selection_mode [Boolean] Whether the game is in message selection mode
       def render(renderer, selection_mode = false)
-        width_adjusted = @width - 5
+        width_adjusted = @width - 2
         puts "+#{'-' * width_adjusted}+"
         turn = Vanilla.game_turn
         header = "Messages (Turn #{turn}):"
-        padding = width_adjusted - header.length - 1 # Adjust for borders
-
+        padding = width_adjusted - header.length
         puts "| #{header}#{' ' * padding}|"
-        messages = @message_log.get_recent(@height - 2)
+
+        messages = @message_log.get_recent(@height - (selection_mode ? 3 : 2))
         messages.each do |msg|
-          text = "- #{msg.translated_text[0..@width - 5]}".ljust(@width - 2)
+          text = "- #{msg.translated_text[0..width_adjusted - 3]}".ljust(width_adjusted)
           puts "| #{text}|"
         end
 
-        unless selection_mode
-          # Offset for options string
-          options_str = "Options:"
-          options_str_padding = width_adjusted - options_str.length - 1
-
-          puts "| #{options_str}#{' ' * options_str_padding}|"
-          @message_log.options.each do |opt|
-            text = "#{opt[:key]}) #{opt[:content][0..width_adjusted - 1]}".ljust(width_adjusted - 2)
+        if selection_mode
+          puts "| Options:#{' ' * (width_adjusted - 8)}|"
+          if @message_log.options.empty?
+            text = "No options available, press 'm' to close".ljust(width_adjusted)
+            puts "| #{text}|"
+          else
+            @message_log.options.each do |opt|
+              text = "#{opt[:key]}) #{opt[:content][0..width_adjusted - 4]}".ljust(width_adjusted)
+              puts "| #{text}|"
+            end
+            text = "m) Close Menu".ljust(width_adjusted)
             puts "| #{text}|"
           end
         end
