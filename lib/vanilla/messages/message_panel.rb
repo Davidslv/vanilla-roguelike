@@ -54,10 +54,17 @@ module Vanilla
 
         if selection_mode
           puts "| Options:#{' ' * (width_adjusted - 8)}|"
-          @message_log.options.each do |opt|
-            text = "#{opt[:key]}) #{opt[:content][0..width_adjusted - 4]}".ljust(width_adjusted)
+          if @message_log.options.empty?
+            text = "No other options available".ljust(width_adjusted)
             puts "| #{text}|"
+          else
+            @message_log.options.each do |opt|
+              text = "#{opt[:key]}) #{opt[:content][0..width_adjusted - 4]}".ljust(width_adjusted)
+              puts "| #{text}|"
+            end
           end
+          text = "q) Quit Menu".ljust(width_adjusted)
+          puts "| #{text}|"
         end
 
         puts "+#{'-' * width_adjusted}+"

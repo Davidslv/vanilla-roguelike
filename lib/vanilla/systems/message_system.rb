@@ -15,6 +15,7 @@ module Vanilla
         super
         @message_queue = []
 
+        @logger = Vanilla::Logger.instance
         @manager = Vanilla::Messages::MessageManager.new
 
         @world.subscribe(:entity_moved, self)
@@ -51,18 +52,20 @@ module Vanilla
         end
 
         if @manager.selection_mode
-          if key.is_a?(String) && key.length == 1
+          if key == 'q'
+            toggle_selection_mode
+            @logger.info("[MessageSystem] Quit menu mode")
+            return true
+          elsif key.is_a?(String) && key.length == 1
             option = @manager.options.find { |opt| opt[:key] == key }
             if option
               @world.queue_command(option[:callback], {})
-              toggle_selection_mode # Exit after selection
+              toggle_selection_mode
               @logger.info("[MessageSystem] Selected option #{key}, exiting menu mode")
               return true
             end
           end
-          # Exit menu mode on any other key
-          toggle_selection_mode
-          @logger.info("[MessageSystem] Exiting menu mode due to non-option key: #{key}")
+          # Ignore other keys in menu mode, wait for valid input
           return true
         end
 
