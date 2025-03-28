@@ -5,11 +5,11 @@ module Vanilla
     class MessageManager
       attr_reader :selection_mode
 
-      def initialize(logger, render_system)
-        @logger = logger
+      def initialize(logger = Vanilla::Logger.instance, render_system)
+        @logger = logger || Vanilla::Logger.instance
         @render_system = render_system
         @message_log = MessageLog.new(logger)
-        @panel = nil
+        @panel = MessagePanel.new(0, 8, 60, 5) # Below 8-row maze
         @selection_mode = false
         @selection_index = 0
       end
@@ -20,20 +20,17 @@ module Vanilla
       end
 
       # Add method to log translated messages
-      def log_translated(key, importance: :normal, category: :system, **options)
-        # Extract metadata if it's nested
-        metadata = options.delete(:metadata) || options
-
-        # Create a new message with the content and translation key
+      def log_translated(key, importance: :normal, category: :system, options: [], **metadata)
         message = Message.new(
           key,
           category: category,
           importance: importance,
+          turn: Vanilla.game_turn,
+          options: options,
           metadata: metadata
         )
 
         @message_log.add_message(message)
-        message
       end
 
       # Add a message directly
@@ -51,13 +48,11 @@ module Vanilla
 
       # Toggle message selection mode on/off
       # @return [Boolean] The new selection mode state
-      def toggle_selection_mode
+      def toggle_menu_mode
         @selection_mode = !@selection_mode
         @logger.info("Message selection mode: #{@selection_mode ? 'ON' : 'OFF'}")
 
-        # Reset selection index when toggling
         @selection_index = 0 if @selection_mode
-
         @selection_mode
       end
 
@@ -65,43 +60,32 @@ module Vanilla
       # @param key [Symbol, String] The key pressed by the user
       # @return [Boolean] Whether the input was handled
       def handle_input(key)
-        # Never intercept 'q' keys for quitting
         return false if key == 'q' || key == 'Q'
 
-        # Handle shortcut keys for messages with shortcuts
         if !@selection_mode && key.is_a?(String) && key.length == 1
-          # First try from get_recent_messages for test compatibility
-          selectable_messages = get_recent_messages
-
-          # Find a message with matching shortcut key
-          message_with_shortcut = selectable_messages.find do |m|
-            m.selectable? && m.has_shortcut? && m.shortcut_key == key
-          end
-
-          if message_with_shortcut
-            message_with_shortcut.select
+          option = @message_log.options.find { |opt| opt[:key] == key }
+          if option
+            @world.queue_command(option[:callback], {}) # Placeholder callback execution
             return true
           end
         end
 
-        # Handle navigation in selection mode
         if @selection_mode
           case key
-          when :KEY_UP, :KEY_LEFT, 'k', 'h'
+          when 'k'
             navigate_selection(-1)
             return true
-          when :KEY_DOWN, :KEY_RIGHT, 'j', 'l'
+          when 'j'
             navigate_selection(1)
             return true
-          when :enter, "\r", ' '
+          when :enter, "\r"
             return select_current_message
-          when :escape, "\e"
-            toggle_selection_mode
+          when 'm', :escape
+            toggle_menu_mode
             return true
           end
         end
 
-        # If we got here, input wasn't handled
         false
       end
 
@@ -133,10 +117,6 @@ module Vanilla
 
       # Render the message panel
       def render(render_system)
-        if $DEBUG
-          puts "DEBUG: Rendering message panel, selection mode: #{@selection_mode}"
-        end
-
         return unless @panel
 
         @panel.render(render_system, @selection_mode)

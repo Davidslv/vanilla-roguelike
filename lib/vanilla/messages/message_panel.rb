@@ -41,12 +41,6 @@ module Vanilla
       def render(renderer, _selection_mode = false)
         return unless renderer.respond_to?(:draw_character)
 
-        # Debug output with concise message
-        if $DEBUG
-          msg_types = @message_log.messages.take(5).map(&:category).tally
-          puts "DEBUG: Drawing message panel with #{@message_log.messages.size} msgs (#{msg_types})"
-        end
-
         # Draw a separator line above the message panel
         draw_separator_line(renderer)
 
