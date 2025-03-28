@@ -25,7 +25,7 @@ module Vanilla
 
         @logger.warn('[Vanilla::MessageSystem] DEPRECATED: Use Vanilla::Systems::MessageSystem instead')
         @logger.warn('[Vanilla::MessageSystem] DEPRECATED: Use Vanilla::Systems::MessageSystem instead')
-        @logger.warn('[Vanilla::MessageSystem] DEPRECATED: Use Vanilla::Systems::MessageSystem instead')
+
         @manager = MessageManager.new(logger, render_system)
 
         # Register this system in the service registry

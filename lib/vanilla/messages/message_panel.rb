@@ -39,21 +39,32 @@ module Vanilla
       # @param renderer [Vanilla::Renderers::Renderer] The renderer to use
       # @param selection_mode [Boolean] Whether the game is in message selection mode
       def render(renderer, selection_mode = false)
-        puts "+#{'-' * (@width - 2)}+"
-        puts "| Messages (Turn #{Vanilla.game_turn}): #{' ' * (@width - 18 - Vanilla.game_turn.to_s.length)}|"
+        width_adjusted = @width - 5
+        puts "+#{'-' * width_adjusted}+"
+        turn = Vanilla.game_turn
+        header = "Messages (Turn #{turn}):"
+        padding = width_adjusted - header.length - 1 # Adjust for borders
+
+        puts "| #{header}#{' ' * padding}|"
         messages = @message_log.get_recent(@height - 2)
         messages.each do |msg|
           text = "- #{msg.translated_text[0..@width - 5]}".ljust(@width - 2)
-          puts "| #{text} |"
+          puts "| #{text}|"
         end
-        if selection_mode
-          puts "| Options: #{' ' * (@width - 10)}|"
+
+        unless selection_mode
+          # Offset for options string
+          options_str = "Options:"
+          options_str_padding = width_adjusted - options_str.length - 1
+
+          puts "| #{options_str}#{' ' * options_str_padding}|"
           @message_log.options.each do |opt|
-            text = "#{opt[:key]}) #{opt[:content][0..@width - 5]}".ljust(@width - 2)
-            puts "| #{text} |"
+            text = "#{opt[:key]}) #{opt[:content][0..width_adjusted - 1]}".ljust(width_adjusted - 2)
+            puts "| #{text}|"
           end
         end
-        puts "+#{'-' * (@width - 2)}+"
+
+        puts "+#{'-' * width_adjusted}+"
       end
 
       # Scroll the panel up

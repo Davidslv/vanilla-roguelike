@@ -1,0 +1,570 @@
+diff --git a/lib/vanilla/game.rb b/lib/vanilla/game.rb
+index 4db84dc..6f3e980 100644
+--- a/lib/vanilla/game.rb
++++ b/lib/vanilla/game.rb
+@@ -71,19 +71,12 @@ module Vanilla
+     def game_loop
+       @turn = 0
+ 
+-      @logger.debug("[Game] Game#game_loop - Starting game loop")
+-
+-      message_system = Vanilla::ServiceRegistry.get(:message_system)
+-
+       until @world.quit?
+-        unless message_system.selection_mode?
+-          @logger.debug("[Game] Running game loop, turn: #{@turn}")
+-          @world.update(nil)
+-          @turn += 1
+-        end
++        @logger.debug("[Game] Running game loop, turn: #{@turn}")
+ 
++        @world.update(nil)
+         render
+-        @logger.debug("[Game] Game#game_loop - Rendered, turn: #{@turn}")
++        @turn += 1
+       end
+     end
+ 
+diff --git a/lib/vanilla/message_system.rb b/lib/vanilla/message_system.rb
+index 33a88da..d669e1d 100644
+--- a/lib/vanilla/message_system.rb
++++ b/lib/vanilla/message_system.rb
+@@ -20,12 +20,8 @@ module Vanilla
+     class MessageSystem
+       attr_reader :manager
+ 
+-      def initialize(logger = Vanilla::Logger.instance, render_system)
++      def initialize(logger, render_system)
+         @logger = logger
+-
+-        @logger.warn('[Vanilla::MessageSystem] DEPRECATED: Use Vanilla::Systems::MessageSystem instead')
+-        @logger.warn('[Vanilla::MessageSystem] DEPRECATED: Use Vanilla::Systems::MessageSystem instead')
+-        @logger.warn('[Vanilla::MessageSystem] DEPRECATED: Use Vanilla::Systems::MessageSystem instead')
+         @manager = MessageManager.new(logger, render_system)
+ 
+         # Register this system in the service registry
+diff --git a/lib/vanilla/messages/message.rb b/lib/vanilla/messages/message.rb
+index 40dea52..cd8c925 100644
+--- a/lib/vanilla/messages/message.rb
++++ b/lib/vanilla/messages/message.rb
+@@ -14,23 +14,21 @@ module Vanilla
+       # @param importance [Symbol] Importance level affecting display (:normal, :warning, :critical, :success)
+       # @param turn [Integer, nil] Game turn when the message was created (defaults to current turn)
+       # @param metadata [Hash] Additional data for translation interpolation or message context
+-      # @param options [Array<Hash>] Selectable options ({ key: String, content: String, callback: Symbol })
+       # @param selectable [Boolean] Whether the message is selectable for interaction
+       # @param shortcut_key [String, nil] Single-key shortcut for direct selection (optional)
+       # @param turn_provider [Proc] Optional proc that provides the current turn number
+       # @yield [Message] Called when the message is selected, if selectable
+       def initialize(content, category: :system, importance: :normal,
+-                     turn: nil, metadata: {}, options: [], selectable: false,
++                     turn: nil, metadata: {}, selectable: false,
+                      shortcut_key: nil, turn_provider: -> { Vanilla.game_turn rescue 0 },
+                      &selection_callback)
+         @content = content
+         @category = category
+         @importance = importance
+-        @options = options
+         @turn = turn || turn_provider.call
+         @timestamp = Time.now
+         @metadata = metadata
+-        @selectable = selectable || !options.empty?
++        @selectable = selectable
+         @shortcut_key = shortcut_key
+         @selection_callback = selection_callback if block_given?
+       end
+@@ -57,9 +55,11 @@ module Vanilla
+       # If the text is a symbol, it will be translated using I18n
+       # @return [String] The translated text
+       def translated_text
+-        return @content unless @content.is_a?(Symbol) || (@content.is_a?(String) && @content.include?('.'))
++        return @content unless @content.is_a?(Symbol) || @content.is_a?(String) && @content.include?('.')
+ 
+-        I18n.t(@content.to_s, default: @content.to_s, **@metadata)
++        # Handle translation with interpolation values from metadata
++        key = @content.is_a?(Symbol) ? @content.to_s : @content
++        I18n.t(key, default: key, **@metadata)
+       end
+     end
+   end
+diff --git a/lib/vanilla/messages/message_log.rb b/lib/vanilla/messages/message_log.rb
+index f59689d..48677e6 100644
+--- a/lib/vanilla/messages/message_log.rb
++++ b/lib/vanilla/messages/message_log.rb
+@@ -7,7 +7,7 @@ module Vanilla
+ 
+       DEFAULT_CATEGORIES = [:system, :combat, :movement, :item, :story, :debug]
+ 
+-      def initialize(logger, history_size: 10)
++      def initialize(logger, history_size: 120)
+         @logger = logger
+         @messages = []
+         @history_size = history_size
+@@ -28,39 +28,47 @@ module Vanilla
+         @observers.delete(observer)
+       end
+ 
++      def notify_observers
++        @observers.each { |observer| observer.update }
++      end
++
+       # Get the current game turn instead of directly accessing the global
+       def current_game_turn
+         Vanilla.game_turn rescue 0
+       end
+ 
+-      # Add a message with options
+-      def add_message(message)
+-        return unless message.is_a?(Message)
+-
+-        @messages.unshift(message)
+-        @messages.pop if @messages.size > @history_size
+-
+-        notify_observers
+-
+-        message
+-      end
+-
+-      # Add a message using a key or text
+-      def add(key, options = {})
++      # Add a message using a translation key
++      def add(key, options = {}, _turn_provider = method(:current_game_turn))
++        # Extract category and importance from options
+         category = options.delete(:category) || :system
+         importance = options.delete(:importance) || :normal
+-        opts = options.delete(:options) || []
+-        metadata = options
+ 
++        # Create a new Message object with the content
+         message = Message.new(
+           key,
+           category: category,
+           importance: importance,
+-          turn: current_game_turn,
+-          options: opts,
+-          metadata: metadata
++          metadata: options
+         )
++
+         add_message(message)
++        message
++      end
++
++      # Add a pre-constructed message object
++      def add_message(message)
++        return unless message.is_a?(Message)
++
++        # Add to message list
++        @messages.unshift(message)
++
++        # Trim history if needed
++        @messages.pop if @messages.size > @history_size
++
++        # Notify observers that a message was added
++        notify_observers
++
++        message
+       end
+ 
+       # Get messages by category
+@@ -83,9 +91,9 @@ module Vanilla
+         @messages.select { |m| m.respond_to?(:selectable?) && m.selectable? }
+       end
+ 
+-      # Fetch current options from all messages
+-      def options
+-        @messages.flat_map(&:options)
++      # Register a formatter for a specific category
++      def register_formatter(name, formatter)
++        @formatters[name] = formatter
+       end
+ 
+       # Clear all messages
+@@ -94,17 +102,8 @@ module Vanilla
+         notify_observers
+       end
+ 
+-      # Register a formatter for a specific category
+-      def register_formatter(name, formatter)
+-        @formatters[name] = formatter
+-      end
+-
+       private
+ 
+-      def notify_observers
+-        @observers.each { |observer| observer.update }
+-      end
+-
+       def register_default_formatters
+         # Register formatters for different message types
+         register_formatter(:combat, ->(message) {
+diff --git a/lib/vanilla/messages/message_manager.rb b/lib/vanilla/messages/message_manager.rb
+index 64bf6d7..aa6cf77 100644
+--- a/lib/vanilla/messages/message_manager.rb
++++ b/lib/vanilla/messages/message_manager.rb
+@@ -5,12 +5,11 @@ module Vanilla
+     class MessageManager
+       attr_reader :selection_mode
+ 
+-      # render_system is world?
+       def initialize(logger, render_system)
+-        @logger = logger || Vanilla::Logger.instance
++        @logger = logger
+         @render_system = render_system
+         @message_log = MessageLog.new(logger)
+-        @panel = MessagePanel.new(0, 8, 60, 5, @message_log) # Below 8-row maze
++        @panel = nil
+         @selection_mode = false
+         @selection_index = 0
+       end
+@@ -21,17 +20,20 @@ module Vanilla
+       end
+ 
+       # Add method to log translated messages
+-      def log_translated(key, importance: :normal, category: :system, options: [], **metadata)
++      def log_translated(key, importance: :normal, category: :system, **options)
++        # Extract metadata if it's nested
++        metadata = options.delete(:metadata) || options
++
++        # Create a new message with the content and translation key
+         message = Message.new(
+           key,
+           category: category,
+           importance: importance,
+-          turn: Vanilla.game_turn,
+-          options: options,
+           metadata: metadata
+         )
+ 
+         @message_log.add_message(message)
++        message
+       end
+ 
+       # Add a message directly
+@@ -49,15 +51,13 @@ module Vanilla
+ 
+       # Toggle message selection mode on/off
+       # @return [Boolean] The new selection mode state
+-      def toggle_menu_mode
++      def toggle_selection_mode
+         @selection_mode = !@selection_mode
+         @logger.info("Message selection mode: #{@selection_mode ? 'ON' : 'OFF'}")
+ 
++        # Reset selection index when toggling
+         @selection_index = 0 if @selection_mode
+-        @selection_mode
+-      end
+ 
+-      def selection_mode?
+         @selection_mode
+       end
+ 
+@@ -65,32 +65,43 @@ module Vanilla
+       # @param key [Symbol, String] The key pressed by the user
+       # @return [Boolean] Whether the input was handled
+       def handle_input(key)
++        # Never intercept 'q' keys for quitting
+         return false if key == 'q' || key == 'Q'
+ 
++        # Handle shortcut keys for messages with shortcuts
+         if !@selection_mode && key.is_a?(String) && key.length == 1
+-          option = @message_log.options.find { |opt| opt[:key] == key }
+-          if option
+-            @world.queue_command(option[:callback], {}) # Placeholder callback execution
++          # First try from get_recent_messages for test compatibility
++          selectable_messages = get_recent_messages
++
++          # Find a message with matching shortcut key
++          message_with_shortcut = selectable_messages.find do |m|
++            m.selectable? && m.has_shortcut? && m.shortcut_key == key
++          end
++
++          if message_with_shortcut
++            message_with_shortcut.select
+             return true
+           end
+         end
+ 
++        # Handle navigation in selection mode
+         if @selection_mode
+           case key
+-          when 'k'
++          when :KEY_UP, :KEY_LEFT, 'k', 'h'
+             navigate_selection(-1)
+             return true
+-          when 'j'
++          when :KEY_DOWN, :KEY_RIGHT, 'j', 'l'
+             navigate_selection(1)
+             return true
+-          when :enter, "\r"
++          when :enter, "\r", ' '
+             return select_current_message
+-          when 'm', :escape
+-            toggle_menu_mode
++          when :escape, "\e"
++            toggle_selection_mode
+             return true
+           end
+         end
+ 
++        # If we got here, input wasn't handled
+         false
+       end
+ 
+@@ -122,6 +133,10 @@ module Vanilla
+ 
+       # Render the message panel
+       def render(render_system)
++        if $DEBUG
++          puts "DEBUG: Rendering message panel, selection mode: #{@selection_mode}"
++        end
++
+         return unless @panel
+ 
+         @panel.render(render_system, @selection_mode)
+diff --git a/lib/vanilla/messages/message_panel.rb b/lib/vanilla/messages/message_panel.rb
+index 227b7a5..e90dc9b 100644
+--- a/lib/vanilla/messages/message_panel.rb
++++ b/lib/vanilla/messages/message_panel.rb
+@@ -38,22 +38,49 @@ module Vanilla
+       # Render the message panel
+       # @param renderer [Vanilla::Renderers::Renderer] The renderer to use
+       # @param selection_mode [Boolean] Whether the game is in message selection mode
+-      def render(renderer, selection_mode = false)
+-        puts "+#{'-' * (@width - 2)}+"
+-        puts "| Messages (Turn #{Vanilla.game_turn}): #{' ' * (@width - 18 - Vanilla.game_turn.to_s.length)}|"
+-        messages = @message_log.get_recent(@height - 2)
+-        messages.each do |msg|
+-          text = "- #{msg.translated_text[0..@width - 5]}".ljust(@width - 2)
+-          puts "| #{text} |"
++      def render(renderer, _selection_mode = false)
++        return unless renderer.respond_to?(:draw_character)
++
++        # Debug output with concise message
++        if $DEBUG
++          msg_types = @message_log.messages.take(5).map(&:category).tally
++          puts "DEBUG: Drawing message panel with #{@message_log.messages.size} msgs (#{msg_types})"
++        end
++
++        # Draw a separator line above the message panel
++        draw_separator_line(renderer)
++
++        # Get messages to display with scroll offset
++        messages = @message_log.get_recent(@height + @scroll_offset)
++
++        # Add a default message if no messages exist
++        if messages.nil? || messages.empty?
++          default_msg = "Welcome to Vanilla! Use movement keys to navigate."
++          default_msg.each_char.with_index do |char, i|
++            renderer.draw_character(@y + 1, @x + i, char)
++          end
++          return
+         end
+-        if selection_mode
+-          puts "| Options: #{' ' * (@width - 10)}|"
+-          @message_log.options.each do |opt|
+-            text = "#{opt[:key]}) #{opt[:content][0..@width - 5]}".ljust(@width - 2)
+-            puts "| #{text} |"
++
++        visible_messages = messages[@scroll_offset, @height] || []
++
++        # Force visibility with a marker
++        renderer.draw_character(@y, @x, "#")
++
++        # Draw messages directly using draw_character
++        visible_messages.each_with_index do |message, idx|
++          y_pos = @y + idx + 1
++
++          # Handle both Message objects and hash-based messages
++          if message.is_a?(Message)
++            render_message_object(renderer, message, y_pos)
++          else
++            render_hash_message(renderer, message, y_pos)
+           end
+         end
+-        puts "+#{'-' * (@width - 2)}+"
++
++        # Draw message count indicator
++        draw_message_count(renderer, visible_messages.size)
+       end
+ 
+       # Scroll the panel up
+diff --git a/lib/vanilla/systems/message_system.rb b/lib/vanilla/systems/message_system.rb
+index e88094b..8d67a94 100644
+--- a/lib/vanilla/systems/message_system.rb
++++ b/lib/vanilla/systems/message_system.rb
+@@ -13,9 +13,8 @@ module Vanilla
+       def initialize(world)
+         super
+         @message_queue = []
+-        @manager = Vanilla::Messages::MessageManager.new(Vanilla::Logger.instance, world)
++
+         # Subscribe to relevant events
+-        # Define what are relevant events for this system
+         @world.subscribe(:entity_moved, self)
+         @world.subscribe(:entities_collided, self)
+         @world.subscribe(:level_transition_requested, self)
+@@ -23,8 +22,6 @@ module Vanilla
+         @world.subscribe(:item_picked_up, self)
+         @world.subscribe(:damage_dealt, self)
+         @world.subscribe(:entity_died, self)
+-
+-        Vanilla::ServiceRegistry.register(:message_system, self)
+       end
+ 
+       # Update method called once per frame
+@@ -34,15 +31,6 @@ module Vanilla
+         process_message_queue
+       end
+ 
+-      # Render the message panel via MessageManager
+-      def render(renderer)
+-        @manager.render(renderer)
+-      end
+-
+-      def selection_mode?
+-        @manager.selection_mode?
+-      end
+-
+       # Handle events from the world
+       # @param event_type [Symbol] The type of event
+       # @param data [Hash] The event data
+@@ -51,37 +39,54 @@ module Vanilla
+         when :entity_moved
+           entity = @world.get_entity(data[:entity_id])
+           if entity&.has_tag?(:player)
+-            add_message("movement.moved", metadata: { x: data[:new_position][:row], y: data[:new_position][:column] })
++            add_message("movement.player_moved", importance: :low)
+           end
+-        when :monster_spawned
+-          type = @world.get_entity(data[:monster_id]).name
+-
+-          add_message(
+-            "monster.spawned",
+-            metadata: { type: type, x: data[:position][:row], y: data[:position][:column] }
+-          )
+-        when :monster_despawned
+-          add_message("monster.died", metadata: { monster: @world.get_entity(data[:monster_id])&.name || "monster" })
++
+         when :entities_collided
++          # Handle collision messages based on entity types
+           entity = @world.get_entity(data[:entity_id])
+           other = @world.get_entity(data[:other_entity_id])
+ 
+-          if entity&.has_tag?(:player) && other&.has_tag?(:monster)
+-            add_message(
+-              "combat.collision",
+-              metadata: { x: data[:position][:row], y: data[:position][:column] },
+-              options: [{ key: '1', content: "Attack Monster [M]", callback: :attack_monster }]
+-            )
++          # Player collisions
++          if entity&.has_tag?(:player) && other&.has_tag?(:item)
++            add_message("collision.player_item", importance: :normal)
++          elsif entity&.has_tag?(:player) && other&.has_tag?(:monster)
++            add_message("collision.player_monster", importance: :high)
+           elsif entity&.has_tag?(:player) && other&.has_tag?(:stairs)
+-            add_message("level.stairs_found")
++            add_message("collision.player_stairs", importance: :normal)
+           end
+ 
+         when :level_transition_requested
+-          add_message("level.stairs_found")
++          add_message("level.stairs_found", importance: :normal)
++
+         when :level_transitioned
+-          add_message("level.descended", metadata: { level: data[:difficulty] }, importance: :high)
++          difficulty = data[:difficulty]
++          add_message("level.descended", { level: difficulty }, importance: :high)
++
+         when :item_picked_up
+-          add_message("item.picked_up", metadata: { item: data[:item_name] || "item" })
++          item_name = data[:item_name] || "item"
++          add_message("item.picked_up", { item: item_name }, importance: :normal)
++
++        when :damage_dealt
++          attacker = @world.get_entity(data[:attacker_id])
++          target = @world.get_entity(data[:target_id])
++          damage = data[:damage]
++
++          if attacker&.has_tag?(:player)
++            add_message("combat.player_hit", { target: target&.name || "enemy", damage: damage }, importance: :normal)
++          elsif target&.has_tag?(:player)
++            add_message("combat.player_damaged", { attacker: attacker&.name || "enemy", damage: damage }, importance: :high)
++          end
++
++        when :entity_died
++          entity = @world.get_entity(data[:entity_id])
++          @world.get_entity(data[:killer_id])
++
++          if entity&.has_tag?(:monster)
++            add_message("combat.monster_died", { monster: entity.name || "monster" }, importance: :normal)
++          elsif entity&.has_tag?(:player)
++            add_message("combat.player_died", importance: :critical)
++          end
+         end
+       end
+ 
+@@ -105,7 +110,8 @@ module Vanilla
+ 
+       # Process and display messages in the queue
+       def process_message_queue
+-        # Delegate to MessageManager for now; will integrate with panel later
++        # Implementation depends on the display system
++        # This would typically render messages to a message log area
+       end
+ 
+       # Keep message queue at a reasonable size
+@@ -119,9 +125,13 @@ module Vanilla
+       # @param importance [Symbol] The importance level
+       # @return [Integer] Numeric importance value
+       def importance_value(importance)
+-        importance_values = { critical: 3, high: 2, normal: 1, low: 0 }
+-
+-        importance_values[importance] || 0
++        case importance
++        when :critical then 3
++        when :high then 2
++        when :normal then 1
++        when :low then 0
++        else 0
++        end
+       end
+     end
+   end
+diff --git a/lib/vanilla/systems/render_system.rb b/lib/vanilla/systems/render_system.rb
+index 3edeca3..46351a2 100644
+--- a/lib/vanilla/systems/render_system.rb
++++ b/lib/vanilla/systems/render_system.rb
+@@ -28,7 +28,14 @@ module Vanilla
+ 
+       def render_messages
+         message_system = Vanilla::ServiceRegistry.get(:message_system)
+-        message_system&.render(self) # Delegate to MessagePanel
++        game = Vanilla::ServiceRegistry.get(:game)
++        turn = game&.turn || 0
++        print "\n=== MESSAGES ===\n"
++        if message_system
++          print "Turn #{turn}: Player moved.\n"
++        else
++          print "No messages yet. Play the game to see messages here.\n"
++        end
+       end
+     end
+   end
+diff --git a/scripts/log_monitor.rb b/scripts/log_monitor.rb
+index 72ebd47..2020104 100755
+--- a/scripts/log_monitor.rb
++++ b/scripts/log_monitor.rb
+@@ -140,12 +140,6 @@ class LogMonitor
+         puts "👹 Player collided with monster"
+       elsif entry.include?("Player exiting game")
+         puts "👋 Player exited game"
+-      elsif entry.include?("[DEPRECATED]")
+-        puts "🚨 DEPRECATION WARNING: #{entry}"
+-      elsif entry.include?("[WARN]")
+-        puts "😱 WARNING: #{entry}"
+-      elsif entry.include?("[ERROR]")
+-        puts "🚨😱 ERROR: #{entry}"
+       else
+         puts entry
+       end
