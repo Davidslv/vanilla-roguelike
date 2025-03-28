@@ -20,8 +20,12 @@ module Vanilla
     class MessageSystem
       attr_reader :manager
 
-      def initialize(logger, render_system)
+      def initialize(logger = Vanilla::Logger.instance, render_system)
         @logger = logger
+
+        @logger.warn('[Vanilla::MessageSystem] DEPRECATED: Use Vanilla::Systems::MessageSystem instead')
+        @logger.warn('[Vanilla::MessageSystem] DEPRECATED: Use Vanilla::Systems::MessageSystem instead')
+        @logger.warn('[Vanilla::MessageSystem] DEPRECATED: Use Vanilla::Systems::MessageSystem instead')
         @manager = MessageManager.new(logger, render_system)
 
         # Register this system in the service registry
