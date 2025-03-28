@@ -7,7 +7,7 @@ module Vanilla
 
       DEFAULT_CATEGORIES = [:system, :combat, :movement, :item, :story, :debug]
 
-      def initialize(logger, history_size: 120)
+      def initialize(logger, history_size: 10)
         @logger = logger
         @messages = []
         @history_size = history_size
@@ -28,47 +28,39 @@ module Vanilla
         @observers.delete(observer)
       end
 
-      def notify_observers
-        @observers.each { |observer| observer.update }
-      end
-
       # Get the current game turn instead of directly accessing the global
       def current_game_turn
         Vanilla.game_turn rescue 0
       end
 
-      # Add a message using a translation key
-      def add(key, options = {}, _turn_provider = method(:current_game_turn))
-        # Extract category and importance from options
+      # Add a message with options
+      def add_message(message)
+        return unless message.is_a?(Message)
+
+        @messages.unshift(message)
+        @messages.pop if @messages.size > @history_size
+
+        notify_observers
+
+        message
+      end
+
+      # Add a message using a key or text
+      def add(key, options = {})
         category = options.delete(:category) || :system
         importance = options.delete(:importance) || :normal
+        opts = options.delete(:options) || []
+        metadata = options
 
-        # Create a new Message object with the content
         message = Message.new(
           key,
           category: category,
           importance: importance,
-          metadata: options
+          turn: current_game_turn,
+          options: opts,
+          metadata: metadata
         )
-
         add_message(message)
-        message
-      end
-
-      # Add a pre-constructed message object
-      def add_message(message)
-        return unless message.is_a?(Message)
-
-        # Add to message list
-        @messages.unshift(message)
-
-        # Trim history if needed
-        @messages.pop if @messages.size > @history_size
-
-        # Notify observers that a message was added
-        notify_observers
-
-        message
       end
 
       # Get messages by category
@@ -91,9 +83,9 @@ module Vanilla
         @messages.select { |m| m.respond_to?(:selectable?) && m.selectable? }
       end
 
-      # Register a formatter for a specific category
-      def register_formatter(name, formatter)
-        @formatters[name] = formatter
+      # Fetch current options from all messages
+      def options
+        @messages.flat_map(&:options)
       end
 
       # Clear all messages
@@ -102,7 +94,16 @@ module Vanilla
         notify_observers
       end
 
+      # Register a formatter for a specific category
+      def register_formatter(name, formatter)
+        @formatters[name] = formatter
+      end
+
       private
+
+      def notify_observers
+        @observers.each { |observer| observer.update }
+      end
 
       def register_default_formatters
         # Register formatters for different message types
