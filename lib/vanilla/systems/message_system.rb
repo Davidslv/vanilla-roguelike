@@ -2,6 +2,9 @@
 # frozen_string_literal: true
 
 require_relative 'system'
+require_relative '../messages/message'
+require_relative '../messages/message_log'
+require_relative '../messages/message_manager'
 
 module Vanilla
   module Systems
@@ -11,7 +14,8 @@ module Vanilla
       def initialize(world)
         super
         @message_queue = []
-        @manager = Vanilla::Messages::MessageManager.new(nil, nil)
+
+        @manager = Vanilla::Messages::MessageManager.new
 
         @world.subscribe(:entity_moved, self)
         @world.subscribe(:monster_spawned, self)
@@ -32,7 +36,35 @@ module Vanilla
       end
 
       def selection_mode?
-        @manager.selection_mode?
+        @manager.selection_mode
+      end
+
+      def toggle_selection_mode
+        @manager.toggle_menu_mode
+      end
+
+      def handle_input(key)
+        @manager.handle_input(key)
+      end
+
+      def log_message(key, options = {})
+        @manager.log_translated(key, **options)
+      end
+
+      def log_success(key, metadata = {})
+        @manager.log_success(key, metadata)
+      end
+
+      def log_warning(key, metadata = {})
+        @manager.log_warning(key, metadata)
+      end
+
+      def log_critical(key, metadata = {})
+        @manager.log_critical(key, metadata)
+      end
+
+      def get_recent_messages(limit = 10)
+        @manager.get_recent_messages(limit)
       end
 
       def handle_event(event_type, data)
@@ -75,7 +107,7 @@ module Vanilla
 
       def process_message_queue
         @message_queue.each do |msg|
-          @manager.log_translated(msg[:key], importance: msg[:importance], options: msg[:options], metadata: msg[:metadata])
+          @manager.log_translated(msg[:key], importance: msg[:importance], category: :system, options: msg[:options], metadata: msg[:metadata])
         end
         @message_queue.clear
       end

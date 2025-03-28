@@ -45,9 +45,6 @@ module Vanilla
   # event system
   require_relative 'vanilla/events'
 
-  # message system
-  require_relative 'vanilla/message_system'
-
   # inventory system
   require_relative 'vanilla/inventory'
 
