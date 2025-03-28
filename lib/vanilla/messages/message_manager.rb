@@ -18,6 +18,10 @@ module Vanilla
         @selection_index = 0
       end
 
+      def options
+        @message_log.options
+      end
+
       # Log a message with the translation key
       def log_message(key, options = {})
         @message_log.add(key, options)

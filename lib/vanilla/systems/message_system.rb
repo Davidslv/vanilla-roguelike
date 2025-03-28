@@ -63,10 +63,13 @@ module Vanilla
               toggle_selection_mode
               @logger.info("[MessageSystem] Selected option #{key}, exiting menu mode")
               return true
+            else
+              log_message("system.menu_quit_prompt", metadata: { message: "Press 'q' to exit menu mode" }, importance: :info)
+              @logger.info("[MessageSystem] Non-option key pressed in menu mode: #{key}")
+              return true # Stay in menu mode, wait for next input
             end
           end
-          # Ignore other keys in menu mode, wait for valid input
-          return true
+          return true # Ignore invalid inputs in menu mode
         end
 
         @manager.handle_input(key)
