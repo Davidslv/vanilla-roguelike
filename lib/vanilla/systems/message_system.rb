@@ -15,6 +15,7 @@ module Vanilla
         @message_queue = []
 
         # Subscribe to relevant events
+        # Define what are relevant events for this system
         @world.subscribe(:entity_moved, self)
         @world.subscribe(:entities_collided, self)
         @world.subscribe(:level_transition_requested, self)
@@ -39,54 +40,37 @@ module Vanilla
         when :entity_moved
           entity = @world.get_entity(data[:entity_id])
           if entity&.has_tag?(:player)
-            add_message("movement.player_moved", importance: :low)
+            add_message("movement.moved", metadata: { x: data[:new_position][:row], y: data[:new_position][:column] })
           end
+        when :monster_spawned
+          type = @world.get_entity(data[:monster_id]).name
 
+          add_message(
+            "monster.spawned",
+            metadata: { type: type, x: data[:position][:row], y: data[:position][:column] }
+          )
+        when :monster_despawned
+          add_message("monster.died", metadata: { monster: @world.get_entity(data[:monster_id])&.name || "monster" })
         when :entities_collided
-          # Handle collision messages based on entity types
           entity = @world.get_entity(data[:entity_id])
           other = @world.get_entity(data[:other_entity_id])
 
-          # Player collisions
-          if entity&.has_tag?(:player) && other&.has_tag?(:item)
-            add_message("collision.player_item", importance: :normal)
-          elsif entity&.has_tag?(:player) && other&.has_tag?(:monster)
-            add_message("collision.player_monster", importance: :high)
+          if entity&.has_tag?(:player) && other&.has_tag?(:monster)
+            add_message(
+              "combat.collision",
+              metadata: { x: data[:position][:row], y: data[:position][:column] },
+              options: [{ key: '1', content: "Attack Monster [M]", callback: :attack_monster }]
+            )
           elsif entity&.has_tag?(:player) && other&.has_tag?(:stairs)
-            add_message("collision.player_stairs", importance: :normal)
+            add_message("level.stairs_found")
           end
 
         when :level_transition_requested
-          add_message("level.stairs_found", importance: :normal)
-
+          add_message("level.stairs_found")
         when :level_transitioned
-          difficulty = data[:difficulty]
-          add_message("level.descended", { level: difficulty }, importance: :high)
-
+          add_message("level.descended", metadata: { level: data[:difficulty] }, importance: :high)
         when :item_picked_up
-          item_name = data[:item_name] || "item"
-          add_message("item.picked_up", { item: item_name }, importance: :normal)
-
-        when :damage_dealt
-          attacker = @world.get_entity(data[:attacker_id])
-          target = @world.get_entity(data[:target_id])
-          damage = data[:damage]
-
-          if attacker&.has_tag?(:player)
-            add_message("combat.player_hit", { target: target&.name || "enemy", damage: damage }, importance: :normal)
-          elsif target&.has_tag?(:player)
-            add_message("combat.player_damaged", { attacker: attacker&.name || "enemy", damage: damage }, importance: :high)
-          end
-
-        when :entity_died
-          entity = @world.get_entity(data[:entity_id])
-          @world.get_entity(data[:killer_id])
-
-          if entity&.has_tag?(:monster)
-            add_message("combat.monster_died", { monster: entity.name || "monster" }, importance: :normal)
-          elsif entity&.has_tag?(:player)
-            add_message("combat.player_died", importance: :critical)
-          end
+          add_message("item.picked_up", metadata: { item: data[:item_name] || "item" })
         end
       end
 
@@ -110,8 +94,7 @@ module Vanilla
 
       # Process and display messages in the queue
       def process_message_queue
-        # Implementation depends on the display system
-        # This would typically render messages to a message log area
+        # Delegate to MessageManager for now; will integrate with panel later
       end
 
       # Keep message queue at a reasonable size
@@ -125,13 +108,9 @@ module Vanilla
       # @param importance [Symbol] The importance level
       # @return [Integer] Numeric importance value
       def importance_value(importance)
-        case importance
-        when :critical then 3
-        when :high then 2
-        when :normal then 1
-        when :low then 0
-        else 0
-        end
+        importance_values = { critical: 3, high: 2, normal: 1, low: 0 }
+
+        importance_values[importance] || 0
       end
     end
   end
