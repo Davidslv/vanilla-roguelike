@@ -40,10 +40,32 @@ module Vanilla
       end
 
       def toggle_selection_mode
-        @manager.toggle_menu_mode
+        @manager.toggle_selection_mode
       end
 
       def handle_input(key)
+        if key == 'm'
+          toggle_selection_mode
+          @logger.info("[MessageSystem] Toggled menu mode to #{@manager.selection_mode ? 'ON' : 'OFF'}")
+          return true
+        end
+
+        if @manager.selection_mode
+          if key.is_a?(String) && key.length == 1
+            option = @manager.options.find { |opt| opt[:key] == key }
+            if option
+              @world.queue_command(option[:callback], {})
+              toggle_selection_mode # Exit after selection
+              @logger.info("[MessageSystem] Selected option #{key}, exiting menu mode")
+              return true
+            end
+          end
+          # Exit menu mode on any other key
+          toggle_selection_mode
+          @logger.info("[MessageSystem] Exiting menu mode due to non-option key: #{key}")
+          return true
+        end
+
         @manager.handle_input(key)
       end
 

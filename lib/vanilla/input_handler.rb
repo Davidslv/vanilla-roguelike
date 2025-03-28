@@ -5,7 +5,7 @@ require_relative 'commands/exit_command'
 require_relative 'commands/null_command'
 require_relative 'commands/no_op_command'
 require_relative 'commands/change_level_command'
-
+require_relative 'commands/toggle_menu_mode_command'
 # Update Flow:
 # KeyboardHandler → InputHandler → Creates commands → InputSystem queues them in World.
 
@@ -86,6 +86,9 @@ module Vanilla
       when "h", "H", :KEY_LEFT
         @logger.info("[InputHandler] User attempting to move WEST")
         Commands::MoveCommand.new(entity, :west)
+      when "m", "M", :KEY_MENU
+        @logger.info("[InputHandler] User attempting to toggle message menu")
+        Commands::ToggleMenuModeCommand.new
       when "q", "\C-c", "\u0003" # 'q' or Ctrl+C
         @logger.info("[InputHandler] User attempting to exit game")
         Commands::ExitCommand.new

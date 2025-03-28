@@ -52,7 +52,7 @@ module Vanilla
 
       # Toggle message selection mode on/off
       # @return [Boolean] The new selection mode state
-      def toggle_menu_mode
+      def toggle_selection_mode
         @selection_mode = !@selection_mode
         @logger.info("Message selection mode: #{@selection_mode ? 'ON' : 'OFF'}")
 
