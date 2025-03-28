@@ -78,7 +78,7 @@ module Vanilla
         if message_system&.selection_mode?
           @logger.debug("[Game] In menu mode, waiting for input, turn: #{@turn}")
           input_system.update(nil) # Wait for input
-          @world.update(nil) # Process queued commands (e.g., attack)
+          @world.update(nil) # Process queued commands
         else
           @logger.debug("[Game] Running game loop, turn: #{@turn}")
           @world.update(nil)

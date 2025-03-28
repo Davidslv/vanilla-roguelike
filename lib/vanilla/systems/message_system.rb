@@ -44,35 +44,23 @@ module Vanilla
         @manager.toggle_selection_mode
       end
 
+      def selection_mode?
+        @manager.selection_mode
+      end
+
+      def valid_menu_option?(key)
+        @manager.options.any? { |opt| opt[:key] == key }
+      end
+
       def handle_input(key)
-        if key == 'm'
-          toggle_selection_mode
-          @logger.info("[MessageSystem] Toggled menu mode to #{@manager.selection_mode ? 'ON' : 'OFF'}")
-          return true
-        end
+        return unless @manager.selection_mode && key.is_a?(String) && key.length == 1
 
-        if @manager.selection_mode
-          if key == 'q'
-            toggle_selection_mode
-            @logger.info("[MessageSystem] Quit menu mode")
-            return true
-          elsif key.is_a?(String) && key.length == 1
-            option = @manager.options.find { |opt| opt[:key] == key }
-            if option
-              @world.queue_command(option[:callback], {})
-              toggle_selection_mode
-              @logger.info("[MessageSystem] Selected option #{key}, exiting menu mode")
-              return true
-            else
-              log_message("system.menu_quit_prompt", metadata: { message: "Press 'q' to exit menu mode" }, importance: :info)
-              @logger.info("[MessageSystem] Non-option key pressed in menu mode: #{key}")
-              return true # Stay in menu mode, wait for next input
-            end
-          end
-          return true # Ignore invalid inputs in menu mode
-        end
+        option = @manager.options.find { |opt| opt[:key] == key }
+        return unless option
 
-        @manager.handle_input(key)
+        @world.queue_command(option[:callback], {})
+        @logger.info("[MessageSystem] Selected option #{key}")
+        # Don’t toggle off here—command decides
       end
 
       def log_message(key, options = {})

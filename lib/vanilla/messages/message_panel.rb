@@ -39,7 +39,7 @@ module Vanilla
       # @param renderer [Vanilla::Renderers::Renderer] The renderer to use
       # @param selection_mode [Boolean] Whether the game is in message selection mode
       def render(renderer, selection_mode = false)
-        width_adjusted = @width - 2 # Total width includes borders
+        width_adjusted = @width - 2
         puts "+#{'-' * width_adjusted}+"
         turn = Vanilla.game_turn
         header = "Messages (Turn #{turn}):"
@@ -55,16 +55,16 @@ module Vanilla
         if selection_mode
           puts "| Options:#{' ' * (width_adjusted - 8)}|"
           if @message_log.options.empty?
-            text = "No other options available".ljust(width_adjusted)
+            text = "No options available, press 'm' to close".ljust(width_adjusted)
             puts "| #{text}|"
           else
             @message_log.options.each do |opt|
               text = "#{opt[:key]}) #{opt[:content][0..width_adjusted - 4]}".ljust(width_adjusted)
               puts "| #{text}|"
             end
+            text = "m) Close Menu".ljust(width_adjusted)
+            puts "| #{text}|"
           end
-          text = "q) Quit Menu".ljust(width_adjusted)
-          puts "| #{text}|"
         end
 
         puts "+#{'-' * width_adjusted}+"
