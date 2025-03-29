@@ -22,6 +22,7 @@ en:
     descended: "You descend to a new level!"
 
   item:
+    description: "A useful item."
   combat:
     player_hit: "You strike the %{enemy} for %{damage} damage!"
     player_miss: "You swing at the %{enemy} but miss!"
