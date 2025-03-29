@@ -46,6 +46,11 @@ module Vanilla
     def setup_world
       @world = Vanilla::World.new
       @display = @world.display
+      @event_manager = Vanilla::Events::EventManager.new(store_config: { file: true })
+
+      # Should EventManager be registered as a service? or should it be a singleton?
+      Vanilla::ServiceRegistry.register(:event_manager, @event_manager)
+
       @player = Vanilla::EntityFactory.create_player(0, 0)
       @world.add_entity(@player)
 
