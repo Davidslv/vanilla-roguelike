@@ -9,6 +9,7 @@ module Vanilla
       def initialize
         @executed = false
         @logger = Vanilla::Logger.instance
+        @logger.info("[#{self.class}] Initializing command")
       end
 
       def execute

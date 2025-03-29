@@ -44,10 +44,6 @@ module Vanilla
         @manager.toggle_selection_mode
       end
 
-      def selection_mode?
-        @manager.selection_mode
-      end
-
       def valid_menu_option?(key)
         @manager.options.any? { |opt| opt[:key] == key }
       end
