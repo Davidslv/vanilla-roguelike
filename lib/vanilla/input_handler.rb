@@ -74,22 +74,21 @@ module Vanilla
     # @return [Vanilla::Commands::Command] The command to execute
     def process_command(key, entity)
       case key
-      when "k", "K", :KEY_UP
+      when 'k'
         @logger.info("[InputHandler] User attempting to move NORTH")
         Commands::MoveCommand.new(entity, :north)
-      when "j", "J", :KEY_DOWN
-        @logger.info("[InputHandler] User attempting to move SOUTH")
+      when 'j'
         Commands::MoveCommand.new(entity, :south)
-      when "l", "L", :KEY_RIGHT
+      when 'l'
         @logger.info("[InputHandler] User attempting to move EAST")
         Commands::MoveCommand.new(entity, :east)
-      when "h", "H", :KEY_LEFT
+      when 'h'
         @logger.info("[InputHandler] User attempting to move WEST")
         Commands::MoveCommand.new(entity, :west)
-      when "m", "M", :KEY_MENU
+      when 'm'
         @logger.info("[InputHandler] User attempting to toggle message menu")
         Commands::ToggleMenuModeCommand.new
-      when "q", "\C-c", "\u0003" # 'q' or Ctrl+C
+      when 'q', "\C-c", "\u0003" # 'q' or Ctrl+C
         @logger.info("[InputHandler] User attempting to exit game")
         Commands::ExitCommand.new
       else

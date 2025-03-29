@@ -7,6 +7,22 @@ en:
     goodbye: "Farewell, adventurer. The dungeon claims another soul."
     startup_hint: "You find yourself on dungeon level %{difficulty}. Be cautious!"
 
+  movement:
+    moved: "You moved"
+
+  monster:
+    spawned: "A monster appears!"
+    died: "The monster is no more."
+
+  combat:
+    collision: "You bump into a monster!"
+
+  level:
+    stairs_found: "You find stairs leading deeper into the dungeon."
+    descended: "You descend to a new level!"
+
+  item:
+    description: "A useful item."
   combat:
     player_hit: "You strike the %{enemy} for %{damage} damage!"
     player_miss: "You swing at the %{enemy} but miss!"

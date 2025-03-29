@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-# lib/vanilla/game.rb
 module Vanilla
   class Game
     attr_reader :turn, :world, :level
 
+    # --- Initialization ---
     def initialize(options = {})
       @difficulty = options[:difficulty] || 1
       @seed = options[:seed] || Random.new_seed
@@ -12,10 +12,9 @@ module Vanilla
       @turn = 0
 
       setup_world
-
       Vanilla::ServiceRegistry.register(:game, self)
 
-      # Handle SIGINT (Ctrl+C)
+      # Handle SIGINT (Ctrl+C) gracefully
       Signal.trap("SIGINT") do
         @world.quit = true
         @logger.info("Received CTRL+C, quitting game")
@@ -23,12 +22,12 @@ module Vanilla
       end
     end
 
+    # --- Core Lifecycle Methods ---
     def start
       @logger.info("Starting game with seed: #{@seed}, difficulty: #{@difficulty}")
       srand(@seed)
-
       @logger.debug("[Game] Game#start - Starting @world.update(nil)")
-      @maze_system.update(nil)
+      @maze_system.update(nil) # Generate initial maze
       @logger.debug("[Game] Game#start - Rendering")
       render
       @logger.debug("[Game] Game#start - Starting game loop")
@@ -41,29 +40,24 @@ module Vanilla
       Vanilla::ServiceRegistry.unregister(:game)
     end
 
+    # --- Private Implementation Details ---
     private
 
     def setup_world
       @world = Vanilla::World.new
       @display = @world.display
-
       @player = Vanilla::EntityFactory.create_player(0, 0)
       @world.add_entity(@player)
 
-      # Maze system is the first system to run
-      # it needs to be an instance variable because it's used in the game loop
+      # Maze system is first to run and needed in game loop
       @maze_system = Vanilla::Systems::MazeSystem.new(@world, difficulty: @difficulty, seed: @seed)
-
-      # Run first to generate maze
-      @world.add_system(@maze_system, 0)
+      @world.add_system(@maze_system, 0) # Run first to generate maze
 
       @world.add_system(Vanilla::Systems::InputSystem.new(@world), 1)
       @world.add_system(Vanilla::Systems::MovementSystem.new(@world), 2)
       @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::MonsterSystem.new(@world, player: @player), 4)
-
-      # Render system runs last
-      @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 10)
+      @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 10) # Render last
 
       Vanilla::ServiceRegistry.register(:message_system, Vanilla::Systems::MessageSystem.new(@world))
     end
