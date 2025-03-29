@@ -5,13 +5,14 @@ module Vanilla
     # Central event management class that handles event publication and subscription
     class EventManager
       # Initialize a new event manager
-      # @param logger [Logger] Logger instance for event logging
       # @param store_config [Hash] Configuration for event storage
       #   file: [Boolean] Whether to use file-based storage (default: true)
       #   file_directory: [String] Directory for event files (default: "event_logs")
-      def initialize(logger, store_config = { file: true })
+      def initialize(store_config: { file: true })
         @subscribers = Hash.new { |h, k| h[k] = [] }
-        @logger = logger
+        @logger = Vanilla::Logger.instance
+
+        @logger.debug("Initializing EventManager with store_config: #{store_config}")
 
         # Set up file storage if configured
         if store_config[:file]
@@ -68,6 +69,7 @@ module Vanilla
       # @param data [Hash] Additional event data
       # @return [Event] The published event
       def publish_event(type, source = nil, data = {})
+        @logger.debug("Publishing event: #{type}, source: #{source}, data: #{data}")
         event = Event.new(type, source, data)
         publish(event)
         event

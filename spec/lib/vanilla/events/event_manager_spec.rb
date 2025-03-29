@@ -3,18 +3,19 @@
 require 'spec_helper'
 
 RSpec.describe Vanilla::Events::EventManager do
-  let(:logger) { double("Logger").as_null_object }
-  let(:manager) { described_class.new(logger, file: false) }
+  let(:logger_instance) { instance_double(Vanilla::Logger, debug: nil, info: nil, error: nil) }
   let(:event_type) { "test_event" }
   let(:event) { Vanilla::Events::Event.new(event_type, "source", { data: 123 }) }
   let(:subscriber) { double("Subscriber") }
 
   before do
+    allow(Vanilla::Logger).to receive(:instance).and_return(logger_instance)
     allow(subscriber).to receive(:handle_event)
   end
 
   describe "#initialize" do
     it "initializes with default settings" do
+      manager = described_class.new
       expect(manager).to be_a(described_class)
     end
 
@@ -26,7 +27,7 @@ RSpec.describe Vanilla::Events::EventManager do
           .with("event_logs")
           .and_return(file_store)
 
-        described_class.new(logger)
+        described_class.new
       end
 
       it "initializes the file store with custom directory" do
@@ -34,12 +35,19 @@ RSpec.describe Vanilla::Events::EventManager do
           .with("custom/dir")
           .and_return(file_store)
 
-        described_class.new(logger, file: true, file_directory: "custom/dir")
+        described_class.new(store_config: { file: true, file_directory: "custom/dir" })
+      end
+
+      it "doesn't initialize file store when file option is false" do
+        expect(Vanilla::Events::Storage::FileEventStore).not_to receive(:new)
+        described_class.new(store_config: { file: false })
       end
     end
   end
 
   describe "#subscribe" do
+    let(:manager) { described_class.new(store_config: { file: false }) }
+
     it "adds a subscriber for an event type" do
       manager.subscribe(event_type, subscriber)
       manager.publish(event)
@@ -61,6 +69,8 @@ RSpec.describe Vanilla::Events::EventManager do
   end
 
   describe "#unsubscribe" do
+    let(:manager) { described_class.new(store_config: { file: false }) }
+
     before do
       manager.subscribe(event_type, subscriber)
     end
@@ -86,6 +96,8 @@ RSpec.describe Vanilla::Events::EventManager do
   end
 
   describe "#publish" do
+    let(:manager) { described_class.new(store_config: { file: false }) }
+
     it "delivers the event to subscribed handlers" do
       manager.subscribe(event_type, subscriber)
       manager.publish(event)
@@ -101,7 +113,7 @@ RSpec.describe Vanilla::Events::EventManager do
     it "catches and logs exceptions from handlers" do
       error_subscriber = double("ErrorSubscriber")
       allow(error_subscriber).to receive(:handle_event).and_raise("Test error")
-      expect(logger).to receive(:error).at_least(:once)
+      expect(logger_instance).to receive(:error).at_least(:once)
 
       manager.subscribe(event_type, error_subscriber)
       expect { manager.publish(event) }.not_to raise_error
@@ -109,7 +121,7 @@ RSpec.describe Vanilla::Events::EventManager do
 
     context "with storage" do
       let(:file_store) { instance_double(Vanilla::Events::Storage::FileEventStore) }
-      let(:manager_with_storage) { described_class.new(logger, file: true) }
+      let(:manager_with_storage) { described_class.new }
 
       before do
         allow(Vanilla::Events::Storage::FileEventStore).to receive(:new)
@@ -125,6 +137,8 @@ RSpec.describe Vanilla::Events::EventManager do
   end
 
   describe "#publish_event" do
+    let(:manager) { described_class.new(store_config: { file: false }) }
+
     it "creates and publishes an event" do
       manager.subscribe(event_type, subscriber)
 
@@ -146,6 +160,8 @@ RSpec.describe Vanilla::Events::EventManager do
 
   describe "#query_events" do
     context "without storage" do
+      let(:manager) { described_class.new(store_config: { file: false }) }
+
       it "returns an empty array" do
         expect(manager.query_events).to eq([])
       end
@@ -153,7 +169,7 @@ RSpec.describe Vanilla::Events::EventManager do
 
     context "with storage" do
       let(:file_store) { instance_double(Vanilla::Events::Storage::FileEventStore) }
-      let(:manager_with_storage) { described_class.new(logger, file: true) }
+      let(:manager_with_storage) { described_class.new }
       let(:events) { [event] }
 
       before do
@@ -174,14 +190,40 @@ RSpec.describe Vanilla::Events::EventManager do
     end
   end
 
+  describe "#current_session" do
+    context "without storage" do
+      let(:manager) { described_class.new(store_config: { file: false }) }
+
+      it "returns nil" do
+        expect(manager.current_session).to be_nil
+      end
+    end
+
+    context "with storage" do
+      let(:file_store) { instance_double(Vanilla::Events::Storage::FileEventStore, current_session: "test_session") }
+      let(:manager_with_storage) { described_class.new }
+
+      before do
+        allow(Vanilla::Events::Storage::FileEventStore).to receive(:new)
+          .and_return(file_store)
+      end
+
+      it "delegates to the storage" do
+        expect(manager_with_storage.current_session).to eq("test_session")
+      end
+    end
+  end
+
   describe "#close" do
+    let(:manager) { described_class.new(store_config: { file: false }) }
+
     it "doesn't error without storage" do
       expect { manager.close }.not_to raise_error
     end
 
     context "with storage" do
       let(:file_store) { instance_double(Vanilla::Events::Storage::FileEventStore) }
-      let(:manager_with_storage) { described_class.new(logger, file: true) }
+      let(:manager_with_storage) { described_class.new }
 
       before do
         allow(Vanilla::Events::Storage::FileEventStore).to receive(:new)

@@ -13,11 +13,10 @@ module Vanilla
   class InputHandler
     # Initialize a new input handler
     # @param world [World]
-    # @param event_manager [Vanilla::Events::EventManager, nil] Optional event manager
-    def initialize(world, event_manager = nil)
+    def initialize(world)
       @world = world
       @logger = Vanilla::Logger.instance
-      @event_manager = event_manager
+      @event_manager = Vanilla::ServiceRegistry.get(:event_manager)
     end
 
     # Handle a key press from the user

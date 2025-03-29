@@ -15,10 +15,10 @@ module Vanilla
         # @param directory [String] The directory to store event files in
         # @param session_id [String, nil] Optional session ID, defaults to timestamp
         def initialize(directory = "event_logs", session_id = nil)
-          require 'fileutils'
-
+          @logger = Vanilla::Logger.instance
           @directory = directory
           @storage_path = directory
+
           FileUtils.mkdir_p(@directory) unless Dir.exist?(@directory)
           @current_session = session_id || Time.now.strftime("%Y%m%d_%H%M%S")
           @current_file = nil

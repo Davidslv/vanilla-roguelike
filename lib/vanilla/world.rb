@@ -136,10 +136,20 @@ module Vanilla
     end
 
     def process_events
+      event_manager = Vanilla::ServiceRegistry.get(:event_manager)
+
       until @event_queue.empty?
         @logger.debug("[World#process_events] Processing events")
-        event_type, data = @event_queue.pop
+
+        event_type, data = @event_queue.shift
         @logger.debug("[World#process_events] Event type: #{event_type}, data: #{data}")
+
+        if event_manager
+          event_manager.publish_event(event_type, self, data)
+        else
+          @logger.error("[World#process_events] No event manager found")
+        end
+
         @event_subscribers[event_type].each do |subscriber|
           @logger.debug("[World#process_events] Subscriber: #{subscriber}")
           subscriber.handle_event(event_type, data)
