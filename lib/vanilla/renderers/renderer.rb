@@ -14,7 +14,8 @@ module Vanilla
       # --- Core Lifecycle Methods ---
       # These methods define the rendering pipeline: clear, draw, present.
       #
-      protected :clear, :clear_screen, :draw_grid, :draw_character, :present
+
+      protected
 
       # Clears any previous render state (e.g., wipe the screen).
       def clear

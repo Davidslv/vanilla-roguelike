@@ -2,10 +2,32 @@
 
 module Vanilla
   module Messages
-    # Panel for displaying messages beneath the map
+    # The MessagePanel class displays a panel of messages beneath the game map in a roguelike game.
+    # It shows recent messages (e.g., "You moved to (3, 5)") and, in selection mode, options for the player
+    # to choose from (e.g., "1) Attack Monster"). The panel supports scrolling to view older messages and
+    # uses a renderer to draw to the screen. It observes the message log for updates, ensuring the display
+    # stays current with the game state.
+
     class MessagePanel
+      # Color mappings for importance and category (shared between methods)
+      IMPORTANCE_COLORS = {
+        critical: :red,
+        danger: :red,
+        warning: :yellow,
+        success: :green
+      }.freeze
+
+      CATEGORY_COLORS = {
+        combat: :red,
+        item: :green,
+        movement: :cyan,
+        exploration: :blue,
+        system: :white
+      }.freeze
+
       attr_reader :x, :y, :width, :height, :message_log
 
+      # --- Initialization ---
       # Initialize a new message panel
       # @param x [Integer] X coordinate (column) for top-left corner
       # @param y [Integer] Y coordinate (row) for top-left corner
@@ -20,95 +42,110 @@ module Vanilla
         @message_log = message_log
         @scroll_offset = 0
 
-        # Register as an observer of the message log
+        # Register as an observer of the message log to get updates
         @message_log.add_observer(self) if @message_log.respond_to?(:add_observer)
       end
 
-      # Called when the message log is updated
-      # Implements Observer pattern
-      def update
-        # Nothing needed here - panel will get updated on next render
-      end
-
-      # Clean up resources
-      def cleanup
-        @message_log.remove_observer(self) if @message_log.respond_to?(:remove_observer)
-      end
-
-      # Render the message panel
-      # @param renderer [Vanilla::Renderers::Renderer] The renderer to use
-      # @param selection_mode [Boolean] Whether the game is in message selection mode
+      # --- Core Lifecycle Methods ---
       def render(renderer, selection_mode = false)
+        # Adjust the width to account for borders (| on each side), so the content fits inside
         width_adjusted = @width - 2
+
+        # Draw the top border: a + followed by dashes (e.g., +------+) to frame the panel
         puts "+#{'-' * width_adjusted}+"
+
+        # Get the current game turn (e.g., 42) to show in the header
         turn = Vanilla.game_turn
+
+        # Create the header text, e.g., "Messages (Turn 42):"
         header = "Messages (Turn #{turn}):"
+
+        # Calculate padding to right-align the header within the adjusted width
         padding = width_adjusted - header.length
+
+        # Draw the header line, e.g., "| Messages (Turn 42):    |" (padded with spaces)
         puts "| #{header}#{' ' * padding}|"
 
-        messages = @message_log.get_recent(@height - (selection_mode ? 3 : 2))
+        # Determine how many messages to show: reduce height by 2 (for header and bottom border),
+        # or by 3 if in selection mode (to make room for options)
+        visible_message_count = @height - (selection_mode ? 3 : 2)
+
+        # Get the most recent messages from the log, limited to the visible count
+        messages = @message_log.get_recent(visible_message_count)
+
+        # For each message, draw a line with the message text
         messages.each do |msg|
-          text = "- #{msg.translated_text[0..width_adjusted - 3]}".ljust(width_adjusted)
+          # Format the message: prefix with "- " and truncate to fit within the width
+          # (subtract 3 to account for "- " and potential "...")
+          text = "- #{msg.translated_text[0..width_adjusted - 3]}"
+
+          # Pad the text to the adjusted width with spaces for consistent alignment
+          text = text.ljust(width_adjusted)
+
+          # Draw the message line, e.g., "| - You moved to (3, 5)  |"
           puts "| #{text}|"
         end
 
+        # If in selection mode, show a menu of options for the player to choose from
         if selection_mode
+          # Draw a separator line for the options section, e.g., "| Options:    |"
           puts "| Options:#{' ' * (width_adjusted - 8)}|"
+
+          # Check if there are any options to display
           if @message_log.options.empty?
+            # If no options, show a message indicating how to close the menu
             text = "No options available, press 'm' to close".ljust(width_adjusted)
             puts "| #{text}|"
           else
+            # For each option, draw a line with the option key and content
             @message_log.options.each do |opt|
+              # Format the option, e.g., "1) Attack Monster", truncated to fit
               text = "#{opt[:key]}) #{opt[:content][0..width_adjusted - 4]}".ljust(width_adjusted)
               puts "| #{text}|"
             end
+
+            # Always show a "Close Menu" option, e.g., "m) Close Menu"
             text = "m) Close Menu".ljust(width_adjusted)
             puts "| #{text}|"
           end
         end
 
+        # Draw the bottom border, matching the top: +------+
         puts "+#{'-' * width_adjusted}+"
       end
 
-      # Scroll the panel up
-      # @return [Integer] The new scroll offset
+      def cleanup
+        @message_log.remove_observer(self) if @message_log.respond_to?(:remove_observer)
+      end
+
+      # --- Interaction Methods ---
+      def update
+        # No-op: panel updates on next render (Observer pattern)
+      end
+
       def scroll_up
         # Increment offset to show older messages
         max_scroll = [@message_log.messages.size - @height, 0].max
         @scroll_offset = [(@scroll_offset + 1), max_scroll].min
       end
 
-      # Scroll the panel down
-      # @return [Integer] The new scroll offset
       def scroll_down
         # Decrement offset to show newer messages
         @scroll_offset = [(@scroll_offset - 1), 0].max
       end
 
+      # --- Private Implementation Details ---
       private
 
-      # Render a Message object
-      # @param renderer [Vanilla::Renderers::Renderer] The renderer to use
-      # @param message [Message] The message object to render
-      # @param y_pos [Integer] The y position to render at
       def render_message_object(renderer, message, y_pos)
-        # If the message is selectable, add an indicator
         x_offset = 0
-
         if message.selectable?
-          # Determine if this message is selected
-          is_selected = false
-          if @message_log.current_selection_index
-            selectable_messages = @message_log.get_selectable_messages
-            is_selected = selectable_messages[@message_log.current_selection_index] == message
-          end
-
-          # Show selection indicator (* or >)
+          is_selected = @message_log.current_selection_index &&
+                        @message_log.get_selectable_messages[@message_log.current_selection_index] == message
           indicator = is_selected ? ">" : "*"
           renderer.draw_character(y_pos, @x, indicator, :cyan)
           x_offset += 1
 
-          # If it has a shortcut key, show it
           if message.has_shortcut?
             shortcut_text = "#{message.shortcut_key})"
             shortcut_text.each_char.with_index do |char, char_idx|
@@ -117,165 +154,84 @@ module Vanilla
             x_offset += shortcut_text.length
           end
 
-          # Add a space after indicators
           x_offset += 1
         end
 
-        # Draw message text
         text = format_message_object(message, @width - x_offset)
         color = get_color_for_message(message)
-
         text.each_char.with_index do |char, char_idx|
           renderer.draw_character(y_pos, @x + char_idx + x_offset, char, color)
         end
       end
 
-      # Render a hash-based message
-      # @param renderer [Vanilla::Renderers::Renderer] The renderer to use
-      # @param message [Hash] The message hash to render
-      # @param y_pos [Integer] The y position to render at
       def render_hash_message(renderer, message, y_pos)
-        # Get formatted message text with prefix
         text = format_hash_message(message, @width)
-
-        # Get color based on importance and category
         color = get_color_for_hash_message(message)
-
-        # Draw each character
         text.each_char.with_index do |char, char_idx|
           renderer.draw_character(y_pos, @x + char_idx, char, color)
         end
       end
 
-      # Get color for a hash-based message
-      # @param message [Hash] The message hash
-      # @return [Symbol] Color to use
-      def get_color_for_hash_message(message)
-        # First check importance
-        importance = message[:importance] || :normal
-        category = message[:category] || :system
-
-        case importance
-        when :critical, :danger
-          :red
-        when :warning
-          :yellow
-        when :success
-          :green
-        else
-          # Then check category
-          case category
-          when :combat
-            :red
-          when :item
-            :green
-          when :movement
-            :cyan
-          when :exploration
-            :blue
-          else
-            :white
-          end
-        end
-      end
-
-      # Format a Message object for display, handling truncation
-      # @param message [Message] The message to format
-      # @param max_width [Integer] Maximum width for the message text
-      # @return [String] The formatted message text
-      def format_message_object(message, max_width)
-        text = message.translated_text.to_s
-
-        # Add a prefix based on message category/importance
-        prefix = case message.importance
-                 when :critical then "!! "
-                 when :warning then "* "
-                 when :success then "+ "
-                 else "> "
-                 end
-
-        # Add prefix and ensure message fits in panel
-        prefixed_text = prefix + text
-
-        # Truncate to fit panel width
-        prefixed_text.length > max_width ? prefixed_text[0...(max_width - 3)] + "..." : prefixed_text
-      end
-
-      # Format a hash-based message
-      # @param message [Hash] The message to format
-      # @param max_width [Integer] Maximum width for the message text
-      # @return [String] The formatted message text
-      def format_hash_message(message, max_width)
-        text = message[:text].to_s
-
-        # Add a prefix based on message category/importance
-        prefix = case message[:importance]
-                 when :critical, :danger then "!! "
-                 when :warning then "* "
-                 when :success then "+ "
-                 else "> "
-                 end
-
-        # Add prefix and ensure message fits in panel
-        prefixed_text = prefix + text
-
-        # Truncate to fit panel width
-        prefixed_text.length > max_width ? prefixed_text[0...(max_width - 3)] + "..." : prefixed_text
-      end
-
-      # Draw a separator line at the top of the message panel
-      # @param renderer [Vanilla::Renderers::Renderer] The renderer to use
       def draw_separator_line(renderer)
-        # Draw a clearly visible separator using special characters
         renderer.draw_character(@y, @x, "+")
-
-        # Draw a very visible line with alternating characters
         width.times do |i|
           char = (i % 2 == 0) ? "=" : "-"
           renderer.draw_character(@y, @x + i + 1, char)
         end
-
         renderer.draw_character(@y, @x + width + 1, "+")
       end
 
-      # Draw a message count indicator
-      # @param renderer [Vanilla::Renderers::Renderer] The renderer to use
-      # @param visible_count [Integer] The number of visible messages
       def draw_message_count(renderer, visible_count)
-        # Make count more obvious with brackets and stars
         count_text = "**[#{visible_count}/#{@message_log.messages.size}]**"
         count_text.each_char.with_index do |char, i|
           renderer.draw_character(@y, @x + width - count_text.length + i, char)
         end
       end
 
-      # Get appropriate color for a message based on category and importance
-      # @param message [Message] The message to color
-      # @return [Symbol] The color symbol to use
+      def format_message_object(message, max_width)
+        text = message.translated_text.to_s
+        prefix = case message.importance
+                 when :critical then "!! "
+                 when :warning then "* "
+                 when :success then "+ "
+                 else "> "
+                 end
+        prefixed_text = prefix + text
+        prefixed_text.length > max_width ? prefixed_text[0...(max_width - 3)] + "..." : prefixed_text
+      end
+
+      def format_hash_message(message, max_width)
+        text = message[:text].to_s
+        prefix = case message[:importance]
+                 when :critical, :danger then "!! "
+                 when :warning then "* "
+                 when :success then "+ "
+                 else "> "
+                 end
+        prefixed_text = prefix + text
+        prefixed_text.length > max_width ? prefixed_text[0...(max_width - 3)] + "..." : prefixed_text
+      end
+
       def get_color_for_message(message)
-        # First check importance for critical/warning messages
-        case message.importance
-        when :critical, :danger
-          :red
-        when :warning
-          :yellow
-        when :success
-          :green
-        else
-          # Then check category for normal importance messages
-          case message.category
-          when :combat
-            :red
-          when :item
-            :green
-          when :movement
-            :cyan
-          when :exploration
-            :blue
-          else
-            :white
-          end
-        end
+        # Check if the importance has a specific color
+        importance_color = IMPORTANCE_COLORS[message.importance]
+        return importance_color if importance_color
+
+        # Otherwise, use the category color, defaulting to :white if not found
+        CATEGORY_COLORS[message.category] || :white
+      end
+
+      def get_color_for_hash_message(hash_message)
+        # Extract importance and category, defaulting to :normal and :system
+        importance = hash_message[:importance] || :normal
+        category = hash_message[:category] || :system
+
+        # Check if the importance has a specific color
+        importance_color = IMPORTANCE_COLORS[importance]
+        return importance_color if importance_color
+
+        # Otherwise, use the category color, defaulting to :white if not found
+        CATEGORY_COLORS[category] || :white
       end
     end
   end
