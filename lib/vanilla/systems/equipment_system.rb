@@ -1,4 +1,5 @@
-# systems/equipment_system.rb
+# frozen_string_literal: true
+
 module Vanilla
   module Systems
     class EquipmentSystem < System

@@ -3,6 +3,8 @@
 # Main entry point for the inventory system
 # This file requires all individual inventory system components
 
+#  TODO: Reflect on this design.
+
 module Vanilla
   # Load component definitions
   require_relative 'components/inventory_component'
@@ -15,7 +17,7 @@ module Vanilla
   require_relative 'components/currency_component'
 
   # Load inventory subsystem files
-  require_relative 'inventory/item'
+  require_relative 'entities/item'
   require_relative 'inventory/item_factory'
   require_relative 'inventory/item_registry'
 
