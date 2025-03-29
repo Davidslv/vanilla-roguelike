@@ -1,4 +1,3 @@
-# lib/vanilla/systems/message_system.rb
 # frozen_string_literal: true
 
 require_relative 'system'
@@ -11,13 +10,12 @@ module Vanilla
     class MessageSystem < System
       MAX_MESSAGES = 100
 
+      # --- Initialization ---
       def initialize(world)
         super
         @message_queue = []
-
         @logger = Vanilla::Logger.instance
         @manager = Vanilla::Messages::MessageManager.new
-
         @world.subscribe(:entity_moved, self)
         @world.subscribe(:monster_spawned, self)
         @world.subscribe(:monster_despawned, self)
@@ -28,6 +26,7 @@ module Vanilla
         Vanilla::ServiceRegistry.register(:message_system, self)
       end
 
+      # --- Core Lifecycle Methods ---
       def update(_delta_time)
         process_message_queue
       end
@@ -36,6 +35,7 @@ module Vanilla
         @manager.render(renderer)
       end
 
+      # --- Interaction/State Methods ---
       def selection_mode?
         @manager.selection_mode
       end
@@ -56,29 +56,9 @@ module Vanilla
 
         @world.queue_command(option[:callback], {})
         @logger.info("[MessageSystem] Selected option #{key}")
-        # Don’t toggle off here—command decides
       end
 
-      def log_message(key, options = {})
-        @manager.log_translated(key, **options)
-      end
-
-      def log_success(key, metadata = {})
-        @manager.log_success(key, metadata)
-      end
-
-      def log_warning(key, metadata = {})
-        @manager.log_warning(key, metadata)
-      end
-
-      def log_critical(key, metadata = {})
-        @manager.log_critical(key, metadata)
-      end
-
-      def get_recent_messages(limit = 10)
-        @manager.get_recent_messages(limit)
-      end
-
+      # --- Event Handling ---
       def handle_event(event_type, data)
         case event_type
         when :entity_moved
@@ -109,12 +89,34 @@ module Vanilla
         end
       end
 
+      # --- Message Logging Helpers ---
+      def log_message(key, options = {})
+        @manager.log_translated(key, **options)
+      end
+
+      def log_success(key, metadata = {})
+        @manager.log_success(key, metadata)
+      end
+
+      def log_warning(key, metadata = {})
+        @manager.log_warning(key, metadata)
+      end
+
+      def log_critical(key, metadata = {})
+        @manager.log_critical(key, metadata)
+      end
+
+      def get_recent_messages(limit = 10)
+        @manager.get_recent_messages(limit)
+      end
+
       def add_message(key, metadata: {}, importance: :normal, options: [])
         message = { key: key, metadata: metadata, importance: importance, options: options, timestamp: Time.now }
         @message_queue << message
         trim_message_queue if @message_queue.size > MAX_MESSAGES
       end
 
+      # --- Private Implementation Details ---
       private
 
       def process_message_queue
