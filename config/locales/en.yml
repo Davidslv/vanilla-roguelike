@@ -14,16 +14,15 @@ en:
     spawned: "A monster appears!"
     died: "The monster is no more."
 
-  combat:
-    collision: "You bump into a monster!"
-
   level:
     stairs_found: "You find stairs leading deeper into the dungeon."
     descended: "You descend to a new level!"
 
   item:
     description: "A useful item."
+
   combat:
+    collision: "You bump into a monster!"
     player_hit: "You strike the %{enemy} for %{damage} damage!"
     player_miss: "You swing at the %{enemy} but miss!"
     enemy_hit: "The %{enemy} hits you for %{damage} damage!"
