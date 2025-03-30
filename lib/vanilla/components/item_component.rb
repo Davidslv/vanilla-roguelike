@@ -3,7 +3,7 @@
 module Vanilla
   module Components
     # Component for items that can be picked up, used, and stored in inventory
-    class ItemComponent < Component
+    class ItemComponent < Components::Component
       attr_reader :name, :description, :item_type, :weight, :value
       attr_accessor :stack_size
 

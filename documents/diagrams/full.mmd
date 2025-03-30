@@ -49,24 +49,24 @@ classDiagram
       -event_queue
       -command_queue
       +initialize()
+      +update()
       +quit?()
       +level_changed?()
       +add_entity()
       +remove_entity()
-      +get_entity_by_name()
       +get_entity()
+      +get_entity_by_name()
       +find_entity_by_tag()
       +query_entities()
       +add_system()
-      +update()
       +queue_command()
       +emit_event()
       +subscribe()
       +unsubscribe()
       +set_level()
       +grid()
-      +process_events()
       +process_commands()
+      +process_events()
       +handle_command()
       +add_to_inventory()
     }
@@ -341,12 +341,12 @@ classDiagram
       +toggle_selection_mode()
       +valid_menu_option?()
       +handle_input()
+      +handle_event()
       +log_message()
       +log_success()
       +log_warning()
       +log_critical()
       +get_recent_messages()
-      +handle_event()
       +add_message()
       +process_message_queue()
       +trim_message_queue()
@@ -543,6 +543,7 @@ classDiagram
       +close()
     }
     class FileEventStore {
+      -logger
       -directory
       -storage_path
       -current_session
@@ -563,6 +564,7 @@ classDiagram
       -turn
       -world
       -display
+      -event_manager
       -player
       -maze_system
       +initialize()
@@ -838,19 +840,19 @@ classDiagram
       -message_log
       -scroll_offset
       +initialize()
-      +update()
-      +cleanup()
       +render()
+      +cleanup()
+      +update()
       +scroll_up()
       +scroll_down()
       +render_message_object()
       +render_hash_message()
-      +get_color_for_hash_message()
-      +format_message_object()
-      +format_hash_message()
       +draw_separator_line()
       +draw_message_count()
+      +format_message_object()
+      +format_hash_message()
       +get_color_for_message()
+      +get_color_for_hash_message()
     }
     class Renderer {
       +clear()
@@ -860,10 +862,11 @@ classDiagram
       +present()
     }
     class TerminalRenderer {
-      +clear()
       +draw_grid()
+      +clear()
       +present()
     }
+    Renderer <|-- TerminalRenderer
     class TileType {
     }
     class RenderSystemFactory {
@@ -979,6 +982,7 @@ classDiagram
   EntityFactory --> StairsComponent : uses
   EventManager --> Event : uses
   FileEventStore --> Event : uses
+  Game --> EventManager : uses
   Game --> EntityFactory : uses
   InputHandler --> MoveCommand : uses
   InputHandler --> ToggleMenuModeCommand : uses

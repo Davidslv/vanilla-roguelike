@@ -25,5 +25,9 @@ module Vanilla
     require_relative 'systems/render_system'
     require_relative 'systems/render_system_factory'
     require_relative 'systems/maze_system'
+    require_relative 'systems/item_pickup_system'
+    require_relative 'systems/item_drop_system'
+    require_relative 'systems/item_use_system'
+    require_relative 'systems/equipment_system'
   end
 end
