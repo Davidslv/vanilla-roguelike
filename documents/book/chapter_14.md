@@ -1,10 +1,10 @@
 # Chapter 14: User Interface Improvements
 
-Welcome back, dungeon crafters! Your roguelike is a thrilling maze of exploration and danger, but the player’s experience could use some polish. Right now, feedback is scattered across terminal output, and key info like health or inventory is hard to track. In this chapter, we’ll spruce up the interface with a `MessageSystem` to deliver game feedback (like “You picked up a potion”), an `InventoryRenderSystem` for a proper inventory screen, and a basic HUD to show health and level number. We’ll keep it terminal-friendly, leveraging our ECS architecture. By the end, your players will interact with a cleaner, more engaging UI—making every move feel alive. Let’s give your game a shiny new face!
+Welcome back, dungeon crafters! Your roguelike is a thrilling maze of exploration and danger, but the player's experience could use some polish. Right now, feedback is scattered across terminal output, and key info like health or inventory is hard to track. In this chapter, we'll spruce up the interface with a `MessageSystem` to deliver game feedback (like "You picked up a potion"), an `InventoryRenderSystem` for a proper inventory screen, and a basic HUD to show health and level number. We'll also ensure the game immediately responds when the player reaches the stairs, advancing to the next level without delay. By the end, your players will interact with a cleaner, more engaging UI—making every move feel alive. Let's give your game a shiny new face!
 
 ## Creating a MessageSystem for Game Feedback
 
-The `MessageSystem` will collect and display feedback messages—like “You hit the Goblin” or “You picked up a potion”—in a consistent spot. It’ll listen to events and store messages in a queue, rendering them below the game grid.
+The `MessageSystem` will collect and display feedback messages—like "You hit the Goblin" or "You picked up a potion"—in a consistent spot. It'll listen to events and store messages in a queue, rendering them below the game grid.
 
 Create `lib/systems/message_system.rb`:
 
@@ -32,6 +32,9 @@ module Systems
           player = @event_manager.instance_variable_get(:@world).entities[player_id]
           pos = player.get_component(Components::Position)
           @messages << "Moved to (#{pos.x}, #{pos.y})" if player.has_component?(Components::Input)
+        when :level_completed
+          level_num = event.data[:level]
+          @messages << "You completed level #{level_num}!"
         when :player_died
           @messages << "You have been defeated!"
         end
@@ -49,14 +52,14 @@ end
 
 ### How It Works
 
-- **Event Listener**: Grabs events from `EventManager.instance` and turns them into readable messages.
+- **Event Listener**: Grabs events from the EventManager and turns them into readable messages.
 - **Queue**: Stores up to `@max_messages` (5) entries, dropping the oldest with `shift`.
 - **Render**: Prints messages below the grid—called later in the game loop.
-- **Accessing World**: Uses `@event_manager.instance_variable_get(:@world)` to fetch entities (a temporary hack—ideally, pass `world` explicitly).
+- **Level Completion**: Adds a message when the player completes a level.
 
 ## Rendering an Inventory Screen with InventoryRenderSystem
 
-The inventory needs its own screen, triggered by a key (e.g., `i`), to list items clearly. The `InventoryRenderSystem` will handle this, pausing the game to show the player’s stash.
+The inventory needs its own screen, triggered by a key (e.g., `i`), to list items clearly. The `InventoryRenderSystem` will handle this, pausing the game to show the player's stash.
 
 Create `lib/systems/inventory_render_system.rb`:
 
@@ -161,7 +164,7 @@ module Systems
     def render
       player = @world.entities.values.find { |e| e.has_component?(Components::Health) }
       health = player&.get_component(Components::Health)
-      level = @world.instance_variable_get(:@current_level)
+      level = @world.current_level
       puts "Health: #{health ? "#{health.current}/#{health.max}" : "N/A"} | Level: #{level}"
       puts "------------------------------------"
     end
@@ -171,9 +174,97 @@ end
 
 ### How It Works
 
-- **Health**: Fetches the player’s `HealthComponent` and shows `current/max`.
-- **Level**: Grabs `@current_level` from `World` (accessed via instance variable for simplicity).
+- **Health**: Fetches the player's `HealthComponent` and shows `current/max`.
+- **Level**: Uses the `current_level` attribute from `World` for display.
 - **Render**: Prints above the grid, called in the game loop.
+
+## Improving Level Completion Feedback
+
+Let's update how the game handles level completion to provide immediate feedback to the player. We'll modify the `World` class to check for level completion right after processing movement:
+
+```ruby
+# lib/world.rb (updated run method)
+def run
+  setup_level
+  Logger.info("Game started")
+
+  while @running
+    # Handle input first - this is critical for responsive gameplay
+    handle_input
+
+    # Process all systems in order
+    @systems.each do |system|
+      Logger.debug("Processing system: #{system.class.name}")
+      case system
+      when Systems::MazeSystem
+        system.process(@entities.values)
+      when Systems::InputSystem
+        system.process(@entities.values)
+      when Systems::MovementSystem
+        system.process(@entities.values, @width, @height)
+        # Check for level completion immediately after movement
+        check_level_completion
+      when Systems::RenderSystem
+        system.process(@entities.values)
+      when Systems::HudSystem, Systems::MessageSystem, Systems::InventoryRenderSystem
+        system.process(@entities.values)
+      end
+    end
+
+    # Render UI components if not in inventory
+    unless @systems.any? { |s| s.is_a?(Systems::InventoryRenderSystem) && s.showing? }
+      @systems.each { |s| s.render if s.respond_to?(:render) && !s.is_a?(Systems::InventoryRenderSystem) }
+    end
+
+    # Always render inventory if showing
+    @systems.each { |s| s.render if s.respond_to?(:render) && s.is_a?(Systems::InventoryRenderSystem) }
+
+    # Clear events after the turn
+    @event_manager.clear
+  end
+
+  Logger.info("Game ended")
+  puts "Goodbye!"
+end
+```
+
+We also need to update the `check_level_completion` method to provide visual feedback when a level is completed:
+
+```ruby
+# lib/world.rb (updated check_level_completion method)
+def check_level_completion
+  player = @entities.values.find { |e| e.has_component?(Components::Input) }
+  stairs = @entities.values.find { |e| e.get_component(Components::Render)&.character == "%" }
+
+  return unless player && stairs
+
+  player_pos = player.get_component(Components::Position)
+  stairs_pos = stairs.get_component(Components::Position)
+
+  return unless player_pos.x == stairs_pos.x && player_pos.y == stairs_pos.y
+
+  # Visual feedback for level completion
+  system("clear") || system("cls")
+  puts "\n\n"
+  puts "  🎉 Level #{@current_level} completed! 🎉"
+  puts "  Loading level #{@current_level + 1}..."
+  puts "\n\n"
+  sleep(1) # Brief pause for effect
+
+  # Queue level completion event
+  @event_manager.queue(Event.new(:level_completed, { level: @current_level }))
+
+  Logger.info("Level #{@current_level} completed")
+  @current_level += 1
+  setup_level
+end
+```
+
+These changes ensure that:
+1. Level completion is checked immediately after movement is processed
+2. The player gets immediate visual feedback when completing a level
+3. A message is added to the MessageSystem for level completion
+4. The game advances to the next level automatically
 
 ## Integrating the UI Systems
 
@@ -207,7 +298,7 @@ require_relative "lib/logger"
 require_relative "lib/event"
 require_relative "lib/world"
 
-world = World.new(width: 10, height: 5)
+world = World.new(width: 20, height: 10)
 
 player = world.create_entity
 player.add_component(Components::Position.new(1, 1))
@@ -217,6 +308,7 @@ player.add_component(Components::Input.new)
 player.add_component(Components::Inventory.new)
 player.add_component(Components::Health.new(50))
 
+# Add systems (order matters)
 world.add_system(Systems::MazeSystem.new(world))
 world.add_system(Systems::InputSystem.new(world.event_manager))
 world.add_system(Systems::MovementSystem.new(world))
@@ -227,44 +319,27 @@ world.add_system(Systems::BattleSystem.new(world, world.event_manager))
 world.add_system(Systems::MessageSystem.new(world.event_manager))
 world.add_system(Systems::InventoryRenderSystem.new(world, world.event_manager))
 world.add_system(Systems::HudSystem.new(world))
-world.add_system(Systems::RenderSystem.new(world))
+world.add_system(Systems::RenderSystem.new(20, 10))
 
+# Start the game
 world.run
 ```
 
-Update `World#run` to render UI elements:
-
-```ruby
-# lib/world.rb (snippet)
-  def run
-    while @running
-      @systems.each { |system| system.process(@entities.values) }
-      unless @systems.any? { |s| s.is_a?(Systems::InventoryRenderSystem) && s.showing? }
-        @systems.each { |s| s.render if s.respond_to?(:render) && s.is_a?(Systems::HudSystem) }
-        @systems.each { |s| s.render if s.respond_to?(:render) && s.is_a?(Systems::RenderSystem) }
-        @systems.each { |s| s.render if s.respond_to?(:render) && s.is_a?(Systems::MessageSystem) }
-      end
-      @systems.each { |s| s.render if s.respond_to?(:render) && s.is_a?(Systems::InventoryRenderSystem) }
-      handle_input
-      handle_level_change
-      handle_player_death
-      @event_manager.clear
-    end
-    @event_manager.close
-    puts "Goodbye!"
-  end
-```
-
-- **Order**: HUD, grid, messages render unless inventory is showing, then only inventory renders.
-
 ## Outcome
 
-You’ve:
-- Created a `MessageSystem` for feedback like “You picked up a potion”.
-- Built an `InventoryRenderSystem` for a toggleable inventory screen (`i` key).
-- Added a `HudSystem` showing health and level number.
+By integrating these UI improvements, your roguelike game now offers:
 
-Your game now has a polished UI! Run `ruby game.rb`, and see your health and level above the grid, messages below it, and press `i` for a clean inventory view. Move around, pick up items, and fight monsters—all with clear feedback. Next, maybe a win condition or combat tweaks? Enjoy your sleek interface and keep exploring!
+1. A `MessageSystem` that displays game events like picking up items and completing levels
+2. An `InventoryRenderSystem` for a clean, dedicated inventory screen when 'i' is pressed
+3. A `HudSystem` showing health and level information at all times
+4. Immediate level progression when the player reaches the stairs
+5. Visual feedback when completing a level
+
+These enhancements create a more polished, responsive experience for the player. The UI now clearly communicates what's happening in the game, making the dungeon crawling experience more engaging and intuitive.
+
+With proper level completion detection integrated directly after movement processing, players can now smoothly progress through the game without any extra key presses or delays. The combination of visual feedback, informative messages, and automatic level progression creates a seamless gameplay flow.
+
+In the next chapter, we'll continue enhancing the player experience by adding sound effects and more advanced gameplay mechanics!
 
 ---
 

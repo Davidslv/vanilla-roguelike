@@ -1,216 +1,368 @@
 # Chapter 13: Logging and Debugging
 
-Welcome back, game developers! By now, your roguelike is a bustling dungeon with twisting mazes, treasures to snatch, and monsters lurking in the shadows. But as your game grows, so does the chance for things to go awry. Did the player just clip through a wall? Why isn’t that potion showing up? In this chapter, we’re going to arm you with a powerful toolset to tackle these mysteries: a `Logger` singleton to record game events and a handy `log_monitor.rb` script to watch them unfold live. We’ll store logs in a `logs/` folder with timestamped filenames, preserving every session for later sleuthing. We won’t fill your code with log statements—that’s up to you to decide where they’re most useful. By the end, you’ll be ready to debug like a pro, turning bugs into victories. Let’s get logging!
+Welcome back, game developers! By now, your roguelike is a bustling dungeon with twisting mazes, treasures to snatch, and monsters lurking in the shadows. But as your game grows, so does the chance for things to go awry. Did the player just clip through a wall? Why isn't that potion showing up? In this chapter, we're going to arm you with a powerful toolset to tackle these mysteries: a robust `Logger` class to record game events and facilitate debugging. We'll implement proper file-based logging with timestamped files for each game session, making it easy to track what's happening in your game and diagnose issues effectively.
 
-## Implementing a Simple Logger Singleton for Game Events
+## Implementing a Robust Logger for Game Events
 
-First up, we need a way to capture what’s happening in your game. Enter the `Logger` singleton—a single, shared instance that writes messages to both the terminal and a file. It’ll live in `lib/logger.rb` and save logs in a `logs/` folder with filenames like `game_2025-04-09_14-30-00.log`. Each time you start the game, you’ll get a fresh log file, timestamped for posterity.
+First up, we need a way to capture and record what's happening in your game. Our `Logger` class will write messages to a file with timestamps, saving each session in its own log file. This approach ensures you can always go back and analyze what happened during a particular play session.
 
-Here’s how to set it up:
+Here's how to set up your logger:
 
 ```ruby
 # lib/logger.rb
-require "fileutils"
+require 'fileutils'
 
 class Logger
-  LEVELS = { debug: 0, info: 1, warn: 2, error: 3 }.freeze
+  class << self
+    def initialize
+      # Create logs directory if it doesn't exist
+      FileUtils.mkdir_p("logs")
 
-  # Singleton setup: only one Logger exists
-  private_class_method :new
-  @@instance = nil
+      # Create a new log file with timestamp
+      timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
+      @log_file = File.open("logs/game_#{timestamp}.log", "w")
+      @log_file.sync = true  # Ensure immediate writes
 
-  def self.instance
-    @@instance ||= new
-  end
+      info("Logging started")
+    end
 
-  def initialize
-    # Create logs directory if it doesn’t exist
-    logs_dir = "logs"
-    FileUtils.mkdir_p(logs_dir) unless Dir.exist?(logs_dir)
+    def debug(message)
+      log("DEBUG", message)
+    end
 
-    # Generate a timestamped filename
-    timestamp = Time.now.strftime("%Y-%m-%d_%H-%M-%S")
-    log_file = File.join(logs_dir, "game_#{timestamp}.log")
-    @file = File.open(log_file, "a")  # Append mode
-    @level = LEVELS[:info]  # Default to info level
-  end
+    def info(message)
+      log("INFO", message)
+    end
 
-  def debug(message)
-    log(:debug, message)
-  end
+    def error(message)
+      log("ERROR", message)
+    end
 
-  def info(message)
-    log(:info, message)
-  end
+    private
 
-  def warn(message)
-    log(:warn, message)
-  end
+    def log(level, message)
+      timestamp = Time.now.strftime("%Y-%m-%d %H:%M:%S.%L")
+      log_entry = "[#{timestamp}] [#{level}] #{message}\n"
 
-  def error(message)
-    log(:error, message)
-  end
+      # Write to file
+      @log_file ||= File.open("logs/game_#{Time.now.strftime("%Y%m%d_%H%M%S")}.log", "w")
+      @log_file.write(log_entry)
 
-  def set_level(level)
-    @level = LEVELS[level] || LEVELS[:info]
-  end
-
-  def close
-    @file.close
-  end
-
-  private
-
-  def log(level, message)
-    return if LEVELS[level] < @level
-    timestamp = Time.now.strftime("%Y-%m-%d %H:%M:%S")
-    formatted = "[#{timestamp}] [#{level.upcase}] #{message}"
-    puts formatted  # Show in terminal
-    @file.puts formatted  # Write to file
-    @file.flush  # Save it right away
+      # Also print to console for immediate feedback during development
+      # Comment this line out for production
+      # print log_entry
+    end
   end
 end
+
+# Initialize the logger when the file is required
+Logger.initialize
 ```
 
 ### How It Works
 
-- **Singleton Magic**: The `private_class_method :new` and `@@instance` trick means there’s only one `Logger`. Call `Logger.instance` anywhere to use it—no passing objects around!
-- **Timestamped Logs**: Each game run creates a new file like `logs/game_2025-04-09_14-30-00.log`. The `Time.now.strftime` format ensures uniqueness, and `File.join` keeps it cross-platform.
-- **Log Levels**: Choose from `debug` (chatty details), `info` (key events), `warn` (heads-up issues), or `error` (big problems). Set the level with `Logger.instance.set_level(:debug)` to see everything, or `:warn` to quiet it down.
-- **File and Terminal**: Logs hit both the screen (via `puts`) and the file (via `@file.puts`), with `flush` ensuring they’re saved instantly—no lost data if the game crashes.
-- **Cleanup**: `close` shuts the file when you’re done, keeping things tidy.
+- **Class-level Implementation**: The Logger is implemented as class methods, making it easy to call from anywhere in your code without needing to pass around an instance.
+- **Automatic Directory Creation**: The logger automatically creates a `logs` directory if it doesn't exist.
+- **Timestamped Log Files**: Each game run creates a new log file with a format like `logs/game_20250409_143000.log`, ensuring each session has its own separate log.
+- **Immediate Writes**: The `sync = true` flag ensures logs are written immediately, so you don't lose data if the game crashes.
+- **Millisecond Precision**: The timestamps include milliseconds, which is helpful for identifying the exact sequence of rapidly occurring events.
+- **Development Feedback**: You can uncomment the `print` line during development to see logs in real-time in the console.
 
-To hook it into your game, add it to `game.rb`—it’s optional in `World`, but here’s a taste:
+## Adding Logger to .gitignore
 
-```ruby
-# game.rb (partial)
-require_relative "lib/logger"
-# ... other requires ...
+Since log files can be numerous and aren't part of your core codebase, it's good practice to exclude them from version control. Add these lines to your `.gitignore` file:
 
-world = World.new(width: 10, height: 5)
-Logger.instance.info("Game started!")  # Quick test log
-# ... player setup and systems ...
-world.run
-Logger.instance.close  # Clean up
+```
+# .gitignore
+# Logs
+/logs/
+*.log
 ```
 
-Run your game, and you’ll see a `logs/` folder appear with a new log file each time!
+This ensures your repository stays clean and focused on code, not debug output.
 
-## Adding a Log Monitoring Script
+## Integrating the Logger with Your Game Systems
 
-Logging to a file is great for history, but what if you want to watch events as they happen without crowding your game’s terminal? Let’s create `log_monitor.rb` to tail the latest log file in real time, like a live debug feed.
-
-Here’s the script:
+Now let's update our game systems to use the logger. Here's how to integrate it with the `World` class:
 
 ```ruby
-# log_monitor.rb
-require "fileutils"
+# lib/world.rb (partial)
+require_relative "logger"
 
-LOGS_DIR = "logs"
+class World
+  attr_reader :entities, :systems, :event_manager, :width, :height, :current_level
 
-def latest_log_file
-  return nil unless Dir.exist?(LOGS_DIR)
-  Dir.entries(LOGS_DIR)
-     .select { |f| f.start_with?("game_") && f.end_with?(".log") }
-     .sort
-     .last
-end
-
-def tail_file(file_path)
-  unless file_path && File.exist?(file_path)
-    puts "No log file found in #{LOGS_DIR}. Waiting for game to start..."
-    sleep 1 until (file_path = latest_log_file) && File.exist?(file_path)
+  def initialize(width: 10, height: 5)
+    @entities = {}
+    @systems = []
+    @next_id = 0
+    @width = width
+    @height = height
+    @running = true
+    @event_manager = EventManager.new
+    @current_level = 1
+    @keyboard = KeyboardHandler.new
+    Logger.info("World initialized: width=#{width}, height=#{height}")
   end
 
-  puts "Monitoring #{file_path}. Press Ctrl+C to stop."
-  File.open(file_path, "r") do |file|
-    file.seek(0, IO::SEEK_END)  # Jump to the end
-    loop do
-      line = file.gets
-      if line
-        puts line.chomp  # Print new lines
-      else
-        sleep 0.1  # Chill if nothing’s new
+  def create_entity
+    entity = Entity.new(@next_id)
+    @entities[@next_id] = entity
+    @next_id += 1
+    Logger.debug("Entity created: id=#{entity.id}")
+    entity
+  end
+
+  def add_system(system)
+    @systems << system
+    Logger.debug("System added: #{system.class.name}")
+    self
+  end
+
+  def run
+    setup_level
+    Logger.info("Game started")
+
+    while @running
+      # Handle input first - this is critical for responsive gameplay
+      handle_input
+
+      # Process all systems in order
+      @systems.each do |system|
+        Logger.debug("Processing system: #{system.class.name}")
+        case system
+        when Systems::MazeSystem
+          system.process(@entities.values)
+        when Systems::InputSystem
+          system.process(@entities.values)
+        when Systems::MovementSystem
+          system.process(@entities.values, @width, @height)
+          # Check for level completion immediately after movement
+          check_level_completion
+        when Systems::RenderSystem
+          system.process(@entities.values)
+        end
+      end
+
+      # Clear events after the turn
+      @event_manager.clear
+    end
+
+    Logger.info("Game ended")
+    puts "Goodbye!"
+  end
+
+  # ... rest of the class ...
+end
+```
+
+### Logging Movement in the MovementSystem
+
+Here's how you can add logging to your `MovementSystem`:
+
+```ruby
+# lib/systems/movement_system.rb (partial)
+require_relative "../logger"
+
+module Systems
+  class MovementSystem
+    def initialize(world)
+      @world = world # Access to all entities for collision checks
+    end
+
+    def process(entities, grid_width, grid_height)
+      Logger.debug("MovementSystem processing #{entities.size} entities")
+
+      entities.each do |entity|
+        next unless entity.has_component?(Components::Position) &&
+                    entity.has_component?(Components::Movement)
+
+        pos = entity.get_component(Components::Position)
+        mov = entity.get_component(Components::Movement)
+
+        # Skip if no movement
+        if mov.dx == 0 && mov.dy == 0
+          Logger.debug("No movement for entity #{entity.id}")
+          next
+        end
+
+        Logger.debug("Processing movement for entity #{entity.id}: dx=#{mov.dx}, dy=#{mov.dy}")
+        Logger.debug("Current position: x=#{pos.x}, y=#{pos.y}")
+
+        # Calculate proposed new position
+        new_x = pos.x + mov.dx
+        new_y = pos.y + mov.dy
+        Logger.debug("Proposed new position: x=#{new_x}, y=#{new_y}")
+
+        # Check grid boundaries
+        unless new_x.between?(0, grid_width - 1) && new_y.between?(0, grid_height - 1)
+          Logger.debug("Out of bounds: x=#{new_x}, y=#{new_y}, width=#{grid_width}, height=#{grid_height}")
+          mov.dx = 0
+          mov.dy = 0
+          next
+        end
+
+        # Check for wall collision
+        if wall_at?(new_x, new_y)
+          Logger.debug("Wall collision at x=#{new_x}, y=#{new_y}")
+          # Reset movement if blocked
+          mov.dx = 0
+          mov.dy = 0
+          next
+        end
+
+        # If clear, update position
+        pos.x = new_x
+        pos.y = new_y
+        Logger.debug("Position updated: x=#{pos.x}, y=#{pos.y}")
+
+        # Reset movement after applying
+        mov.dx = 0
+        mov.dy = 0
       end
     end
+
+    # ... rest of the class ...
   end
-rescue Interrupt
-  puts "\nStopped monitoring logs."
-end
-
-if __FILE__ == $0
-  tail_file(latest_log_file)
 end
 ```
 
-### How It Works
+### Logging Input Handling
 
-- **Finding the Latest Log**: `latest_log_file` scans `logs/` for files matching `game_*.log`, sorts them (timestamps make this chronological), and picks the last one—your current session.
-- **Tailing**: Opens the latest file, jumps to the end, and waits for new lines with `gets`. If nothing’s there, it naps for 0.1 seconds to avoid hogging your CPU.
-- **Waiting Game**: If no log exists yet (game hasn’t started), it waits patiently until one appears.
-- **Exit Gracefully**: Hit Ctrl+C, and it stops cleanly with a farewell message.
-
-To use it, open a second terminal, navigate to your project folder, and run:
-
-```bash
-ruby log_monitor.rb
-```
-
-Then start your game in the first terminal (`ruby game.rb`). Watch the monitor light up with logs as you play!
-
-## Using Logs to Trace System Interactions
-
-The `Logger` is ready, but where should you use it? That’s your call! We’re not hardcoding logs into every system—this is your debugging playground. Here’s how you can sprinkle logs across your ECS to track what’s happening:
-
-- **Movement**: Drop `Logger.instance.debug("Player moved to (#{pos.x}, #{pos.y})")` in `MovementSystem` to see every step.
-- **Item Pickups**: Add `Logger.instance.info("Picked up #{item.name}")` in `ItemInteractionSystem` to confirm loot grabs.
-- **Combat**: Use `Logger.instance.warn("Player health low: #{health.current}")` in `BattleSystem` to flag danger zones.
-
-### Try It Out
-
-Here’s a quick example you might add to `MovementSystem`—but it’s not in the default code:
+Add logging to the input handling to track key presses:
 
 ```ruby
-# Example (not in codebase)
-def process(entities, grid_width, grid_height)
-  entities.each do |entity|
-    if entity.has_component?(Components::Position)
-      pos = entity.get_component(Components::Position)
-      Logger.instance.debug("Entity #{entity.id} at (#{pos.x}, #{pos.y})")
+# lib/systems/input_system.rb (partial)
+require_relative "../event"
+require_relative "../logger"
+
+module Systems
+  class InputSystem
+    def initialize(event_manager)
+      @event_manager = event_manager
+    end
+
+    def process(entities)
+      @event_manager.process do |event|
+        next unless event.type == :key_pressed
+
+        key = event.data[:key]
+        Logger.debug("Key pressed: #{key}")
+
+        player = entities.find { |e| e.has_component?(Components::Input) }
+        if player
+          Logger.debug("Player found, processing movement")
+          case key
+          when "w" then issue_move_command(player, 0, -1)   # Up
+          when "s" then issue_move_command(player, 0, 1)    # Down
+          when "a" then issue_move_command(player, -1, 0)   # Left
+          when "d" then issue_move_command(player, 1, 0)    # Right
+          end
+        else
+          Logger.error("Player not found!")
+        end
+      end
+    end
+
+    private
+
+    def issue_move_command(entity, dx, dy)
+      return unless entity.has_component?(Components::Movement)
+
+      movement = entity.get_component(Components::Movement)
+      movement.dx = dx
+      movement.dy = dy
+      Logger.debug("Movement command issued: dx=#{dx}, dy=#{dy}")
     end
   end
 end
 ```
 
-- **Flexibility**: Start with `debug` for nitty-gritty details, bump to `info` for milestones, or save `error` for crashes.
-- **Control**: Crank up verbosity with `Logger.instance.set_level(:debug)` in `game.rb` before `world.run`, or dial it back with `:info`.
+## Handling Input and Critical Game Loop Order
 
-Your log file might look like this after a short session:
+One of the most important lessons from our game development is the critical importance of the game loop order. The logger helps us see and verify that the input is processed before systems are run. This ensures responsive gameplay, especially in turn-based games.
+
+Here's the key part in our `World` class:
+
+```ruby
+def run
+  setup_level
+  Logger.info("Game started")
+
+  while @running
+    # Handle input first - this is critical for responsive gameplay
+    handle_input
+
+    # Process all systems in order
+    @systems.each do |system|
+      # ... system processing ...
+    end
+
+    # Clear events after the turn
+    @event_manager.clear
+  end
+
+  Logger.info("Game ended")
+  puts "Goodbye!"
+end
+```
+
+The logger provides visual confirmation that events are flowing through the game in the correct order:
 
 ```
-[2025-04-09 14:30:00] [INFO] Game started!
-[2025-04-09 14:30:02] [DEBUG] Player moved to (2, 1)
-[2025-04-09 14:30:03] [INFO] Picked up Gold Coin
-[2025-04-09 14:30:05] [INFO] Game ended
+[2025-04-09 14:30:45.123] [DEBUG] Waiting for input
+[2025-04-09 14:30:46.234] [DEBUG] Input received: w
+[2025-04-09 14:30:46.235] [DEBUG] Queueing key_pressed event: w
+[2025-04-09 14:30:46.236] [DEBUG] Processing system: Systems::InputSystem
+[2025-04-09 14:30:46.237] [DEBUG] Key pressed: w
+[2025-04-09 14:30:46.238] [DEBUG] Player found, processing movement
+[2025-04-09 14:30:46.239] [DEBUG] Movement command issued: dx=0, dy=-1
 ```
 
-Check `logs/` after playing—you’ll have a permanent record to dissect later!
+## Analyzing Game Logs
+
+After playing your game, you'll have a set of log files in the `logs` directory. Each file contains a detailed record of a game session. Here's how to get the most out of them:
+
+1. **Find the Right Log**: Logs are named with timestamps, so you can identify the session you want to analyze.
+2. **Look for Patterns**: Search for repeated errors or warnings that might indicate a systematic issue.
+3. **Track Entity Lifecycle**: Follow how entities are created, modified, and removed throughout the game.
+4. **Examine Movement**: Look at how the player and other entities move around the grid.
+5. **Verify System Processing**: Ensure all systems are being processed in the correct order.
+
+For example, if the player isn't moving as expected, you might find log lines like:
+
+```
+[2025-04-09 14:35:12.456] [DEBUG] Key pressed: w
+[2025-04-09 14:35:12.457] [DEBUG] Player found, processing movement
+[2025-04-09 14:35:12.458] [DEBUG] Movement command issued: dx=0, dy=-1
+[2025-04-09 14:35:12.459] [DEBUG] Processing movement for entity 0: dx=0, dy=-1
+[2025-04-09 14:35:12.460] [DEBUG] Current position: x=5, y=5
+[2025-04-09 14:35:12.461] [DEBUG] Proposed new position: x=5, y=4
+[2025-04-09 14:35:12.462] [DEBUG] Wall collision at x=5, y=4
+```
+
+This tells you the player tried to move up but encountered a wall - exactly the kind of insight that helps solve gameplay issues!
 
 ## Outcome
 
-In this chapter, you’ve:
-- Built a `Logger` singleton that writes timestamped logs to `logs/` (e.g., `game_2025-04-09_14-30-00.log`).
-- Created `log_monitor.rb` to watch the latest log live in a separate terminal.
-- Learned how to trace system interactions by adding `Logger.instance` calls where you need them.
+In this chapter, you've:
+- Implemented a robust Logger class that writes to timestamped files
+- Added logging throughout your game systems to track events
+- Set up your gitignore to exclude log files from version control
+- Learned how to analyze logs to diagnose gameplay issues
+- Reinforced the importance of correct game loop order
 
-You’re now equipped to debug like a detective! Drop `Logger.instance.debug` or `info` into your systems to see what’s ticking—or misfiring. Run your game and the monitor side by side, and keep every session’s story in `logs/` for future reference. If the player’s stuck or an enemy’s missing, your logs will spill the beans. Up next, maybe a win condition or a slicker UI? Add some logs, fire up `log_monitor.rb`, and take control of your game’s secrets!
+With this logging system in place, you now have a powerful tool for understanding and debugging your roguelike game. The detailed log files provide a window into your game's inner workings, making it easier to identify and fix issues.
+
+In the next chapter, we'll build on this foundation to enhance the user interface and player experience!
 
 ---
 
 ### Notes for Readers
 
-- **Where to Log**: Start small—log player movement or level changes. As bugs pop up, add more where you’re stumped.
-- **File Growth**: Each run gets its own file, so your `logs/` folder will grow. Clean it out manually if it gets crowded—log rotation’s a future adventure!
-- **Real-Time Power**: The monitor script is your live window—perfect for catching glitches as they happen.
+- **Strategic Logging**: Don't just log everything - think about what information would be most useful when debugging.
+- **Performance Consideration**: In a production game, you might want to disable some of the more verbose debug logs to improve performance.
+- **Log Rotation**: For a long-running game, consider implementing log rotation to prevent files from getting too large.
+- **Game Loop Order**: Remember that the order of operations in the game loop is critical - always handle input first!
 
-This keeps the chapter focused on the tools, leaving the fun of applying them to the readers.
+This logging system is designed to be a practical tool that helps you understand and improve your game, not just a theoretical exercise.
