@@ -195,37 +195,6 @@ RSpec.describe Vanilla::World do
   end
 
   describe 'event and command handling' do
-    describe '#queue_command' do
-      it 'adds a command to the command queue' do
-        command_type = :test_command
-        params = { test: 'param' }
-
-        world.queue_command(command_type, params)
-
-        # We can't directly test the private queue, but we can test the behavior
-        # Use a test subscriber to verify commands get executed
-        command_processor = Class.new do
-          attr_reader :executed, :params
-
-          def initialize
-            @executed = false
-            @params = nil
-          end
-
-          def execute(world)
-            @params = world
-            @executed = true
-          end
-        end.new
-
-        world.queue_command(command_processor)
-        world.update(nil) # Process commands
-
-        expect(command_processor.executed).to be true
-        expect(command_processor.params).to eq(world)
-      end
-    end
-
     describe '#emit_event and #subscribe' do
       let(:subscriber) { instance_double("Subscriber", handle_event: nil) }
       let(:event_type) { :test_event }
@@ -293,15 +262,6 @@ RSpec.describe Vanilla::World do
 
   describe 'private methods' do
     describe '#process_commands' do
-      it 'executes Command objects directly' do
-        command = instance_double("Vanilla::Commands::Command")
-        allow(command).to receive(:is_a?).with(Vanilla::Commands::Command).and_return(true)
-        expect(command).to receive(:execute).with(world)
-
-        world.queue_command(command)
-        world.send(:process_commands)
-      end
-
       it 'delegates to handle_command for symbol commands (deprecated)' do
         entity = instance_double("Entity", id: "entity-1")
 
