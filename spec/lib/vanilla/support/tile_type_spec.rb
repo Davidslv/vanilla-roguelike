@@ -14,7 +14,8 @@ RSpec.describe Vanilla::Support::TileType do
                                              'M',  # MONSTER
                                              '%',  # STAIRS
                                              '|',  # VERTICAL_WALL
-                                             '$'   # GOLD
+                                             '$',  # GOLD
+                                             'D',  # DRAGON
                                            ])
     end
   end
