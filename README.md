@@ -83,7 +83,8 @@ To run specific tests:
 bundle exec rspec spec/lib/vanilla/components/
 
 # Run a specific test file
-bundle exec rspec spec/lib/vanilla/systems/movement_system_spec.rb
+bundle exec rspec spec/lib/vanilla/support/tile_type_spec.rb
+bundle exec rspec spec/lib/vanilla/components/render_component_spec.rb
 ```
 
 ## Architecture Overview
