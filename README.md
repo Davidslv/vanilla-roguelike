@@ -2,7 +2,13 @@
 
 Vanilla is a roguelike game written in Ruby, inspired by the original 1980's [Rogue game](https://en.wikipedia.org/wiki/Rogue_(video_game)). It features procedurally generated mazes, player movement, and a flexible architecture based on the Entity-Component-System pattern with an event-driven system for logging and debugging.
 
+<!--
 ![Vanilla Game Screenshot](https://user-images.githubusercontent.com/136777/124296344-c3dff380-db51-11eb-9490-21968571608d.mov)
+-->
+
+![Vanilla Roguelike Demo](https://github.com/user-attachments/assets/4dc9e47d-a8e9-49b1-b852-802e15b9436d)
+
+
 
 ## Game Objective
 
