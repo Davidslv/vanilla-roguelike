@@ -49,7 +49,8 @@ module Vanilla
       # --- Core Lifecycle Methods ---
       def render(renderer, selection_mode = false)
         # Adjust the width to account for borders (| on each side), so the content fits inside
-        width_adjusted = @width - 2
+        # Currently this is manually set to 5 to account for the borders and padding.
+        width_adjusted = @width - 5
 
         # Draw the top border: a + followed by dashes (e.g., +------+) to frame the panel
         puts "+#{'-' * width_adjusted}+"
@@ -61,7 +62,8 @@ module Vanilla
         header = "Messages (Turn #{turn}):"
 
         # Calculate padding to right-align the header within the adjusted width
-        padding = width_adjusted - header.length
+        # - 1 for the padding accounting the pipe character to be aligned with the top border.
+        padding = width_adjusted - header.length - 1
 
         # Draw the header line, e.g., "| Messages (Turn 42):    |" (padded with spaces)
         puts "| #{header}#{' ' * padding}|"

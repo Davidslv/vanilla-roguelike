@@ -49,7 +49,7 @@ bundle install
 The simplest way to play the game is to use the executable:
 
 ```bash
-./bin/vanilla.rb
+./bin/play.rb
 ```
 
 ## Game Controls
@@ -168,10 +168,19 @@ Vanilla includes a comprehensive logging system. Logs are stored in the `logs/` 
 You can set the log level using the `VANILLA_LOG_LEVEL` environment variable:
 
 ```bash
-VANILLA_LOG_LEVEL=debug ./bin/vanilla.rb
+VANILLA_LOG_LEVEL=debug ./bin/play.rb
 ```
 
 Available log levels: `debug`, `info`, `warn`, `error`, `fatal`
+
+### Log Monitoring
+
+While running the game you can see the logs in real time to help debugging issues:
+
+```bash
+./scripts/log_monitor.rb
+```
+
 
 ### Event Visualization
 

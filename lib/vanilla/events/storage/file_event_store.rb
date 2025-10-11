@@ -2,6 +2,7 @@
 
 require 'fileutils'
 require 'json'
+require_relative '../../logger'
 
 module Vanilla
   module Events
