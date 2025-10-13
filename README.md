@@ -236,4 +236,4 @@ Contributions are welcome! The project is still a work in progress with several 
 
 ## License
 
-Vanilla is available under the MIT License.
+Vanilla is available under the [MIT License](MIT-LICENSE).
