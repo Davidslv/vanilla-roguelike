@@ -588,9 +588,14 @@ module Vanilla
           # Player killed something
           add_message("combat.player_kill", metadata: { enemy: entity_name }, importance: :high, category: :combat)
           process_message_queue
-          # Exit selection mode AFTER message is processed so kill message is visible
-          @manager.toggle_selection_mode if @manager.selection_mode?
-          @logger.debug("[MessageSystem] Player killed #{entity_name}, message added and selection mode exited")
+          # Don't exit selection mode if loot is pending - loot menu will handle it
+          # Only exit if there's no pending loot
+          unless @last_loot_data
+            @manager.toggle_selection_mode if @manager.selection_mode?
+            @logger.debug("[MessageSystem] Player killed #{entity_name}, message added and selection mode exited (no loot)")
+          else
+            @logger.debug("[MessageSystem] Player killed #{entity_name}, message added, keeping selection mode for loot menu")
+          end
         elsif was_player
           # Player was killed
           @manager.toggle_selection_mode if @manager.selection_mode?
