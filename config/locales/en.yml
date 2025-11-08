@@ -55,6 +55,17 @@ en:
     inventory_full: "Your inventory is full!"
     cursed: "The %{item} is cursed and binds to you!"
     unidentified: "You can't tell what this %{item} does yet."
+  
+  menu:
+    inventory: "Inventory"
+  
+  inventory:
+    empty: "Your inventory is empty."
+    items: "Inventory Items:"
+    item_actions: "What would you like to do with %{item}?"
+    item_used: "You used the %{item}."
+    cannot_use: "You cannot use the %{item}."
+    item_dropped: "You dropped the %{item}."
 
   status:
     poisoned: "You feel poison coursing through your veins!"

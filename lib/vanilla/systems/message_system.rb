@@ -78,6 +78,14 @@ module Vanilla
             clear_previous_combat_options
             @manager.toggle_selection_mode if @manager.selection_mode?
             @logger.info("[MessageSystem] Selected run away option, cleared menu")
+          when :show_inventory
+            handle_inventory_callback
+            # Don't exit selection mode - we'll show inventory items
+          when :select_item
+            handle_item_selection(option[:item_id])
+            # Don't exit selection mode - we'll show item actions
+          when :use_item, :drop_item
+            handle_item_action_callback(option[:callback], option[:item_id])
           else
             @world.queue_command(option[:callback], {})
             # For non-combat options, exit selection mode immediately
@@ -238,6 +246,210 @@ module Vanilla
         trim_message_queue if @message_queue.size > MAX_MESSAGES
       end
 
+      # Add inventory option to menu if player has inventory and not in combat
+      def add_inventory_option_if_available(world)
+        return if in_combat_mode?
+        
+        player = world.get_entity_by_name('Player')
+        return unless player&.has_component?(:inventory)
+        
+        inventory = player.get_component(:inventory)
+        item_count = inventory.items.size
+        
+        # Add inventory option
+        add_message("menu.inventory",
+          options: [
+            { key: 'i', content: "Inventory (#{item_count} items) [i]", callback: :show_inventory }
+          ],
+          importance: :normal,
+          category: :system)
+        process_message_queue
+        @logger.debug("[MessageSystem] Added inventory option to menu")
+      end
+      
+      # Check if we're currently in combat mode (combat collision active)
+      def in_combat_mode?
+        @last_collision_data != nil || 
+        @manager.options.any? { |opt| opt[:callback] == :attack_monster || opt[:callback] == :run_away_from_monster }
+      end
+      
+      # Handle inventory callback - show items
+      def handle_inventory_callback
+        player = @world.get_entity_by_name('Player')
+        return unless player&.has_component?(:inventory)
+        
+        inventory = player.get_component(:inventory)
+        
+        if inventory.items.empty?
+          add_message("inventory.empty", importance: :normal, category: :system)
+          process_message_queue
+          return
+        end
+        
+        # Clear previous options
+        clear_previous_combat_options
+        
+        # Build item options
+        item_options = []
+        inventory.items.each_with_index do |item, index|
+          item_name = item.name || "Item"
+          if item.has_component?(:item)
+            item_comp = item.get_component(:item)
+            item_name = item_comp.name || item_name
+            if item_comp.stackable? && item_comp.stack_size > 1
+              item_name += " (x#{item_comp.stack_size})"
+            end
+          end
+          option_key = (index + 1).to_s
+          item_options << {
+            key: option_key,
+            content: "#{option_key}) #{item_name}",
+            callback: :select_item,
+            item_id: item.id
+          }
+        end
+        
+        # Add message with item options
+        add_message("inventory.items",
+          options: item_options,
+          importance: :normal,
+          category: :system)
+        process_message_queue
+        @logger.debug("[MessageSystem] Showing inventory with #{inventory.items.size} items")
+      end
+      
+      # Handle item selection - show actions (use, drop, etc.)
+      def handle_item_selection(item_id)
+        player = @world.get_entity_by_name('Player')
+        return unless player&.has_component?(:inventory)
+        
+        inventory = player.get_component(:inventory)
+        item = inventory.items.find { |i| i.id == item_id }
+        return unless item
+        
+        item_name = item.name || "Item"
+        if item.has_component?(:item)
+          item_comp = item.get_component(:item)
+          item_name = item_comp.name || item_name
+        end
+        
+        # Build action options
+        action_options = []
+        
+        # Use option (if consumable)
+        if item.has_component?(:consumable) || item.has_component?(:item)
+          action_options << {
+            key: '1',
+            content: "1) Use #{item_name}",
+            callback: :use_item,
+            item_id: item.id
+          }
+        end
+        
+        # Drop option
+        action_options << {
+          key: '2',
+          content: "2) Drop #{item_name}",
+          callback: :drop_item,
+          item_id: item.id
+        }
+        
+        # Back option
+        action_options << {
+          key: 'b',
+          content: "b) Back to inventory",
+          callback: :show_inventory
+        }
+        
+        # Clear previous options and add item actions
+        clear_previous_combat_options
+        add_message("inventory.item_actions",
+          metadata: { item: item_name },
+          options: action_options,
+          importance: :normal,
+          category: :system)
+        process_message_queue
+        @logger.debug("[MessageSystem] Showing actions for item: #{item_name}")
+      end
+      
+      # Handle item action (use, drop)
+      def handle_item_action_callback(action, item_id)
+        player = @world.get_entity_by_name('Player')
+        return unless player&.has_component?(:inventory)
+        
+        inventory = player.get_component(:inventory)
+        item = inventory.items.find { |i| i.id == item_id }
+        return unless item
+        
+        case action
+        when :use_item
+          handle_use_item(player, item)
+        when :drop_item
+          handle_drop_item(player, item)
+        end
+      end
+      
+      # Use an item
+      def handle_use_item(player, item)
+        inventory_system = Vanilla::ServiceRegistry.get(:inventory_system)
+        if inventory_system
+          success = inventory_system.use_item(player, item)
+          if success
+            add_message("inventory.item_used", metadata: { item: item.name || "item" }, importance: :normal, category: :system)
+          else
+            add_message("inventory.cannot_use", metadata: { item: item.name || "item" }, importance: :warning, category: :system)
+          end
+        else
+          # Fallback: use ItemUseSystem directly
+          item_use_system = @world.systems.find { |s, _| s.is_a?(Vanilla::Systems::ItemUseSystem) }&.first
+          if item_use_system
+            item_use_system.use_item(player, item)
+            add_message("inventory.item_used", metadata: { item: item.name || "item" }, importance: :normal, category: :system)
+          end
+        end
+        process_message_queue
+        clear_previous_combat_options
+        @manager.toggle_selection_mode if @manager.selection_mode?
+      end
+      
+      # Drop an item
+      def handle_drop_item(player, item)
+        position = player.get_component(:position)
+        return unless position
+        
+        inventory = player.get_component(:inventory)
+        removed_item = inventory.remove(item)
+        return unless removed_item
+        
+        # Place item at player's position (add position component if it doesn't have one)
+        unless item.has_component?(:position)
+          item.add_component(Vanilla::Components::PositionComponent.new(row: position.row, column: position.column))
+        else
+          item_pos = item.get_component(:position)
+          item_pos.set_position(position.row, position.column)
+        end
+        
+        # Add render component if missing
+        unless item.has_component?(:render)
+          item.add_component(Vanilla::Components::RenderComponent.new(character: '?', color: :yellow))
+        end
+        
+        @world.add_entity(item)
+        @world.current_level.add_entity(item)
+        @world.current_level.update_grid_with_entity(item)
+        
+        item_name = item.name || "item"
+        if item.has_component?(:item)
+          item_comp = item.get_component(:item)
+          item_name = item_comp.name || item_name
+        end
+        
+        add_message("inventory.item_dropped", metadata: { item: item_name }, importance: :normal, category: :system)
+        process_message_queue
+        clear_previous_combat_options
+        @manager.toggle_selection_mode if @manager.selection_mode?
+      end
+
       # --- Private Implementation Details ---
       private
 
@@ -360,10 +572,13 @@ module Vanilla
       def clear_previous_combat_options
         message_log = @manager.instance_variable_get(:@message_log)
         message_log.messages.each do |msg|
-          # Check if this is a combat collision message
-          if msg.content.to_s == "combat.collision" || msg.content.to_s.include?("combat.collision")
+          # Check if this is a combat collision message or inventory message
+          if msg.content.to_s == "combat.collision" || 
+             msg.content.to_s.include?("combat.collision") ||
+             msg.content.to_s.start_with?("inventory.") ||
+             msg.content.to_s.start_with?("menu.inventory")
             msg.options = []
-            @logger.debug("[MessageSystem] Cleared options from previous combat collision message")
+            @logger.debug("[MessageSystem] Cleared options from previous message: #{msg.content}")
           end
         end
       end
