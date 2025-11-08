@@ -22,13 +22,16 @@ en:
     description: "A useful item."
 
   combat:
-    collision: "You bump into a monster!"
+    collision: "You bump into a %{enemy}!"
     player_hit: "You strike the %{enemy} for %{damage} damage!"
     player_miss: "You swing at the %{enemy} but miss!"
     enemy_hit: "The %{enemy} hits you for %{damage} damage!"
     enemy_miss: "The %{enemy} lunges at you but misses!"
     player_kill: "You slay the %{enemy}!"
     enemy_flee: "The %{enemy} flees in terror!"
+    flee_attempt: "You attempt to run away..."
+    flee_success: "You successfully escape!"
+    flee_failed: "The %{enemy} catches you as you flee!"
 
   exploration:
     move_blocked: "A wall blocks your path."

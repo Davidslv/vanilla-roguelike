@@ -28,6 +28,8 @@ module Vanilla
         @world.subscribe(:combat_damage, self)
         @world.subscribe(:combat_miss, self)
         @world.subscribe(:combat_death, self)
+        @world.subscribe(:combat_flee_success, self)
+        @world.subscribe(:combat_flee_failed, self)
         Vanilla::ServiceRegistry.register(:message_system, self)
       end
 
@@ -55,18 +57,24 @@ module Vanilla
       end
 
       def handle_input(key)
-        return unless @manager.selection_mode && key.is_a?(String) && key.length == 1
+        return unless key.is_a?(String) && key.length == 1
 
-        option = @manager.options.find { |opt| opt[:key] == key }
-        return unless option
+        # Check if we're in selection mode or if there are options available
+        if @manager.selection_mode? || !@manager.options.empty?
+          option = @manager.options.find { |opt| opt[:key] == key }
+          return unless option
 
-        # Handle attack_monster callback specially
-        if option[:callback] == :attack_monster
-          handle_attack_monster_callback
-        else
-          @world.queue_command(option[:callback], {})
+          # Handle combat callbacks specially
+          case option[:callback]
+          when :attack_monster
+            handle_attack_monster_callback
+          when :run_away_from_monster
+            handle_run_away_callback
+          else
+            @world.queue_command(option[:callback], {})
+          end
+          @logger.info("[MessageSystem] Selected option #{key}")
         end
-        @logger.info("[MessageSystem] Selected option #{key}")
       end
 
       def handle_attack_monster_callback
@@ -99,6 +107,25 @@ module Vanilla
         @logger.info("[MessageSystem] Queued AttackCommand for player #{player.id} -> monster #{monster.id}")
       end
 
+      def handle_run_away_callback
+        return unless @last_collision_data
+
+        player = @world.get_entity(@last_collision_data[:entity_id])
+        monster = @world.get_entity(@last_collision_data[:other_entity_id])
+        
+        # Check if entities still exist
+        unless player && monster
+          @logger.warn("[MessageSystem] Cannot run away: player or monster no longer exists. Clearing collision data.")
+          @last_collision_data = nil
+          return
+        end
+
+        # Create and queue run away command
+        run_away_command = Vanilla::Commands::RunAwayCommand.new(player, monster)
+        @world.queue_command(run_away_command)
+        @logger.info("[MessageSystem] Queued RunAwayCommand for player #{player.id} from monster #{monster.id}")
+      end
+
       # --- Event Handling ---
       def handle_event(event_type, data)
         case event_type
@@ -119,11 +146,18 @@ module Vanilla
           @logger.debug("[MessageSystem] Entity: #{entity&.id}, tags: #{entity&.tags&.inspect}, Other: #{other&.id}, tags: #{other&.tags&.inspect}")
           if entity&.has_tag?(:player) && other&.has_tag?(:monster)
             @logger.info("[MessageSystem] Player-monster collision detected, adding combat message")
-            # Store collision data for attack command
+            # Store collision data for attack/run away commands
             @last_collision_data = data
-            add_message("combat.collision", metadata: { x: data[:position][:row], y: data[:position][:column] },
-                                            options: [{ key: '1', content: "Attack Monster [1]", callback: :attack_monster }], importance: :high, category: :combat)
-            @logger.debug("[MessageSystem] Combat collision message added to queue")
+            enemy_name = other.name || "Monster"
+            add_message("combat.collision", 
+              metadata: { enemy: enemy_name, x: data[:position][:row], y: data[:position][:column] },
+              options: [
+                { key: '1', content: "Attack #{enemy_name} [1]", callback: :attack_monster },
+                { key: '2', content: "Run Away [2]", callback: :run_away_from_monster }
+              ], 
+              importance: :high, 
+              category: :combat)
+            @logger.debug("[MessageSystem] Combat collision message added to queue with 2 options")
             # Process the message queue immediately so message appears right away
             process_message_queue
           elsif entity&.has_tag?(:player) && other&.has_tag?(:stairs)
@@ -146,6 +180,10 @@ module Vanilla
           handle_combat_miss(data)
         when :combat_death
           handle_combat_death(data)
+        when :combat_flee_success
+          handle_flee_success(data)
+        when :combat_flee_failed
+          handle_flee_failed(data)
         end
       end
 
@@ -268,6 +306,18 @@ module Vanilla
           add_message("death.player_dies", metadata: { enemy: killer_name }, importance: :critical, category: :combat)
           process_message_queue
         end
+      end
+
+      def handle_flee_success(data)
+        add_message("combat.flee_success", importance: :normal, category: :combat)
+        process_message_queue
+      end
+
+      def handle_flee_failed(data)
+        monster = @world.get_entity(data[:monster_id])
+        monster_name = monster&.name || "monster"
+        add_message("combat.flee_failed", metadata: { enemy: monster_name }, importance: :high, category: :combat)
+        process_message_queue
       end
     end
   end

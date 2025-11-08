@@ -7,6 +7,7 @@ require_relative 'commands/no_op_command'
 require_relative 'commands/change_level_command'
 require_relative 'commands/toggle_menu_mode_command'
 require_relative 'commands/attack_command'
+require_relative 'commands/run_away_command'
 # Update Flow:
 # KeyboardHandler → InputHandler → Creates commands → InputSystem queues them in World.
 
