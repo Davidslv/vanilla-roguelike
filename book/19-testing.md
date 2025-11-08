@@ -4,6 +4,33 @@
 
 ECS architecture makes testing easier because systems are independent. You can test a system without setting up the entire game.
 
+```mermaid
+graph TD
+    A[Testing Strategy] --> B[Unit Tests]
+    A --> C[Integration Tests]
+    A --> D[Algorithm Tests]
+
+    B --> B1[Test Systems in Isolation]
+    B --> B2[Test Components]
+    B --> B3[Test Commands]
+    B1 --> B4[Fast Execution]
+    B1 --> B5[Easy Setup]
+
+    C --> C1[Test System Interactions]
+    C --> C2[Test End-to-End Flows]
+    C1 --> C3[Real Systems]
+    C1 --> C4[Real Entities]
+
+    D --> D1[Test Maze Properties]
+    D --> D2[Test Algorithm Correctness]
+    D1 --> D3[Spanning Tree]
+    D1 --> D4[Connectivity]
+
+    style B fill:#e1f5ff
+    style C fill:#e1ffe1
+    style D fill:#fff4e1
+```
+
 ### Testing a System
 
 ```ruby
