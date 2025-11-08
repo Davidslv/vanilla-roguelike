@@ -74,12 +74,18 @@ RSpec.describe Vanilla::Systems::MessageSystem do
         { key: '2', content: "Run Away [2]", callback: :run_away_from_monster }
       ])
 
-      expect(world).to receive(:queue_command) do |command|
-        expect(command).to be_a(Vanilla::Commands::AttackCommand)
-      end
+      combat_system = instance_double('Vanilla::Systems::CombatSystem')
+      allow(world).to receive(:systems).and_return([[combat_system, 3]])
+      allow(combat_system).to receive(:is_a?).with(Vanilla::Systems::CombatSystem).and_return(true)
+      allow(combat_system).to receive(:process_turn_based_combat)
+      allow(world).to receive(:process_events).and_return(true)
+      allow(world).to receive(:respond_to?).with(:process_events, true).and_return(true)
+      allow(system).to receive(:update)
 
       # Simulate selecting option 1
       system.handle_input('1')
+
+      expect(combat_system).to have_received(:process_turn_based_combat).with(player, monster)
     end
 
     it 'option 2 triggers run away command' do

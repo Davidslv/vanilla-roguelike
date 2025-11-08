@@ -68,17 +68,23 @@ module Vanilla
           case option[:callback]
           when :attack_monster
             handle_attack_monster_callback
+            # Don't exit selection mode yet - let combat happen first
+            # Selection mode will be exited when combat ends (in handle_combat_death)
+            clear_previous_combat_options
+            @logger.info("[MessageSystem] Selected attack option, combat will start")
           when :run_away_from_monster
             handle_run_away_callback
+            # Run away completes immediately, so exit selection mode
+            clear_previous_combat_options
+            @manager.toggle_selection_mode if @manager.selection_mode?
+            @logger.info("[MessageSystem] Selected run away option, cleared menu")
           else
             @world.queue_command(option[:callback], {})
+            # For non-combat options, exit selection mode immediately
+            clear_previous_combat_options
+            @manager.toggle_selection_mode if @manager.selection_mode?
+            @logger.info("[MessageSystem] Selected option #{key}")
           end
-          @logger.info("[MessageSystem] Selected option #{key}")
-          
-          # Clear options and exit selection mode after selection
-          clear_previous_combat_options
-          @manager.toggle_selection_mode if @manager.selection_mode?
-          @logger.debug("[MessageSystem] Cleared options and exited selection mode after option selection")
         end
       end
 
@@ -87,7 +93,7 @@ module Vanilla
 
         player = @world.get_entity(@last_collision_data[:entity_id])
         monster = @world.get_entity(@last_collision_data[:other_entity_id])
-
+        
         # Check if entities still exist (monster might have died)
         unless player && monster
           @logger.warn("[MessageSystem] Cannot attack: player or monster no longer exists. Clearing collision data.")
@@ -98,18 +104,25 @@ module Vanilla
         # Verify entities are still at the same position (player might have moved)
         player_pos = player.get_component(:position)
         monster_pos = monster.get_component(:position)
-        unless player_pos && monster_pos &&
-               player_pos.row == monster_pos.row &&
+        unless player_pos && monster_pos && 
+               player_pos.row == monster_pos.row && 
                player_pos.column == monster_pos.column
           @logger.warn("[MessageSystem] Cannot attack: player and monster are no longer at the same position. Clearing collision data.")
           @last_collision_data = nil
           return
         end
 
-        # Create and queue attack command
+        # Create and execute attack command immediately
         attack_command = Vanilla::Commands::AttackCommand.new(player, monster)
-        @world.queue_command(attack_command)
-        @logger.info("[MessageSystem] Queued AttackCommand for player #{player.id} -> monster #{monster.id}")
+        attack_command.execute(@world)
+        @logger.info("[MessageSystem] Executed AttackCommand immediately for player #{player.id} -> monster #{monster.id}")
+        
+        # Process events immediately so combat messages appear
+        # Use send to access private method
+        @world.send(:process_events) if @world.respond_to?(:process_events, true)
+        
+        # Update message system to process any queued messages
+        update(nil)
       end
 
       def handle_run_away_callback
@@ -262,10 +275,12 @@ module Vanilla
           # Player missed
           target_name = target.name || "enemy"
           add_message("combat.player_miss", metadata: { enemy: target_name }, importance: :normal, category: :combat)
+          process_message_queue # Process immediately so message appears during combat
         elsif target&.has_tag?(:player)
           # Enemy missed player
           attacker_name = attacker.name || "enemy"
           add_message("combat.enemy_miss", metadata: { enemy: attacker_name }, importance: :normal, category: :combat)
+          process_message_queue # Process immediately so message appears during combat
         end
       end
 
@@ -281,10 +296,12 @@ module Vanilla
           # Player attacked something
           target_name = target.name || "enemy"
           add_message("combat.player_hit", metadata: { enemy: target_name, damage: damage }, importance: :normal, category: :combat)
+          process_message_queue # Process immediately so message appears during combat
         elsif target&.has_tag?(:player)
           # Player was attacked
           attacker_name = attacker&.name || "enemy"
           add_message("combat.enemy_hit", metadata: { enemy: attacker_name, damage: damage }, importance: :high, category: :combat)
+          process_message_queue # Process immediately so message appears during combat
         end
       end
 

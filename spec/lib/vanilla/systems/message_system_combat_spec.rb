@@ -131,7 +131,7 @@ RSpec.describe Vanilla::Systems::MessageSystem do
       })
     end
 
-    it 'creates and queues AttackCommand when callback is triggered' do
+    it 'creates and executes AttackCommand immediately when callback is triggered' do
       # Set up positions so they're at the same location
       player_pos = player.get_component(:position)
       monster_pos = monster.get_component(:position)
@@ -144,13 +144,23 @@ RSpec.describe Vanilla::Systems::MessageSystem do
         monster.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 5)) unless monster_pos
       end
 
-      expect(world).to receive(:queue_command) do |command|
-        expect(command).to be_a(Vanilla::Commands::AttackCommand)
-        expect(command.attacker).to eq(player)
-        expect(command.target).to eq(monster)
-      end
+      system.instance_variable_set(:@last_collision_data, {
+        entity_id: player.id,
+        other_entity_id: monster.id,
+        position: { row: 5, column: 5 }
+      })
+
+      combat_system = instance_double('Vanilla::Systems::CombatSystem')
+      allow(world).to receive(:systems).and_return([[combat_system, 3]])
+      allow(combat_system).to receive(:is_a?).with(Vanilla::Systems::CombatSystem).and_return(true)
+      allow(combat_system).to receive(:process_turn_based_combat)
+      allow(world).to receive(:send).with(:process_events)
+      allow(world).to receive(:respond_to?).with(:process_events, true).and_return(true)
+      allow(system).to receive(:update)
 
       system.handle_attack_monster_callback
+
+      expect(combat_system).to have_received(:process_turn_based_combat).with(player, monster)
     end
 
     it 'handles missing collision data gracefully' do
