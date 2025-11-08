@@ -38,6 +38,22 @@ module Vanilla
         :item
       end
 
+      # Check if the item is stackable
+      # @return [Boolean] Whether the item can be stacked
+      def stackable?
+        @stackable
+      end
+
+      # Increase stack size (for stackable items)
+      def increase_stack
+        @stack_size += 1 if @stackable
+      end
+
+      # Decrease stack size (for stackable items)
+      def decrease_stack
+        @stack_size = [@stack_size - 1, 1].max if @stackable
+      end
+
       # Convert to hash for serialization
       # @return [Hash] The component data as a hash
       def to_hash

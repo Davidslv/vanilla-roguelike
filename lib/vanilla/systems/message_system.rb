@@ -466,9 +466,9 @@ module Vanilla
           item_pos.set_position(position.row, position.column)
         end
         
-        # Add render component if missing
+        # Add render component if missing (use GOLD as default item character)
         unless item.has_component?(:render)
-          item.add_component(Vanilla::Components::RenderComponent.new(character: '?', color: :yellow))
+          item.add_component(Vanilla::Components::RenderComponent.new(character: Vanilla::Support::TileType::GOLD, color: :yellow))
         end
         
         @world.add_entity(item)
