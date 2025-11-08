@@ -296,6 +296,8 @@ module Vanilla
             @last_collision_data[:other_entity_id] == data[:entity_id])
           @logger.debug("[MessageSystem] Clearing collision data because entity #{data[:entity_id]} died")
           @last_collision_data = nil
+          # Clear options from combat collision messages since combat is over
+          clear_previous_combat_options
         end
 
         if killer&.has_tag?(:player)
