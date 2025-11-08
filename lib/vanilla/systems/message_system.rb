@@ -310,10 +310,14 @@ module Vanilla
 
         if killer&.has_tag?(:player)
           # Player killed something
+          # Exit selection mode so the kill message is visible
+          @manager.toggle_selection_mode if @manager.selection_mode?
           add_message("combat.player_kill", metadata: { enemy: entity_name }, importance: :high, category: :combat)
           process_message_queue
+          @logger.debug("[MessageSystem] Player killed #{entity_name}, message added and selection mode exited")
         elsif was_player
           # Player was killed
+          @manager.toggle_selection_mode if @manager.selection_mode?
           killer_name = killer&.name || "enemy"
           add_message("death.player_dies", metadata: { enemy: killer_name }, importance: :critical, category: :combat)
           process_message_queue
