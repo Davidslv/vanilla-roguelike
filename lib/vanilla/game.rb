@@ -79,6 +79,9 @@ module Vanilla
         if message_system&.selection_mode?
           @logger.debug("[Game] In menu mode, waiting for input, turn: #{@turn}")
           input_system.update(nil) # Wait for input
+          # Process events and messages immediately after input to avoid frame delay
+          @world.send(:process_events) if @world.respond_to?(:process_events, true)
+          message_system.update(nil) # Process message queue immediately
           @world.update(nil) # Process queued commands
         else
           @logger.debug("[Game] Running game loop, turn: #{@turn}")

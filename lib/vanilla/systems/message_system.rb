@@ -389,12 +389,15 @@ module Vanilla
         
         # Clear previous options and add item actions
         clear_previous_combat_options
+        clear_inventory_options
         add_message("inventory.item_actions",
           metadata: { item: item_name },
           options: action_options,
           importance: :normal,
           category: :system)
         process_message_queue
+        # Process events immediately to ensure messages are displayed
+        @world.send(:process_events) if @world.respond_to?(:process_events, true)
         @logger.debug("[MessageSystem] Showing actions for item: #{item_name}")
       end
       
