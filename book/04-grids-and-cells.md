@@ -104,6 +104,26 @@ When two cells are linked, there's a passage between them. When they're not link
 
 Think of a cell and its four neighbors (north, south, east, west):
 
+```mermaid
+graph TD
+    N[North]
+    S[South]
+    E[East]
+    W[West]
+    C[Cell C]
+
+    C -.->|Linked| N
+    C -.->|Linked| E
+    C -.->|Not Linked| W
+    C -.->|Not Linked| S
+
+    style C fill:#e1f5ff
+    style N fill:#e1ffe1
+    style E fill:#e1ffe1
+    style W fill:#ffe1e1
+    style S fill:#ffe1e1
+```
+
 ```
     [N]
      |
