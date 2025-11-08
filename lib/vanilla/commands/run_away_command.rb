@@ -20,7 +20,7 @@ module Vanilla
 
       def execute(world)
         return if @executed
-        
+
         unless @player && @monster
           @executed = true
           return
@@ -45,12 +45,12 @@ module Vanilla
             player_id: @player.id,
             monster_id: @monster.id
           })
-          
+
           combat_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::CombatSystem) }&.first
           if combat_system
             combat_system.process_attack(@monster, @player)
           end
-          
+
           @logger.info("[RunAwayCommand] Player failed to flee, monster attacks")
         end
 

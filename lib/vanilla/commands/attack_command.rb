@@ -24,7 +24,7 @@ module Vanilla
         end
 
         @logger.info("[AttackCommand] Executing attack: #{@attacker&.id} attacks #{@target&.id}")
-        
+
         # If player is attacking, start turn-based combat
         if @attacker.has_tag?(:player) && @target.has_tag?(:monster)
           @logger.info("[AttackCommand] Starting turn-based combat")

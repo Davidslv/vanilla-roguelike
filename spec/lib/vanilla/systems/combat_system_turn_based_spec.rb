@@ -43,20 +43,20 @@ RSpec.describe Vanilla::Systems::CombatSystem do
     it 'player attacks first in turn-based combat' do
       # Set monster health high so combat continues for a few rounds
       monster.get_component(:health).current_health = 50
-      
+
       # Stub rand to guarantee hits
       allow(system).to receive(:rand).and_return(0.5)
-      
+
       # Track turn order
       turn_order = []
       original_player_turn = system.method(:player_turn)
       original_monster_turn = system.method(:monster_turn)
-      
+
       allow(system).to receive(:player_turn) do
         turn_order << :player
         original_player_turn.call
       end
-      
+
       allow(system).to receive(:monster_turn) do
         turn_order << :monster
         original_monster_turn.call
@@ -70,7 +70,7 @@ RSpec.describe Vanilla::Systems::CombatSystem do
       end
 
       system.process_turn_based_combat(player, monster)
-      
+
       # Player should attack first
       expect(turn_order.first).to eq(:player)
     end
@@ -79,20 +79,20 @@ RSpec.describe Vanilla::Systems::CombatSystem do
       # Set monster health high so combat continues
       monster.get_component(:health).current_health = 50
       player.get_component(:health).current_health = 100
-      
+
       # Stub rand to guarantee hits
       allow(system).to receive(:rand).and_return(0.5)
-      
+
       # Track turn order
       turn_order = []
       original_player_turn = system.method(:player_turn)
       original_monster_turn = system.method(:monster_turn)
-      
+
       allow(system).to receive(:player_turn) do
         turn_order << :player
         original_player_turn.call
       end
-      
+
       allow(system).to receive(:monster_turn) do
         turn_order << :monster
         original_monster_turn.call
@@ -108,7 +108,7 @@ RSpec.describe Vanilla::Systems::CombatSystem do
       end
 
       system.process_turn_based_combat(player, monster)
-      
+
       # Player should attack first, then monster
       expect(turn_order[0]).to eq(:player)
       expect(turn_order[1]).to eq(:monster)
@@ -117,27 +117,27 @@ RSpec.describe Vanilla::Systems::CombatSystem do
     it 'continues combat until one dies' do
       # Set monster health so it dies after a few hits
       monster.get_component(:health).current_health = 15
-      
+
       # Stub rand to guarantee hits
       allow(system).to receive(:rand).and_return(0.5)
-      
+
       # Track number of turns
       turn_count = 0
       original_player_turn = system.method(:player_turn)
       original_monster_turn = system.method(:monster_turn)
-      
+
       allow(system).to receive(:player_turn) do
         turn_count += 1
         original_player_turn.call
       end
-      
+
       allow(system).to receive(:monster_turn) do
         turn_count += 1
         original_monster_turn.call
       end
 
       system.process_turn_based_combat(player, monster)
-      
+
       # Should have at least one turn
       expect(turn_count).to be >= 1
     end
@@ -145,12 +145,12 @@ RSpec.describe Vanilla::Systems::CombatSystem do
     it 'clears combat state when combat ends' do
       # Set monster health low so it dies quickly
       monster.get_component(:health).current_health = 5
-      
+
       # Stub rand to guarantee hits
       allow(system).to receive(:rand).and_return(0.5)
-      
+
       system.process_turn_based_combat(player, monster)
-      
+
       # Combat state should be cleared
       expect(system.instance_variable_get(:@active_combat)).to be_nil
     end
@@ -158,12 +158,12 @@ RSpec.describe Vanilla::Systems::CombatSystem do
     it 'stops combat if player dies' do
       # Set player health low
       player.get_component(:health).current_health = 3
-      
+
       # Stub rand to guarantee hits
       allow(system).to receive(:rand).and_return(0.5)
-      
+
       system.process_turn_based_combat(player, monster)
-      
+
       # Combat should have ended
       expect(system.instance_variable_get(:@active_combat)).to be_nil
     end
@@ -171,12 +171,12 @@ RSpec.describe Vanilla::Systems::CombatSystem do
     it 'stops combat if monster dies' do
       # Set monster health low
       monster.get_component(:health).current_health = 5
-      
+
       # Stub rand to guarantee hits
       allow(system).to receive(:rand).and_return(0.5)
-      
+
       system.process_turn_based_combat(player, monster)
-      
+
       # Combat should have ended
       expect(system.instance_variable_get(:@active_combat)).to be_nil
     end

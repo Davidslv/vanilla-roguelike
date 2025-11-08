@@ -37,12 +37,12 @@ RSpec.describe Vanilla::Commands::RunAwayCommand do
         # Stub calculate_flee_chance to return high chance, and rand to succeed
         allow(command).to receive(:calculate_flee_chance).and_return(0.50) # 50% chance
         allow(command).to receive(:rand).and_return(0.10) # rand < 0.50, so succeeds
-        
+
         expect(world).to receive(:emit_event).with(:combat_flee_success, hash_including(
           player_id: player.id,
           monster_id: monster.id
         ))
-        
+
         expect(world).not_to receive(:emit_event).with(:combat_flee_failed, anything)
         expect(combat_system).not_to receive(:process_attack)
 
@@ -56,12 +56,12 @@ RSpec.describe Vanilla::Commands::RunAwayCommand do
         # Stub calculate_flee_chance to return low chance, and rand to fail
         allow(command).to receive(:calculate_flee_chance).and_return(0.10) # 10% chance
         allow(command).to receive(:rand).and_return(0.50) # rand > 0.10, so fails
-        
+
         expect(world).to receive(:emit_event).with(:combat_flee_failed, hash_including(
           player_id: player.id,
           monster_id: monster.id
         ))
-        
+
         expect(combat_system).to receive(:process_attack).with(monster, player)
 
         command.execute(world)
@@ -104,10 +104,10 @@ RSpec.describe Vanilla::Commands::RunAwayCommand do
       allow(command).to receive(:calculate_flee_chance).and_return(0.50)
       allow(command).to receive(:rand).and_return(0.10)
       allow(world).to receive(:emit_event)
-      
+
       command.execute(world)
       expect(command.instance_variable_get(:@executed)).to be true
-      
+
       # Second execution should not emit events
       expect(world).not_to receive(:emit_event)
       command.execute(world)

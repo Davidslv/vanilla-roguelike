@@ -43,13 +43,13 @@ RSpec.describe Vanilla::Systems::MessageSystem do
       message = collision_messages.first
       expect(message.options).not_to be_empty
       expect(message.options.size).to eq(2)
-      
+
       # Check option 1 (Attack)
       attack_option = message.options.find { |opt| opt[:key] == '1' }
       expect(attack_option).not_to be_nil
       expect(attack_option[:callback]).to eq(:attack_monster)
       expect(attack_option[:content]).to include("Attack")
-      
+
       # Check option 2 (Run Away)
       run_away_option = message.options.find { |opt| opt[:key] == '2' }
       expect(run_away_option).not_to be_nil
@@ -109,7 +109,7 @@ RSpec.describe Vanilla::Systems::MessageSystem do
 
     it 'menu options are properly formatted with enemy name' do
       monster.name = "Troll"
-      
+
       system.handle_event(:entities_collided, {
         entity_id: player.id,
         other_entity_id: monster.id,
@@ -121,7 +121,7 @@ RSpec.describe Vanilla::Systems::MessageSystem do
       messages = system.instance_variable_get(:@manager).instance_variable_get(:@message_log).messages
       collision_messages = messages.select { |m| m.content == "combat.collision" || (m.respond_to?(:key) && m.key == "combat.collision") }
       message = collision_messages.first
-      
+
       attack_option = message.options.find { |opt| opt[:key] == '1' }
       expect(attack_option[:content]).to include("Troll")
     end

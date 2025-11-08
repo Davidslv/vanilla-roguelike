@@ -82,7 +82,7 @@ module Vanilla
 
         player = @world.get_entity(@last_collision_data[:entity_id])
         monster = @world.get_entity(@last_collision_data[:other_entity_id])
-        
+
         # Check if entities still exist (monster might have died)
         unless player && monster
           @logger.warn("[MessageSystem] Cannot attack: player or monster no longer exists. Clearing collision data.")
@@ -93,8 +93,8 @@ module Vanilla
         # Verify entities are still at the same position (player might have moved)
         player_pos = player.get_component(:position)
         monster_pos = monster.get_component(:position)
-        unless player_pos && monster_pos && 
-               player_pos.row == monster_pos.row && 
+        unless player_pos && monster_pos &&
+               player_pos.row == monster_pos.row &&
                player_pos.column == monster_pos.column
           @logger.warn("[MessageSystem] Cannot attack: player and monster are no longer at the same position. Clearing collision data.")
           @last_collision_data = nil
@@ -112,7 +112,7 @@ module Vanilla
 
         player = @world.get_entity(@last_collision_data[:entity_id])
         monster = @world.get_entity(@last_collision_data[:other_entity_id])
-        
+
         # Check if entities still exist
         unless player && monster
           @logger.warn("[MessageSystem] Cannot run away: player or monster no longer exists. Clearing collision data.")
@@ -149,13 +149,13 @@ module Vanilla
             # Store collision data for attack/run away commands
             @last_collision_data = data
             enemy_name = other.name || "Monster"
-            add_message("combat.collision", 
+            add_message("combat.collision",
               metadata: { enemy: enemy_name, x: data[:position][:row], y: data[:position][:column] },
               options: [
                 { key: '1', content: "Attack #{enemy_name} [1]", callback: :attack_monster },
                 { key: '2', content: "Run Away [2]", callback: :run_away_from_monster }
-              ], 
-              importance: :high, 
+              ],
+              importance: :high,
               category: :combat)
             @logger.debug("[MessageSystem] Combat collision message added to queue with 2 options")
             # Process the message queue immediately so message appears right away
@@ -224,7 +224,7 @@ module Vanilla
         @logger.debug("[MessageSystem] Processing #{@message_queue.size} messages from queue")
         @message_queue.each do |msg|
           @logger.debug("[MessageSystem] Processing message: #{msg[:key]}, category: #{msg[:category]}")
-          @manager.log_translated(msg[:key], importance: msg[:importance], category: msg[:category] || :system, options: msg[:options], metadata: msg[:metadata])
+          @manager.log_translated(msg[:key], importance: msg[:importance], category: msg[:category] || :system, options: msg[:options], **msg[:metadata])
         end
         @message_queue.clear
       end
@@ -289,8 +289,8 @@ module Vanilla
         was_player = entity&.has_tag?(:player) || data[:was_player] == true
 
         # Clear collision data if the dead entity was involved in the last collision
-        if @last_collision_data && 
-           (@last_collision_data[:entity_id] == data[:entity_id] || 
+        if @last_collision_data &&
+           (@last_collision_data[:entity_id] == data[:entity_id] ||
             @last_collision_data[:other_entity_id] == data[:entity_id])
           @logger.debug("[MessageSystem] Clearing collision data because entity #{data[:entity_id]} died")
           @last_collision_data = nil
