@@ -107,8 +107,11 @@ module Vanilla
             add_message("combat.collision", metadata: { x: data[:position][:row], y: data[:position][:column] },
                                             options: [{ key: '1', content: "Attack Monster [1]", callback: :attack_monster }], importance: :high, category: :combat)
             @logger.debug("[MessageSystem] Combat collision message added to queue")
+            # Process the message queue immediately so message appears right away
+            process_message_queue
           elsif entity&.has_tag?(:player) && other&.has_tag?(:stairs)
             add_message("level.stairs_found", importance: :normal)
+            process_message_queue
           else
             @logger.debug("[MessageSystem] Collision not handled: entity tags don't match player-monster or player-stairs")
           end
