@@ -66,6 +66,24 @@ module Vanilla
         }
         event_data[:killer_id] = killer.id if killer
 
+        # Generate loot if monster was killed by player
+        if !was_player && killer && killer.has_tag?(:player)
+          loot_system = @world.systems.find { |s, _| s.is_a?(Vanilla::Systems::LootSystem) }&.first
+          if loot_system
+            loot = loot_system.generate_loot
+            # Only emit loot event if there's actually loot
+            if loot[:gold] > 0 || !loot[:items].empty?
+              position = entity.get_component(:position)
+              emit_event(:loot_dropped, {
+                loot: loot,
+                position: position ? { row: position.row, column: position.column } : nil,
+                monster_id: entity.id,
+                killer_id: killer.id
+              })
+            end
+          end
+        end
+
         emit_event(:combat_death, event_data)
         @world.remove_entity(entity.id)
         @logger.info("[CombatSystem] Entity #{entity.id} has died")

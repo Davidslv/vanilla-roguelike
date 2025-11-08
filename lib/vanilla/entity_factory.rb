@@ -14,6 +14,7 @@ module Vanilla
       player.add_component(Vanilla::Components::HealthComponent.new(max_health: 100))
       player.add_component(Vanilla::Components::CombatComponent.new(attack_power: 10, defense: 2, accuracy: 0.8))
       player.add_component(Vanilla::Components::InventoryComponent.new(max_size: 20))
+      player.add_component(Vanilla::Components::CurrencyComponent.new(0, :gold))
 
       player
     end

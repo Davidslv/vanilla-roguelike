@@ -62,6 +62,7 @@ module Vanilla
       @world.add_system(Vanilla::Systems::MovementSystem.new(@world), 2)
       @world.add_system(Vanilla::Systems::CombatSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
+      @world.add_system(Vanilla::Systems::LootSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::MonsterSystem.new(@world, player: @player), 4)
       message_system = Vanilla::Systems::MessageSystem.new(@world)
       @world.add_system(message_system, 5) # Add MessageSystem to world systems so update() is called

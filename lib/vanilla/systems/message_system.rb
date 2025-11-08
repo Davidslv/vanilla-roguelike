@@ -17,6 +17,7 @@ module Vanilla
         @logger = Vanilla::Logger.instance
         @manager = Vanilla::Messages::MessageManager.new
         @last_collision_data = nil
+        @last_loot_data = nil
         @world.subscribe(:entity_moved, self)
         @world.subscribe(:monster_spawned, self)
         @world.subscribe(:monster_despawned, self)
@@ -30,6 +31,7 @@ module Vanilla
         @world.subscribe(:combat_death, self)
         @world.subscribe(:combat_flee_success, self)
         @world.subscribe(:combat_flee_failed, self)
+        @world.subscribe(:loot_dropped, self)
         Vanilla::ServiceRegistry.register(:message_system, self)
       end
 
@@ -83,6 +85,12 @@ module Vanilla
             # Process message queue immediately so inventory appears right away
             process_message_queue
             # Don't exit selection mode - we'll show inventory items
+          when :pickup_loot
+            handle_pickup_loot_callback
+            process_message_queue
+          when :ignore_loot
+            handle_ignore_loot_callback
+            process_message_queue
           when :select_item
             handle_item_selection(option[:item_id])
             # Process message queue immediately so item actions appear right away
@@ -221,6 +229,8 @@ module Vanilla
           handle_flee_success(data)
         when :combat_flee_failed
           handle_flee_failed(data)
+        when :loot_dropped
+          handle_loot_dropped(data)
         end
       end
 
@@ -596,6 +606,93 @@ module Vanilla
         clear_previous_combat_options
         add_message("combat.flee_success", importance: :normal, category: :combat)
         process_message_queue
+      end
+
+      def handle_loot_dropped(data)
+        loot = data[:loot]
+        return unless loot && (loot[:gold] > 0 || !loot[:items].empty?)
+
+        # Store loot data for pickup
+        @last_loot_data = {
+          gold: loot[:gold] || 0,
+          items: loot[:items] || [],
+          position: data[:position]
+        }
+
+        # Show loot drop message with options
+        add_message("loot.dropped",
+          options: [
+            { key: '1', content: "Pick up loot [1]", callback: :pickup_loot },
+            { key: '2', content: "Leave loot [2]", callback: :ignore_loot }
+          ],
+          importance: :normal,
+          category: :system)
+        process_message_queue
+        @manager.toggle_selection_mode unless @manager.selection_mode?
+        @logger.debug("[MessageSystem] Loot dropped: #{loot[:gold]} gold, #{loot[:items].size} items")
+      end
+
+      def handle_pickup_loot_callback
+        return unless @last_loot_data
+
+        player = @world.get_entity_by_name('Player')
+        return unless player
+
+        gold_amount = @last_loot_data[:gold] || 0
+        items = @last_loot_data[:items] || []
+
+        # Add gold to player
+        if gold_amount > 0
+          if player.has_component?(:currency)
+            currency = player.get_component(:currency)
+            currency.value += gold_amount
+          else
+            player.add_component(Vanilla::Components::CurrencyComponent.new(gold_amount, :gold))
+          end
+        end
+
+        # Add items to inventory
+        items_added = []
+        if !items.empty? && player.has_component?(:inventory)
+          inventory = player.get_component(:inventory)
+          items.each do |item|
+            if inventory.add(item)
+              items_added << item
+            end
+          end
+        end
+
+        # Build pickup message
+        pickup_parts = []
+        pickup_parts << "#{gold_amount} gold" if gold_amount > 0
+        items_added.each do |item|
+          item_name = item.name || "item"
+          if item.has_component?(:item)
+            item_comp = item.get_component(:item)
+            item_name = item_comp.name || item_name
+          end
+          pickup_parts << item_name
+        end
+
+        if pickup_parts.any?
+          add_message("loot.picked_up", metadata: { items: pickup_parts.join(", ") }, importance: :normal, category: :system)
+        end
+
+        # Clear loot data
+        @last_loot_data = nil
+        process_message_queue
+        @manager.toggle_selection_mode if @manager.selection_mode?
+        @logger.info("[MessageSystem] Player picked up loot: #{pickup_parts.join(", ")}")
+      end
+
+      def handle_ignore_loot_callback
+        return unless @last_loot_data
+
+        add_message("loot.ignored", importance: :normal, category: :system)
+        @last_loot_data = nil
+        process_message_queue
+        @manager.toggle_selection_mode if @manager.selection_mode?
+        @logger.info("[MessageSystem] Player ignored loot")
       end
 
       def handle_flee_failed(data)

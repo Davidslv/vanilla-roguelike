@@ -33,6 +33,11 @@ en:
     flee_success: "You successfully escape!"
     flee_failed: "The %{enemy} catches you as you flee!"
 
+  loot:
+    dropped: "Loot dropped! Pick up?"
+    picked_up: "You picked up: %{items}"
+    ignored: "You leave the loot behind."
+
   exploration:
     move_blocked: "A wall blocks your path."
     enter_room: "You enter a %{room_type} room."
