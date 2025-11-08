@@ -703,13 +703,17 @@ module Vanilla
         # Update inventory option count if inventory option exists
         if player.has_component?(:inventory)
           inventory = player.get_component(:inventory)
+          @logger.info("[MessageSystem] Updating inventory option count. Current inventory size: #{inventory.items.size}, items: #{inventory.items.map { |i| i.name || i.id }.join(', ')}")
           message_log = @manager.instance_variable_get(:@message_log)
           existing_inventory_msg = message_log.messages.find { |msg| msg.content.to_s == "menu.inventory" }
           if existing_inventory_msg
+            new_count = inventory.items.size
             existing_inventory_msg.options = [
-              { key: 'i', content: "Inventory (#{inventory.items.size} items) [i]", callback: :show_inventory }
+              { key: 'i', content: "Inventory (#{new_count} items) [i]", callback: :show_inventory }
             ]
-            @logger.debug("[MessageSystem] Updated inventory option count to #{inventory.items.size} after loot pickup")
+            @logger.info("[MessageSystem] Updated inventory option count to #{new_count} after loot pickup")
+          else
+            @logger.debug("[MessageSystem] No existing inventory message found to update")
           end
         end
 
