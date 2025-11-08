@@ -147,15 +147,18 @@ RSpec.describe 'Combat Integration', type: :integration do
     end
 
     it 'shows miss message when attack misses' do
+      # Use CombatSystem directly for single-attack test to avoid turn-based combat
+      combat_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::CombatSystem) }&.first
+      
       # Set player accuracy to 0 to guarantee miss
       player_combat = player.get_component(:combat)
       player_combat.instance_variable_set(:@accuracy, 0.0)
 
       # Stub rand to return value > 0 (miss)
-      allow_any_instance_of(Vanilla::Systems::CombatSystem).to receive(:rand).and_return(0.5)
+      allow(combat_system).to receive(:rand).and_return(0.5) # Always miss
 
-      attack_command = Vanilla::Commands::AttackCommand.new(player, monster)
-      attack_command.execute(world)
+      # Use process_attack directly for single attack (not turn-based)
+      combat_system.process_attack(player, monster)
       world.update(nil) # Process events and update systems
       message_system.update(nil) # Ensure message queue is processed
 
@@ -207,17 +210,26 @@ RSpec.describe 'Combat Integration', type: :integration do
 
   describe 'player can continue attacking same monster' do
     it 'allows multiple attacks on the same monster' do
-      initial_health = monster.get_component(:health).current_health
+      # Use CombatSystem directly for single-attack tests
+      combat_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::CombatSystem) }&.first
+      
+      # Give monster enough health to survive multiple single attacks
+      monster_health = monster.get_component(:health)
+      initial_health = 200
+      monster_health.current_health = initial_health
 
-      # First attack
-      attack1 = Vanilla::Commands::AttackCommand.new(player, monster)
-      attack1.execute(world)
+      # First attack (single attack, not turn-based)
+      combat_system.process_attack(player, monster)
+      world.update(nil) # Process events
       health_after_first = monster.get_component(:health).current_health
       expect(health_after_first).to be < initial_health
 
+      # Ensure monster is still alive
+      expect(health_after_first).to be > 0
+
       # Second attack
-      attack2 = Vanilla::Commands::AttackCommand.new(player, monster)
-      attack2.execute(world)
+      combat_system.process_attack(player, monster)
+      world.update(nil) # Process events
       health_after_second = monster.get_component(:health).current_health
       expect(health_after_second).to be < health_after_first
     end
@@ -225,14 +237,18 @@ RSpec.describe 'Combat Integration', type: :integration do
 
   describe 'combat damage calculation' do
     it 'calculates damage correctly based on attack_power and defense' do
+      # Use CombatSystem directly for single-attack test
+      combat_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::CombatSystem) }&.first
+      
       initial_health = monster.get_component(:health).current_health
       player_combat = player.get_component(:combat)
       monster_combat = monster.get_component(:combat)
 
       expected_damage = [player_combat.attack_power - monster_combat.defense, 1].max
 
-      attack_command = Vanilla::Commands::AttackCommand.new(player, monster)
-      attack_command.execute(world)
+      # Use process_attack directly for single attack (not turn-based)
+      combat_system.process_attack(player, monster)
+      world.update(nil) # Process events
 
       final_health = monster.get_component(:health).current_health
       actual_damage = initial_health - final_health
@@ -241,6 +257,9 @@ RSpec.describe 'Combat Integration', type: :integration do
     end
 
     it 'applies minimum damage of 1 even when defense is high' do
+      # Use CombatSystem directly for single-attack test
+      combat_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::CombatSystem) }&.first
+      
       # Create monster with very high defense
       strong_monster = Vanilla::EntityFactory.create_monster('tank', 10, 10, 50, 1).tap do |m|
         # EntityFactory creates CombatComponent, so we update it
@@ -251,8 +270,9 @@ RSpec.describe 'Combat Integration', type: :integration do
 
       initial_health = strong_monster.get_component(:health).current_health
 
-      attack_command = Vanilla::Commands::AttackCommand.new(player, strong_monster)
-      attack_command.execute(world)
+      # Use process_attack directly for single attack (not turn-based)
+      combat_system.process_attack(player, strong_monster)
+      world.update(nil) # Process events
 
       final_health = strong_monster.get_component(:health).current_health
       damage = initial_health - final_health
