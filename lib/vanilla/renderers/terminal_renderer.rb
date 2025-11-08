@@ -9,11 +9,46 @@ module Vanilla
     # and presenting it visually in a simple, text-based format.
 
     class TerminalRenderer < Renderer
+      def initialize
+        @seed = nil
+        @difficulty = nil
+        @player_health = nil
+        @player_max_health = nil
+      end
+
+      def set_game_info(seed:, difficulty:)
+        @seed = seed
+        @difficulty = difficulty
+      end
+
+      def set_player_health(current:, max:)
+        @player_health = current
+        @player_max_health = max
+      end
+
       # --- Core Lifecycle Methods ---
       def draw_grid(grid, algorithm)
         Vanilla::Logger.instance.warn("[TerminalRenderer] Drawing grid with algorithm: #{algorithm}")
+        
+        # Build status line with health, seed, and difficulty
+        status_parts = []
+        status_parts << "Vanilla Roguelike"
+        
+        if @player_health && @player_max_health
+          health_percent = (@player_health.to_f / @player_max_health * 100).round
+          status_parts << "HP: #{@player_health}/#{@player_max_health} (#{health_percent}%)"
+        end
+        
+        if @seed
+          status_parts << "Seed: #{@seed}"
+        end
+        
+        if @difficulty
+          status_parts << "Level: #{@difficulty}"
+        end
+        
         output = [
-          "Vanilla Roguelike - Difficulty: 1 - Seed: #{$seed}", # Game title and seed
+          status_parts.join(" | "),
           "Rows: #{grid.rows} | Columns: #{grid.columns} | Algorithm: #{algorithm}", # Grid info
           "\n" # Spacing
         ]
