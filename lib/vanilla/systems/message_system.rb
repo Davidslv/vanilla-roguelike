@@ -624,6 +624,7 @@ module Vanilla
           items: loot[:items] || [],
           position: data[:position]
         }
+        @logger.info("[MessageSystem] Loot dropped - gold: #{@last_loot_data[:gold]}, items: #{@last_loot_data[:items].size} (#{@last_loot_data[:items].map { |i| i.name || i.id }.join(', ')})")
 
         # Show loot drop message with options
         add_message("loot.dropped",
@@ -649,6 +650,7 @@ module Vanilla
 
         gold_amount = @last_loot_data[:gold] || 0
         items = @last_loot_data[:items] || []
+        @logger.info("[MessageSystem] handle_pickup_loot_callback - gold: #{gold_amount}, items count: #{items.size}, items: #{items.map { |i| i.name || i.id }.join(', ')}")
 
         # Add gold to player
         if gold_amount > 0
@@ -662,6 +664,7 @@ module Vanilla
 
         # Add items to inventory
         items_added = []
+        @logger.info("[MessageSystem] Checking items: items.empty?=#{items.empty?}, player.has_component?(:inventory)=#{player.has_component?(:inventory)}")
         if !items.empty? && player.has_component?(:inventory)
           inventory = player.get_component(:inventory)
           @logger.info("[MessageSystem] Adding #{items.size} items to inventory. Current inventory size: #{inventory.items.size}, max: #{inventory.max_size}")
