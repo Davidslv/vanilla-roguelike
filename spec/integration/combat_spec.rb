@@ -117,7 +117,7 @@ RSpec.describe 'Combat Integration', type: :integration do
 
       attack_command = Vanilla::Commands::AttackCommand.new(player, monster)
       attack_command.execute(world)
-      
+
       # Process events first, then update systems (which processes message queue)
       world.update(nil) # This processes events and updates systems including MessageSystem
       message_system.update(nil) # Ensure message queue is processed
@@ -149,7 +149,7 @@ RSpec.describe 'Combat Integration', type: :integration do
     it 'shows miss message when attack misses' do
       # Use CombatSystem directly for single-attack test to avoid turn-based combat
       combat_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::CombatSystem) }&.first
-      
+
       # Set player accuracy to 0 to guarantee miss
       player_combat = player.get_component(:combat)
       player_combat.instance_variable_set(:@accuracy, 0.0)
@@ -212,7 +212,7 @@ RSpec.describe 'Combat Integration', type: :integration do
     it 'allows multiple attacks on the same monster' do
       # Use CombatSystem directly for single-attack tests
       combat_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::CombatSystem) }&.first
-      
+
       # Give monster enough health to survive multiple single attacks
       monster_health = monster.get_component(:health)
       initial_health = 200
@@ -239,7 +239,7 @@ RSpec.describe 'Combat Integration', type: :integration do
     it 'calculates damage correctly based on attack_power and defense' do
       # Use CombatSystem directly for single-attack test
       combat_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::CombatSystem) }&.first
-      
+
       initial_health = monster.get_component(:health).current_health
       player_combat = player.get_component(:combat)
       monster_combat = monster.get_component(:combat)
@@ -259,7 +259,7 @@ RSpec.describe 'Combat Integration', type: :integration do
     it 'applies minimum damage of 1 even when defense is high' do
       # Use CombatSystem directly for single-attack test
       combat_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::CombatSystem) }&.first
-      
+
       # Create monster with very high defense
       strong_monster = Vanilla::EntityFactory.create_monster('tank', 10, 10, 50, 1).tap do |m|
         # EntityFactory creates CombatComponent, so we update it
