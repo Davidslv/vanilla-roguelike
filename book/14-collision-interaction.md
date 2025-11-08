@@ -4,6 +4,24 @@
 
 In a grid-based roguelike, collision detection is simple: two entities collide if they're at the same position. No complex physics calculations needed.
 
+```mermaid
+sequenceDiagram
+    participant MovementSystem
+    participant CollisionSystem
+    participant Entity1
+    participant Entity2
+    participant World
+
+    MovementSystem->>Entity1: Move Entity
+    MovementSystem->>World: Emit :entity_moved
+    World->>CollisionSystem: Notify :entity_moved
+    CollisionSystem->>World: Query entities at position
+    World->>CollisionSystem: Return Entity1, Entity2
+    CollisionSystem->>CollisionSystem: Check collision
+    CollisionSystem->>World: Emit :entities_collided
+    CollisionSystem->>CollisionSystem: Handle specific collision
+```
+
 ### CollisionSystem: Detecting Collisions
 
 The `CollisionSystem` detects when entities occupy the same cell:
