@@ -12,6 +12,30 @@ Over the decades, the roguelike genre has evolved. Modern games like *The Bindin
 
 What makes a roguelike a roguelike? While there's some debate in the community, most agree on these fundamental characteristics:
 
+```mermaid
+graph TD
+    A[Roguelike Game] --> B[Procedural Generation]
+    A --> C[Permadeath]
+    A --> D[Turn-Based Gameplay]
+    A --> E[Grid-Based Movement]
+
+    B --> B1[Infinite Variety]
+    B --> B2[Replayability]
+    B --> B3[Efficient Development]
+
+    C --> C1[Tension]
+    C --> C2[Risk vs Reward]
+    C --> C3[Mastery]
+
+    D --> D1[Strategic Thinking]
+    D --> D2[Accessibility]
+    D --> D3[Clarity]
+
+    E --> E1[Precision]
+    E --> E2[Simplicity]
+    E --> E3[Classic Feel]
+```
+
 ### Procedural Generation
 
 The world is created algorithmically, not by hand. Every level, every room, every item placement is determined by algorithms. This means:
@@ -49,6 +73,31 @@ Everything exists on a grid. You move from cell to cell, not smoothly across spa
 ## Why Build One?
 
 Building a roguelike from scratch teaches you more than just game development. It's a masterclass in:
+
+```mermaid
+mindmap
+  root((Roguelike<br/>Learning))
+    Algorithms
+      Graph Theory
+      Pathfinding
+      Randomization
+      Maze Generation
+    Architecture
+      ECS Pattern
+      System Design
+      Code Organization
+      Scalability
+    Game Design
+      Difficulty Curves
+      Item Balance
+      Player Progression
+      Fun Factor
+    Problem Solving
+      Debugging
+      System Interactions
+      Performance
+      Optimization
+```
 
 ### Algorithms
 
