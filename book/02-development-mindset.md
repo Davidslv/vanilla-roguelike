@@ -44,6 +44,29 @@ The biggest mistake beginners make is trying to build everything at once. A rogu
 
 Start with the simplest possible version that works, then add one feature at a time.
 
+```mermaid
+graph LR
+    A[Phase 1: Foundation] --> B[Phase 2: World Generation]
+    B --> C[Phase 3: Gameplay]
+    C --> D[Phase 4: Polish]
+
+    A --> A1[Grid Display]
+    A --> A2[Player Movement]
+    A --> A3[Basic Input]
+
+    B --> B1[Maze Algorithm]
+    B --> B2[Level Generation]
+    B --> B3[Player & Stairs]
+
+    C --> C1[Monsters]
+    C --> C2[Combat]
+    C --> C3[Items & Inventory]
+
+    D --> D1[Better AI]
+    D --> D2[More Content]
+    D --> D3[Balance]
+```
+
 **Phase 1: Foundation**
 - A grid that displays on screen
 - A player character that can move
@@ -112,6 +135,28 @@ You start building a simple roguelike, but then you want to add crafting, then m
 There comes a moment in every project's development when you realize the architecture isn't working. Code that used to be simple is now complex. Adding new features requires touching multiple files. Bugs appear in unexpected places. The codebase feels fragile.
 
 This is the "breaking point"—the moment when you must choose: continue with a broken architecture, or refactor.
+
+```mermaid
+graph TD
+    A[Start: Simple Code] --> B[Add Features]
+    B --> C{Architecture<br/>Healthy?}
+    C -->|Yes| B
+    C -->|No| D[Warning Signs]
+    D --> E[Tight Coupling]
+    D --> F[Unpredictable Behavior]
+    D --> G[Hard to Test]
+    D --> H[Logic in Wrong Places]
+    E --> I{Breaking<br/>Point?}
+    F --> I
+    G --> I
+    H --> I
+    I -->|Not Yet| B
+    I -->|Yes| J[Decision Point]
+    J --> K[Continue with<br/>Broken Code]
+    J --> L[Refactor to<br/>Better Architecture]
+    L --> M[Better Codebase]
+    K --> N[Technical Debt]
+```
 
 ### Recognizing the Breaking Point
 
