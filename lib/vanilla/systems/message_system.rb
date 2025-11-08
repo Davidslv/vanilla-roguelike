@@ -321,6 +321,7 @@ module Vanilla
         return unless player&.has_component?(:inventory)
         
         inventory = player.get_component(:inventory)
+        @logger.debug("[MessageSystem] handle_inventory_callback: inventory has #{inventory.items.size} items")
         
         if inventory.items.empty?
           add_message("inventory.empty", importance: :normal, category: :system)
@@ -663,18 +664,24 @@ module Vanilla
         items_added = []
         if !items.empty? && player.has_component?(:inventory)
           inventory = player.get_component(:inventory)
+          @logger.info("[MessageSystem] Adding #{items.size} items to inventory. Current inventory size: #{inventory.items.size}, max: #{inventory.max_size}")
           items.each do |item|
             # Add item to world first if it's not already there
             unless @world.get_entity(item.id)
               @world.add_entity(item)
+              @logger.debug("[MessageSystem] Added item entity #{item.id} to world")
             end
+            initial_size = inventory.items.size
             if inventory.add(item)
               items_added << item
-              @logger.debug("[MessageSystem] Added item #{item.name || item.id} to inventory. Inventory now has #{inventory.items.size} items")
+              @logger.info("[MessageSystem] Successfully added item '#{item.name || item.id}' to inventory. Size: #{initial_size} -> #{inventory.items.size}")
             else
-              @logger.warn("[MessageSystem] Failed to add item #{item.name || item.id} to inventory (inventory full?)")
+              @logger.warn("[MessageSystem] Failed to add item '#{item.name || item.id}' to inventory. Inventory full? (size: #{inventory.items.size}/#{inventory.max_size})")
             end
           end
+          @logger.info("[MessageSystem] Final inventory size after adding items: #{inventory.items.size}, items added: #{items_added.size}")
+        elsif !items.empty?
+          @logger.warn("[MessageSystem] Player has no inventory component! Cannot add items.")
         end
 
         # Build pickup message
