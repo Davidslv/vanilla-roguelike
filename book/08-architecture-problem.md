@@ -206,6 +206,29 @@ Small changes cause unexpected breakage. The codebase feels like it could collap
 
 The solution isn't to avoid architecture—it's to choose the right one. For roguelikes, Entity-Component-System (ECS) provides a pattern that:
 
+```mermaid
+graph TD
+    A[Naive Approach] --> B[Single Game Class]
+    B --> C[Everything Mixed Together]
+    C --> D[Tight Coupling]
+    C --> E[Hard to Test]
+    C --> F[Hard to Extend]
+
+    G[ECS Architecture] --> H[Separated Concerns]
+    H --> I[Data: Components]
+    H --> J[Logic: Systems]
+    H --> K[Containers: Entities]
+    I --> L[Testable]
+    J --> L
+    K --> L
+    L --> M[Scalable]
+    L --> N[Maintainable]
+
+    style A fill:#ffe1e1
+    style G fill:#e1ffe1
+    style L fill:#e1f5ff
+```
+
 - Separates data from behavior
 - Makes systems independent and testable
 - Allows flexible composition of game objects
