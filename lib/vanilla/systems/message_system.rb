@@ -253,18 +253,44 @@ module Vanilla
         player = world.get_entity_by_name('Player')
         return unless player&.has_component?(:inventory)
         
+        # Clear previous inventory options first
+        clear_inventory_options
+        
         inventory = player.get_component(:inventory)
         item_count = inventory.items.size
         
-        # Add inventory option
-        add_message("menu.inventory",
-          options: [
+        # Check if inventory option already exists
+        message_log = @manager.instance_variable_get(:@message_log)
+        existing_inventory_msg = message_log.messages.find { |msg| msg.content.to_s == "menu.inventory" }
+        
+        if existing_inventory_msg
+          # Update existing message with current item count
+          existing_inventory_msg.options = [
             { key: 'i', content: "Inventory (#{item_count} items) [i]", callback: :show_inventory }
-          ],
-          importance: :normal,
-          category: :system)
-        process_message_queue
-        @logger.debug("[MessageSystem] Added inventory option to menu")
+          ]
+          @logger.debug("[MessageSystem] Updated existing inventory option with item count: #{item_count}")
+        else
+          # Add new inventory option
+          add_message("menu.inventory",
+            options: [
+              { key: 'i', content: "Inventory (#{item_count} items) [i]", callback: :show_inventory }
+            ],
+            importance: :normal,
+            category: :system)
+          process_message_queue
+          @logger.debug("[MessageSystem] Added inventory option to menu")
+        end
+      end
+      
+      # Clear all inventory-related options from messages
+      def clear_inventory_options
+        message_log = @manager.instance_variable_get(:@message_log)
+        message_log.messages.each do |msg|
+          if msg.content.to_s == "menu.inventory" || msg.content.to_s.start_with?("inventory.")
+            msg.options = []
+            @logger.debug("[MessageSystem] Cleared options from inventory message: #{msg.content}")
+          end
+        end
       end
       
       # Check if we're currently in combat mode (combat collision active)
@@ -572,13 +598,10 @@ module Vanilla
       def clear_previous_combat_options
         message_log = @manager.instance_variable_get(:@message_log)
         message_log.messages.each do |msg|
-          # Check if this is a combat collision message or inventory message
-          if msg.content.to_s == "combat.collision" || 
-             msg.content.to_s.include?("combat.collision") ||
-             msg.content.to_s.start_with?("inventory.") ||
-             msg.content.to_s.start_with?("menu.inventory")
+          # Check if this is a combat collision message
+          if msg.content.to_s == "combat.collision" || msg.content.to_s.include?("combat.collision")
             msg.options = []
-            @logger.debug("[MessageSystem] Cleared options from previous message: #{msg.content}")
+            @logger.debug("[MessageSystem] Cleared options from previous combat collision message")
           end
         end
       end
