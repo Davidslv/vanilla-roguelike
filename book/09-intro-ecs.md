@@ -171,6 +171,34 @@ graph TD
 
 ## ECS vs. Traditional OOP
 
+```mermaid
+graph LR
+    subgraph "Traditional OOP"
+        A[Player Class] --> B[Data + Behavior]
+        B --> C[x, y, health]
+        B --> D[move, render methods]
+        E[Monster Class] --> F[Data + Behavior]
+        F --> G[x, y, health]
+        F --> H[move, render methods]
+    end
+
+    subgraph "ECS Architecture"
+        I[Entity] --> J[Components: Data]
+        I --> K[Systems: Behavior]
+        J --> L[PositionComponent]
+        J --> M[HealthComponent]
+        J --> N[RenderComponent]
+        K --> O[MovementSystem]
+        K --> P[RenderSystem]
+    end
+
+    style A fill:#ffe1e1
+    style E fill:#ffe1e1
+    style I fill:#e1ffe1
+    style J fill:#e1f5ff
+    style K fill:#fff4e1
+```
+
 **Traditional OOP:**
 ```ruby
 class Player
