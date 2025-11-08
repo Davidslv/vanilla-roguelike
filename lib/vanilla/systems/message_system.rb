@@ -74,7 +74,24 @@ module Vanilla
 
         player = @world.get_entity(@last_collision_data[:entity_id])
         monster = @world.get_entity(@last_collision_data[:other_entity_id])
-        return unless player && monster
+        
+        # Check if entities still exist (monster might have died)
+        unless player && monster
+          @logger.warn("[MessageSystem] Cannot attack: player or monster no longer exists. Clearing collision data.")
+          @last_collision_data = nil
+          return
+        end
+
+        # Verify entities are still at the same position (player might have moved)
+        player_pos = player.get_component(:position)
+        monster_pos = monster.get_component(:position)
+        unless player_pos && monster_pos && 
+               player_pos.row == monster_pos.row && 
+               player_pos.column == monster_pos.column
+          @logger.warn("[MessageSystem] Cannot attack: player and monster are no longer at the same position. Clearing collision data.")
+          @last_collision_data = nil
+          return
+        end
 
         # Create and queue attack command
         attack_command = Vanilla::Commands::AttackCommand.new(player, monster)
@@ -165,7 +182,7 @@ module Vanilla
 
       def process_message_queue
         return if @message_queue.empty?
-        
+
         @logger.debug("[MessageSystem] Processing #{@message_queue.size} messages from queue")
         @message_queue.each do |msg|
           @logger.debug("[MessageSystem] Processing message: #{msg[:key]}, category: #{msg[:category]}")
@@ -233,13 +250,23 @@ module Vanilla
         entity_name = entity&.name || data[:entity_name] || "enemy"
         was_player = entity&.has_tag?(:player) || data[:was_player] == true
 
+        # Clear collision data if the dead entity was involved in the last collision
+        if @last_collision_data && 
+           (@last_collision_data[:entity_id] == data[:entity_id] || 
+            @last_collision_data[:other_entity_id] == data[:entity_id])
+          @logger.debug("[MessageSystem] Clearing collision data because entity #{data[:entity_id]} died")
+          @last_collision_data = nil
+        end
+
         if killer&.has_tag?(:player)
           # Player killed something
           add_message("combat.player_kill", metadata: { enemy: entity_name }, importance: :high, category: :combat)
+          process_message_queue
         elsif was_player
           # Player was killed
           killer_name = killer&.name || "enemy"
           add_message("death.player_dies", metadata: { enemy: killer_name }, importance: :critical, category: :combat)
+          process_message_queue
         end
       end
     end

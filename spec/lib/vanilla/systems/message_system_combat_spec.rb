@@ -132,6 +132,18 @@ RSpec.describe Vanilla::Systems::MessageSystem do
     end
 
     it 'creates and queues AttackCommand when callback is triggered' do
+      # Set up positions so they're at the same location
+      player_pos = player.get_component(:position)
+      monster_pos = monster.get_component(:position)
+      if player_pos && monster_pos
+        player_pos.set_position(5, 5)
+        monster_pos.set_position(5, 5)
+      else
+        # If no position components, add them
+        player.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 5)) unless player_pos
+        monster.add_component(Vanilla::Components::PositionComponent.new(row: 5, column: 5)) unless monster_pos
+      end
+
       expect(world).to receive(:queue_command) do |command|
         expect(command).to be_a(Vanilla::Commands::AttackCommand)
         expect(command.attacker).to eq(player)
