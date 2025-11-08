@@ -73,6 +73,49 @@ The entity is just a container. All behavior lives in systems.
 
 The power of ECS comes from composing entities with different components. Want a player? Add player components. Want a monster? Add monster components. Want something that's both? Add both sets of components.
 
+```mermaid
+graph TD
+    subgraph "Player Entity"
+        P[Player Entity] --> PC1[PositionComponent]
+        P --> PC2[RenderComponent]
+        P --> PC3[HealthComponent]
+        P --> PC4[MovementComponent]
+        P --> PC5[InputComponent]
+        P --> PC6[InventoryComponent]
+    end
+
+    subgraph "Monster Entity"
+        M[Monster Entity] --> MC1[PositionComponent]
+        M --> MC2[RenderComponent]
+        M --> MC3[HealthComponent]
+        M --> MC4[MovementComponent]
+        M --> MC5[CombatComponent]
+    end
+
+    subgraph "Shared Components"
+        SC1[PositionComponent]
+        SC2[RenderComponent]
+        SC3[HealthComponent]
+        SC4[MovementComponent]
+    end
+
+    PC1 -.-> SC1
+    PC2 -.-> SC2
+    PC3 -.-> SC3
+    PC4 -.-> SC4
+    MC1 -.-> SC1
+    MC2 -.-> SC2
+    MC3 -.-> SC3
+    MC4 -.-> SC4
+
+    style P fill:#e1f5ff
+    style M fill:#ffe1e1
+    style SC1 fill:#e1ffe1
+    style SC2 fill:#e1ffe1
+    style SC3 fill:#e1ffe1
+    style SC4 fill:#e1ffe1
+```
+
 **Example: Creating a player**
 ```ruby
 player = Entity.new
