@@ -23,8 +23,11 @@ module Vanilla
       private
 
       def update_renderer_info
+        # Get current difficulty from level (updates when level changes)
+        current_difficulty = @world.current_level&.difficulty || @difficulty
+        
         # Set game info (seed and difficulty)
-        @renderer.set_game_info(seed: @seed, difficulty: @difficulty)
+        @renderer.set_game_info(seed: @seed, difficulty: current_difficulty)
         
         # Get player health
         player = @world.get_entity_by_name('Player')
