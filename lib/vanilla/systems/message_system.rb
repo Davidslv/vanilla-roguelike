@@ -341,6 +341,8 @@ module Vanilla
           importance: :normal,
           category: :system)
         process_message_queue
+        # Process events immediately to ensure messages are displayed
+        @world.send(:process_events) if @world.respond_to?(:process_events, true)
         @logger.debug("[MessageSystem] Showing inventory with #{inventory.items.size} items")
       end
       
