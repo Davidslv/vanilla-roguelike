@@ -134,6 +134,8 @@ RSpec.describe Vanilla::Systems::MessageSystem do
 
     before do
       allow(world).to receive(:get_entity_by_name).with('Player').and_return(player)
+      allow(world).to receive(:get_entity).and_return(nil)
+      allow(world).to receive(:add_entity)
       system.instance_variable_set(:@last_loot_data, {
         gold: 5,
         items: [apple],
