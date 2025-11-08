@@ -24,7 +24,16 @@ module Vanilla
         end
 
         @logger.info("[AttackCommand] Executing attack: #{@attacker&.id} attacks #{@target&.id}")
-        combat_system.process_attack(@attacker, @target)
+        
+        # If player is attacking, start turn-based combat
+        if @attacker.has_tag?(:player) && @target.has_tag?(:monster)
+          @logger.info("[AttackCommand] Starting turn-based combat")
+          combat_system.process_turn_based_combat(@attacker, @target)
+        else
+          # Single attack for non-player attacks
+          combat_system.process_attack(@attacker, @target)
+        end
+
         @executed = true
       end
     end

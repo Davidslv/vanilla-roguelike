@@ -8,6 +8,7 @@ module Vanilla
       def initialize(world)
         super(world)
         @logger = Vanilla::Logger.instance
+        @active_combat = nil # { player: Entity, monster: Entity, turn: :player }
       end
 
       def update(_delta_time)
@@ -105,6 +106,71 @@ module Vanilla
         end
 
         hit
+      end
+
+      # Process turn-based combat between player and monster
+      # Player attacks first, then monster counter-attacks
+      # Continues until one dies
+      # @param player [Entity] The player entity
+      # @param monster [Entity] The monster entity
+      def process_turn_based_combat(player, monster)
+        return if @active_combat # Already in combat
+
+        @active_combat = { player: player, monster: monster, turn: :player }
+        @logger.info("[CombatSystem] Starting turn-based combat: player #{player.id} vs monster #{monster.id}")
+
+        # Combat loop - continue until one dies
+        while @active_combat && combat_active?
+          if @active_combat[:turn] == :player
+            player_turn
+          else
+            monster_turn
+          end
+
+          # Switch turns (only if combat is still active)
+          break unless combat_active?
+          @active_combat[:turn] = @active_combat[:turn] == :player ? :monster : :player
+        end
+
+        # Clear combat state
+        @active_combat = nil
+        @logger.info("[CombatSystem] Turn-based combat ended")
+      end
+
+      # Player's turn in combat
+      def player_turn
+        return unless @active_combat
+
+        player = @active_combat[:player]
+        monster = @active_combat[:monster]
+        @logger.debug("[CombatSystem] Player turn: #{player.id} attacks #{monster.id}")
+        process_attack(player, monster)
+      end
+
+      # Monster's turn in combat
+      def monster_turn
+        return unless @active_combat
+
+        player = @active_combat[:player]
+        monster = @active_combat[:monster]
+        @logger.debug("[CombatSystem] Monster turn: #{monster.id} attacks #{player.id}")
+        process_attack(monster, player)
+      end
+
+      # Check if combat is still active (both entities alive)
+      # @return [Boolean] True if both entities are alive, false otherwise
+      def combat_active?
+        return false unless @active_combat
+
+        player = @active_combat[:player]
+        monster = @active_combat[:monster]
+
+        player_health = player.get_component(:health)
+        monster_health = monster.get_component(:health)
+
+        return false unless player_health && monster_health
+
+        player_health.current_health > 0 && monster_health.current_health > 0
       end
     end
   end
