@@ -95,15 +95,21 @@ module Vanilla
         when :monster_despawned
           add_message("monster.died", metadata: { monster: @world.get_entity(data[:monster_id])&.name || "monster" }, importance: :normal)
         when :entities_collided
+          @logger.debug("[MessageSystem] Handling entities_collided event: entity_id=#{data[:entity_id]}, other_entity_id=#{data[:other_entity_id]}")
           entity = @world.get_entity(data[:entity_id])
           other = @world.get_entity(data[:other_entity_id])
+          @logger.debug("[MessageSystem] Entity: #{entity&.id}, tags: #{entity&.tags&.inspect}, Other: #{other&.id}, tags: #{other&.tags&.inspect}")
           if entity&.has_tag?(:player) && other&.has_tag?(:monster)
+            @logger.info("[MessageSystem] Player-monster collision detected, adding combat message")
             # Store collision data for attack command
             @last_collision_data = data
             add_message("combat.collision", metadata: { x: data[:position][:row], y: data[:position][:column] },
-                                            options: [{ key: '1', content: "Attack Monster [1]", callback: :attack_monster }], importance: :high)
+                                            options: [{ key: '1', content: "Attack Monster [1]", callback: :attack_monster }], importance: :high, category: :combat)
+            @logger.debug("[MessageSystem] Combat collision message added to queue")
           elsif entity&.has_tag?(:player) && other&.has_tag?(:stairs)
             add_message("level.stairs_found", importance: :normal)
+          else
+            @logger.debug("[MessageSystem] Collision not handled: entity tags don't match player-monster or player-stairs")
           end
         when :level_transition_requested
           add_message("level.stairs_found", importance: :normal)
@@ -153,7 +159,11 @@ module Vanilla
       private
 
       def process_message_queue
+        return if @message_queue.empty?
+        
+        @logger.debug("[MessageSystem] Processing #{@message_queue.size} messages from queue")
         @message_queue.each do |msg|
+          @logger.debug("[MessageSystem] Processing message: #{msg[:key]}, category: #{msg[:category]}")
           @manager.log_translated(msg[:key], importance: msg[:importance], category: msg[:category] || :system, options: msg[:options], metadata: msg[:metadata])
         end
         @message_queue.clear
