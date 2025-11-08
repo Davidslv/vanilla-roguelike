@@ -4,6 +4,29 @@
 
 Combat in Vanilla is turn-based and simple: attacker rolls against defender, damage is calculated, health is reduced.
 
+```mermaid
+flowchart TD
+    A[Combat Initiated] --> B{Both have<br/>CombatComponent?}
+    B -->|No| C[Combat Fails]
+    B -->|Yes| D[Roll for Accuracy]
+    D --> E{Hit?}
+    E -->|No| F[Miss]
+    E -->|Yes| G[Calculate Damage]
+    G --> H[Attack Power - Defense]
+    H --> I[Minimum 1 Damage]
+    I --> J[Apply Damage to Health]
+    J --> K{Health <= 0?}
+    K -->|Yes| L[Entity Dies]
+    K -->|No| M[Combat Complete]
+    L --> N[Emit Death Event]
+    N --> O[Remove Entity]
+    M --> P[Emit Damage Event]
+
+    style A fill:#e1f5ff
+    style L fill:#ffe1e1
+    style M fill:#e1ffe1
+```
+
 ### CombatSystem: Processing Attacks
 
 ```ruby
