@@ -22,13 +22,21 @@ en:
     description: "A useful item."
 
   combat:
-    collision: "You bump into a monster!"
+    collision: "You bump into a %{enemy}!"
     player_hit: "You strike the %{enemy} for %{damage} damage!"
     player_miss: "You swing at the %{enemy} but miss!"
     enemy_hit: "The %{enemy} hits you for %{damage} damage!"
     enemy_miss: "The %{enemy} lunges at you but misses!"
     player_kill: "You slay the %{enemy}!"
     enemy_flee: "The %{enemy} flees in terror!"
+    flee_attempt: "You attempt to run away..."
+    flee_success: "You successfully escape!"
+    flee_failed: "The %{enemy} catches you as you flee!"
+
+  loot:
+    dropped: "Loot dropped! Pick up?"
+    picked_up: "You picked up: %{items}"
+    ignored: "You leave the loot behind."
 
   exploration:
     move_blocked: "A wall blocks your path."
@@ -52,6 +60,17 @@ en:
     inventory_full: "Your inventory is full!"
     cursed: "The %{item} is cursed and binds to you!"
     unidentified: "You can't tell what this %{item} does yet."
+  
+  menu:
+    inventory: "Inventory"
+  
+  inventory:
+    empty: "Your inventory is empty."
+    items: "Inventory Items:"
+    item_actions: "What would you like to do with %{item}?"
+    item_used: "You used the %{item}."
+    cannot_use: "You cannot use the %{item}."
+    item_dropped: "You dropped the %{item}."
 
   status:
     poisoned: "You feel poison coursing through your veins!"

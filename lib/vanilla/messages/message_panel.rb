@@ -106,9 +106,20 @@ module Vanilla
               puts "| #{text}|"
             end
 
-            # Always show a "Close Menu" option, e.g., "m) Close Menu"
-            text = "m) Close Menu".ljust(width_adjusted)
-            puts "| #{text}|"
+            # Check if this is a combat collision or loot drop (player must make a decision)
+            is_combat_collision = @message_log.messages.any? do |msg|
+              msg.content.to_s == "combat.collision" && !msg.options.empty?
+            end
+            
+            is_loot_drop = @message_log.messages.any? do |msg|
+              msg.content.to_s == "loot.dropped" && !msg.options.empty?
+            end
+
+            # Only show "Close Menu" option if NOT a combat collision or loot drop
+            unless is_combat_collision || is_loot_drop
+              text = "m) Close Menu".ljust(width_adjusted)
+              puts "| #{text}|"
+            end
           end
         end
 

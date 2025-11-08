@@ -20,6 +20,7 @@ module Vanilla
     require_relative 'systems/input_system'
     require_relative 'systems/movement_system'
     require_relative 'systems/collision_system'
+    require_relative 'systems/combat_system'
     require_relative 'systems/message_system'
     require_relative 'systems/monster_system'
     require_relative 'systems/render_system'
@@ -29,5 +30,6 @@ module Vanilla
     require_relative 'systems/item_drop_system'
     require_relative 'systems/item_use_system'
     require_relative 'systems/equipment_system'
+    require_relative 'systems/loot_system'
   end
 end

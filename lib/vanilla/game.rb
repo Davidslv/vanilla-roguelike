@@ -60,11 +60,14 @@ module Vanilla
 
       @world.add_system(Vanilla::Systems::InputSystem.new(@world), 1)
       @world.add_system(Vanilla::Systems::MovementSystem.new(@world), 2)
+      @world.add_system(Vanilla::Systems::CombatSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
+      @world.add_system(Vanilla::Systems::LootSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::MonsterSystem.new(@world, player: @player), 4)
+      message_system = Vanilla::Systems::MessageSystem.new(@world)
+      @world.add_system(message_system, 5) # Add MessageSystem to world systems so update() is called
+      Vanilla::ServiceRegistry.register(:message_system, message_system)
       @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 10) # Render last
-
-      Vanilla::ServiceRegistry.register(:message_system, Vanilla::Systems::MessageSystem.new(@world))
     end
 
     def game_loop
@@ -77,13 +80,18 @@ module Vanilla
         if message_system&.selection_mode?
           @logger.debug("[Game] In menu mode, waiting for input, turn: #{@turn}")
           input_system.update(nil) # Wait for input
-          @world.update(nil) # Process queued commands
+          # Process events and messages immediately after input to avoid frame delay
+          @world.send(:process_events) if @world.respond_to?(:process_events, true)
+          message_system.update(nil) # Process message queue immediately
+          # Render immediately after processing input to show updated menu state
+          render
+          @world.update(nil) # Process queued commands (but don't re-render systems)
         else
           @logger.debug("[Game] Running game loop, turn: #{@turn}")
           @world.update(nil)
           @turn += 1
+          render
         end
-        render
         @logger.debug("[Game] Game#game_loop - Rendered, turn: #{@turn}")
       end
     end
