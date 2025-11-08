@@ -635,6 +635,9 @@ module Vanilla
       def handle_pickup_loot_callback
         return unless @last_loot_data
 
+        # Clear loot menu options
+        clear_loot_options
+
         player = @world.get_entity_by_name('Player')
         return unless player
 
@@ -656,8 +659,15 @@ module Vanilla
         if !items.empty? && player.has_component?(:inventory)
           inventory = player.get_component(:inventory)
           items.each do |item|
+            # Add item to world first if it's not already there
+            unless @world.get_entity(item.id)
+              @world.add_entity(item)
+            end
             if inventory.add(item)
               items_added << item
+              @logger.debug("[MessageSystem] Added item #{item.name || item.id} to inventory. Inventory now has #{inventory.items.size} items")
+            else
+              @logger.warn("[MessageSystem] Failed to add item #{item.name || item.id} to inventory (inventory full?)")
             end
           end
         end
@@ -678,6 +688,19 @@ module Vanilla
           add_message("loot.picked_up", metadata: { items: pickup_parts.join(", ") }, importance: :normal, category: :system)
         end
 
+        # Update inventory option count if inventory option exists
+        if player.has_component?(:inventory)
+          inventory = player.get_component(:inventory)
+          message_log = @manager.instance_variable_get(:@message_log)
+          existing_inventory_msg = message_log.messages.find { |msg| msg.content.to_s == "menu.inventory" }
+          if existing_inventory_msg
+            existing_inventory_msg.options = [
+              { key: 'i', content: "Inventory (#{inventory.items.size} items) [i]", callback: :show_inventory }
+            ]
+            @logger.debug("[MessageSystem] Updated inventory option count to #{inventory.items.size} after loot pickup")
+          end
+        end
+
         # Clear loot data
         @last_loot_data = nil
         process_message_queue
@@ -687,6 +710,9 @@ module Vanilla
 
       def handle_ignore_loot_callback
         return unless @last_loot_data
+
+        # Clear loot menu options
+        clear_loot_options
 
         add_message("loot.ignored", importance: :normal, category: :system)
         @last_loot_data = nil
@@ -710,6 +736,17 @@ module Vanilla
           if msg.content.to_s == "combat.collision" || msg.content.to_s.include?("combat.collision")
             msg.options = []
             @logger.debug("[MessageSystem] Cleared options from previous combat collision message")
+          end
+        end
+      end
+
+      # Clear options from loot drop messages
+      def clear_loot_options
+        message_log = @manager.instance_variable_get(:@message_log)
+        message_log.messages.each do |msg|
+          if msg.content.to_s == "loot.dropped"
+            msg.options = []
+            @logger.debug("[MessageSystem] Cleared options from loot drop message")
           end
         end
       end
