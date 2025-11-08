@@ -4,6 +4,32 @@
 
 Monster AI in Vanilla is simple but effective. Monsters either move randomly or toward the player.
 
+```mermaid
+flowchart TD
+    A[MonsterSystem Update] --> B[Get Monster Position]
+    B --> C[Get Player Position]
+    C --> D[Calculate Direction]
+    D --> E{Row Diff ><br/>Col Diff?}
+    E -->|Row Diff Larger| F{Player<br/>North or South?}
+    E -->|Col Diff Larger| G{Player<br/>East or West?}
+    F -->|North| H[Move North]
+    F -->|South| I[Move South]
+    G -->|East| J[Move East]
+    G -->|West| K[Move West]
+    H --> L[MovementSystem.move]
+    I --> L
+    J --> L
+    K --> L
+    L --> M{Movement<br/>Success?}
+    M -->|Yes| N[Monster Moved]
+    M -->|No| O[Monster Blocked]
+
+    style A fill:#e1f5ff
+    style L fill:#e1ffe1
+    style N fill:#e1ffe1
+    style O fill:#ffe1e1
+```
+
 ### MonsterSystem: Managing Monsters
 
 ```ruby
