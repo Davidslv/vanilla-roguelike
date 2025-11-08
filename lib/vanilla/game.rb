@@ -82,13 +82,15 @@ module Vanilla
           # Process events and messages immediately after input to avoid frame delay
           @world.send(:process_events) if @world.respond_to?(:process_events, true)
           message_system.update(nil) # Process message queue immediately
-          @world.update(nil) # Process queued commands
+          # Render immediately after processing input to show updated menu state
+          render
+          @world.update(nil) # Process queued commands (but don't re-render systems)
         else
           @logger.debug("[Game] Running game loop, turn: #{@turn}")
           @world.update(nil)
           @turn += 1
+          render
         end
-        render
         @logger.debug("[Game] Game#game_loop - Rendered, turn: #{@turn}")
       end
     end

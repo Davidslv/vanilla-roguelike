@@ -80,12 +80,18 @@ module Vanilla
             @logger.info("[MessageSystem] Selected run away option, cleared menu")
           when :show_inventory
             handle_inventory_callback
+            # Process message queue immediately so inventory appears right away
+            process_message_queue
             # Don't exit selection mode - we'll show inventory items
           when :select_item
             handle_item_selection(option[:item_id])
+            # Process message queue immediately so item actions appear right away
+            process_message_queue
             # Don't exit selection mode - we'll show item actions
           when :use_item, :drop_item
             handle_item_action_callback(option[:callback], option[:item_id])
+            # Process message queue immediately so action result appears right away
+            process_message_queue
           else
             @world.queue_command(option[:callback], {})
             # For non-combat options, exit selection mode immediately
