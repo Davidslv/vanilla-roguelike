@@ -203,6 +203,25 @@ The system:
 
 Systems run in a specific order. This is crucial because some systems depend on others completing first.
 
+```mermaid
+graph TD
+    A[MazeSystem<br/>Priority: 0] --> B[InputSystem<br/>Priority: 1]
+    B --> C[MovementSystem<br/>Priority: 2]
+    C --> D[CombatSystem<br/>Priority: 3]
+    C --> E[CollisionSystem<br/>Priority: 3]
+    D --> F[MonsterSystem<br/>Priority: 4]
+    E --> F
+    F --> G[RenderSystem<br/>Priority: 10]
+
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+    style C fill:#e1ffe1
+    style D fill:#ffe1e1
+    style E fill:#ffe1e1
+    style F fill:#f0e1ff
+    style G fill:#ffe1f5
+```
+
 ### Vanilla's System Order
 
 ```ruby
