@@ -4,6 +4,24 @@
 
 Premature optimization is the root of all evil. Optimize when you have a problem, not before.
 
+```mermaid
+flowchart TD
+    A[Build It] --> B[Make It Work]
+    B --> C[Measure Performance]
+    C --> D{Performance<br/>Acceptable?}
+    D -->|Yes| E[Done]
+    D -->|No| F[Profile Code]
+    F --> G[Identify Bottlenecks]
+    G --> H[Optimize Bottlenecks]
+    H --> C
+
+    style A fill:#e1f5ff
+    style B fill:#e1ffe1
+    style C fill:#fff4e1
+    style F fill:#ffe1e1
+    style H fill:#f0e1ff
+```
+
 ### The Optimization Process
 
 1. **Build it**: Make it work first
