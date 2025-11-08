@@ -33,6 +33,7 @@ module Vanilla
 
       # --- Core Lifecycle Methods ---
       def update(_delta_time)
+        @logger.debug("[MessageSystem] update() called, queue size: #{@message_queue.size}")
         process_message_queue
       end
 
@@ -152,6 +153,7 @@ module Vanilla
       def add_message(key, metadata: {}, importance: :normal, options: [], category: :system)
         message = { key: key, metadata: metadata, importance: importance, options: options, category: category, timestamp: Time.now }
         @message_queue << message
+        @logger.debug("[MessageSystem] Added message to queue: #{key}, queue size now: #{@message_queue.size}")
         trim_message_queue if @message_queue.size > MAX_MESSAGES
       end
 
