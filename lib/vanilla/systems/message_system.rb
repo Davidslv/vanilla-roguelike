@@ -663,6 +663,16 @@ module Vanilla
         end
 
         # Add items to inventory
+        # TODO: BUG - Items are being added to inventory but not appearing when inventory is displayed
+        # Issue: After picking up loot with items (e.g., Apple), the items are added to inventory
+        # but when the player opens inventory, it shows 0 items. Logs show items are added successfully,
+        # but handle_inventory_callback shows inventory.items.size = 0.
+        # Possible causes:
+        # - Player entity reference mismatch (different instances?)
+        # - Inventory component being replaced/reset
+        # - Items array reference issue
+        # - Timing issue with entity/component updates
+        # See logs for: [MessageSystem] Adding items, [MessageSystem] Successfully added item, [MessageSystem] handle_inventory_callback
         items_added = []
         @logger.info("[MessageSystem] Checking items: items.empty?=#{items.empty?}, player.has_component?(:inventory)=#{player.has_component?(:inventory)}")
         if !items.empty? && player.has_component?(:inventory)
