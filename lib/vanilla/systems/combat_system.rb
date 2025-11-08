@@ -54,8 +54,14 @@ module Vanilla
 
         return false unless health.current_health <= 0
 
+        # Get entity info before removing it
+        entity_name = entity.name
+        was_player = entity.has_tag?(:player)
+
         event_data = {
-          entity_id: entity.id
+          entity_id: entity.id,
+          entity_name: entity_name,
+          was_player: was_player
         }
         event_data[:killer_id] = killer.id if killer
 
@@ -90,6 +96,11 @@ module Vanilla
           check_death(target, attacker)
           @logger.info("[CombatSystem] #{attacker.id} hit #{target.id} for #{damage} damage")
         else
+          # Emit miss event
+          emit_event(:combat_miss, {
+                       attacker_id: attacker.id,
+                       target_id: target.id
+                     })
           @logger.info("[CombatSystem] #{attacker.id} missed #{target.id}")
         end
 

@@ -60,6 +60,7 @@ module Vanilla
 
       @world.add_system(Vanilla::Systems::InputSystem.new(@world), 1)
       @world.add_system(Vanilla::Systems::MovementSystem.new(@world), 2)
+      @world.add_system(Vanilla::Systems::CombatSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::MonsterSystem.new(@world, player: @player), 4)
       @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 10) # Render last

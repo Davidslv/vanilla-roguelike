@@ -16,6 +16,7 @@ module Vanilla
         @message_queue = []
         @logger = Vanilla::Logger.instance
         @manager = Vanilla::Messages::MessageManager.new
+        @last_collision_data = nil
         @world.subscribe(:entity_moved, self)
         @world.subscribe(:monster_spawned, self)
         @world.subscribe(:monster_despawned, self)
@@ -23,6 +24,10 @@ module Vanilla
         @world.subscribe(:level_transition_requested, self)
         @world.subscribe(:level_transitioned, self)
         @world.subscribe(:item_picked_up, self)
+        @world.subscribe(:combat_attack, self)
+        @world.subscribe(:combat_damage, self)
+        @world.subscribe(:combat_miss, self)
+        @world.subscribe(:combat_death, self)
         Vanilla::ServiceRegistry.register(:message_system, self)
       end
 
@@ -54,8 +59,26 @@ module Vanilla
         option = @manager.options.find { |opt| opt[:key] == key }
         return unless option
 
-        @world.queue_command(option[:callback], {})
+        # Handle attack_monster callback specially
+        if option[:callback] == :attack_monster
+          handle_attack_monster_callback
+        else
+          @world.queue_command(option[:callback], {})
+        end
         @logger.info("[MessageSystem] Selected option #{key}")
+      end
+
+      def handle_attack_monster_callback
+        return unless @last_collision_data
+
+        player = @world.get_entity(@last_collision_data[:entity_id])
+        monster = @world.get_entity(@last_collision_data[:other_entity_id])
+        return unless player && monster
+
+        # Create and queue attack command
+        attack_command = Vanilla::Commands::AttackCommand.new(player, monster)
+        @world.queue_command(attack_command)
+        @logger.info("[MessageSystem] Queued AttackCommand for player #{player.id} -> monster #{monster.id}")
       end
 
       # --- Event Handling ---
@@ -75,8 +98,10 @@ module Vanilla
           entity = @world.get_entity(data[:entity_id])
           other = @world.get_entity(data[:other_entity_id])
           if entity&.has_tag?(:player) && other&.has_tag?(:monster)
+            # Store collision data for attack command
+            @last_collision_data = data
             add_message("combat.collision", metadata: { x: data[:position][:row], y: data[:position][:column] },
-                                            options: [{ key: '1', content: "Attack Monster [M]", callback: :attack_monster }], importance: :high)
+                                            options: [{ key: '1', content: "Attack Monster [1]", callback: :attack_monster }], importance: :high)
           elsif entity&.has_tag?(:player) && other&.has_tag?(:stairs)
             add_message("level.stairs_found", importance: :normal)
           end
@@ -86,6 +111,14 @@ module Vanilla
           add_message("level.descended", metadata: { level: data[:difficulty] }, importance: :high)
         when :item_picked_up
           add_message("item.picked_up", metadata: { item: data[:item_name] || "item" }, importance: :normal)
+        when :combat_attack
+          handle_combat_attack(data)
+        when :combat_damage
+          handle_combat_damage(data)
+        when :combat_miss
+          handle_combat_miss(data)
+        when :combat_death
+          handle_combat_death(data)
         end
       end
 
@@ -110,8 +143,8 @@ module Vanilla
         @manager.get_recent_messages(limit)
       end
 
-      def add_message(key, metadata: {}, importance: :normal, options: [])
-        message = { key: key, metadata: metadata, importance: importance, options: options, timestamp: Time.now }
+      def add_message(key, metadata: {}, importance: :normal, options: [], category: :system)
+        message = { key: key, metadata: metadata, importance: importance, options: options, category: category, timestamp: Time.now }
         @message_queue << message
         trim_message_queue if @message_queue.size > MAX_MESSAGES
       end
@@ -121,7 +154,7 @@ module Vanilla
 
       def process_message_queue
         @message_queue.each do |msg|
-          @manager.log_translated(msg[:key], importance: msg[:importance], category: :system, options: msg[:options], metadata: msg[:metadata])
+          @manager.log_translated(msg[:key], importance: msg[:importance], category: msg[:category] || :system, options: msg[:options], metadata: msg[:metadata])
         end
         @message_queue.clear
       end
@@ -133,6 +166,66 @@ module Vanilla
 
       def importance_value(importance)
         { critical: 3, high: 2, normal: 1, low: 0 }[importance] || 0
+      end
+
+      def handle_combat_attack(data)
+        # Combat attack event is logged, but we wait for damage/miss to show message
+        # This is handled in handle_combat_damage or handle_combat_miss
+      end
+
+      def handle_combat_miss(data)
+        attacker = @world.get_entity(data[:attacker_id])
+        target = @world.get_entity(data[:target_id])
+        return unless attacker && target
+
+        if attacker&.has_tag?(:player)
+          # Player missed
+          target_name = target.name || "enemy"
+          add_message("combat.player_miss", metadata: { enemy: target_name }, importance: :normal, category: :combat)
+        elsif target&.has_tag?(:player)
+          # Enemy missed player
+          attacker_name = attacker.name || "enemy"
+          add_message("combat.enemy_miss", metadata: { enemy: attacker_name }, importance: :normal, category: :combat)
+        end
+      end
+
+      def handle_combat_damage(data)
+        target = @world.get_entity(data[:target_id])
+        source = data[:source_id] ? @world.get_entity(data[:source_id]) : nil
+        return unless target
+
+        attacker = source || @world.get_entity(data[:attacker_id]) rescue nil
+        damage = data[:damage] || 0
+
+        if attacker&.has_tag?(:player)
+          # Player attacked something
+          target_name = target.name || "enemy"
+          add_message("combat.player_hit", metadata: { enemy: target_name, damage: damage }, importance: :normal, category: :combat)
+        elsif target&.has_tag?(:player)
+          # Player was attacked
+          attacker_name = attacker&.name || "enemy"
+          add_message("combat.enemy_hit", metadata: { enemy: attacker_name, damage: damage }, importance: :high, category: :combat)
+        end
+      end
+
+      def handle_combat_death(data)
+        # Entity may have been removed from world, so we need to check if it exists
+        # or use the data we have
+        entity = @world.get_entity(data[:entity_id])
+        killer = data[:killer_id] ? @world.get_entity(data[:killer_id]) : nil
+
+        # Get entity name before it's removed, or use a default
+        entity_name = entity&.name || data[:entity_name] || "enemy"
+        was_player = entity&.has_tag?(:player) || data[:was_player] == true
+
+        if killer&.has_tag?(:player)
+          # Player killed something
+          add_message("combat.player_kill", metadata: { enemy: entity_name }, importance: :high, category: :combat)
+        elsif was_player
+          # Player was killed
+          killer_name = killer&.name || "enemy"
+          add_message("death.player_dies", metadata: { enemy: killer_name }, importance: :critical, category: :combat)
+        end
       end
     end
   end

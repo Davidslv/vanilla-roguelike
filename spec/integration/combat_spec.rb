@@ -9,22 +9,15 @@ RSpec.describe 'Combat Integration', type: :integration do
 
   let(:player) do
     Vanilla::EntityFactory.create_player(5, 5).tap do |p|
-      p.add_component(Vanilla::Components::CombatComponent.new(
-        attack_power: 10,
-        defense: 2,
-        accuracy: 1.0 # 100% accuracy for testing
-      ))
+      # EntityFactory now creates CombatComponent, so we just update it for testing
+      combat = p.get_component(:combat)
+      combat.instance_variable_set(:@accuracy, 1.0) # 100% accuracy for testing
     end
   end
 
   let(:monster) do
-    Vanilla::EntityFactory.create_monster('goblin', 5, 6, 20, 5).tap do |m|
-      m.add_component(Vanilla::Components::CombatComponent.new(
-        attack_power: 5,
-        defense: 1,
-        accuracy: 0.8
-      ))
-    end
+    Vanilla::EntityFactory.create_monster('goblin', 5, 6, 20, 5)
+    # EntityFactory now creates CombatComponent with attack_power: 5, defense: 1, accuracy: 0.7
   end
 
   before do
@@ -117,6 +110,62 @@ RSpec.describe 'Combat Integration', type: :integration do
     end
   end
 
+  describe 'message system integration' do
+    it 'shows combat messages when player attacks monster' do
+      # Stub rand to guarantee hit
+      allow_any_instance_of(Vanilla::Systems::CombatSystem).to receive(:rand).and_return(0.5)
+
+      attack_command = Vanilla::Commands::AttackCommand.new(player, monster)
+      attack_command.execute(world)
+      
+      # Process events first, then update systems (which processes message queue)
+      world.update(nil) # This processes events and updates systems including MessageSystem
+      message_system.update(nil) # Ensure message queue is processed
+
+      # Check that combat message was added
+      messages = message_system.instance_variable_get(:@manager).instance_variable_get(:@message_log).messages
+      combat_messages = messages.select { |m| m.category == :combat }
+      expect(combat_messages).not_to be_empty
+    end
+
+    it 'shows kill message when monster dies' do
+      monster_health = monster.get_component(:health)
+      monster_health.current_health = 5
+
+      # Stub rand to guarantee hit
+      allow_any_instance_of(Vanilla::Systems::CombatSystem).to receive(:rand).and_return(0.5)
+
+      attack_command = Vanilla::Commands::AttackCommand.new(player, monster)
+      attack_command.execute(world)
+      world.update(nil) # Process events and update systems
+      message_system.update(nil) # Ensure message queue is processed
+
+      # Check for kill message
+      messages = message_system.instance_variable_get(:@manager).instance_variable_get(:@message_log).messages
+      kill_messages = messages.select { |m| m.content == "combat.player_kill" || (m.respond_to?(:key) && m.key == "combat.player_kill") }
+      expect(kill_messages).not_to be_empty
+    end
+
+    it 'shows miss message when attack misses' do
+      # Set player accuracy to 0 to guarantee miss
+      player_combat = player.get_component(:combat)
+      player_combat.instance_variable_set(:@accuracy, 0.0)
+
+      # Stub rand to return value > 0 (miss)
+      allow_any_instance_of(Vanilla::Systems::CombatSystem).to receive(:rand).and_return(0.5)
+
+      attack_command = Vanilla::Commands::AttackCommand.new(player, monster)
+      attack_command.execute(world)
+      world.update(nil) # Process events and update systems
+      message_system.update(nil) # Ensure message queue is processed
+
+      # Check for miss message
+      messages = message_system.instance_variable_get(:@manager).instance_variable_get(:@message_log).messages
+      miss_messages = messages.select { |m| m.content == "combat.player_miss" || (m.respond_to?(:key) && m.key == "combat.player_miss") }
+      expect(miss_messages).not_to be_empty
+    end
+  end
+
   describe 'monster dies after taking enough damage' do
     it 'removes monster from world when health reaches 0' do
       # Set monster health to low value
@@ -194,11 +243,9 @@ RSpec.describe 'Combat Integration', type: :integration do
     it 'applies minimum damage of 1 even when defense is high' do
       # Create monster with very high defense
       strong_monster = Vanilla::EntityFactory.create_monster('tank', 10, 10, 50, 1).tap do |m|
-        m.add_component(Vanilla::Components::CombatComponent.new(
-          attack_power: 1,
-          defense: 100, # Very high defense
-          accuracy: 0.5
-        ))
+        # EntityFactory creates CombatComponent, so we update it
+        combat = m.get_component(:combat)
+        combat.instance_variable_set(:@defense, 100) # Very high defense
       end
       world.add_entity(strong_monster)
 
