@@ -32,7 +32,17 @@ module Vanilla
             @logger.debug("[InputSystem] Ignoring non-option key in menu mode: #{key}")
           end
         else
-          # Normal mode, process all other inputs
+          # Normal mode: check for menu options first, then process other inputs
+          if message_system && key.is_a?(String) && key.length == 1
+            # Check if options are available and this key matches an option
+            # valid_menu_option? checks if options exist and key matches
+            if message_system.valid_menu_option?(key)
+              message_system.handle_input(key)
+              @logger.debug("[InputSystem] Handled menu option in normal mode: #{key}")
+              return
+            end
+          end
+          # No options or not a valid option key, process as normal input
           @input_handler.handle_input(key)
         end
       end

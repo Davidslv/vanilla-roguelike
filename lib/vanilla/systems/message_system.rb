@@ -74,6 +74,11 @@ module Vanilla
             @world.queue_command(option[:callback], {})
           end
           @logger.info("[MessageSystem] Selected option #{key}")
+          
+          # Clear options and exit selection mode after selection
+          clear_previous_combat_options
+          @manager.toggle_selection_mode if @manager.selection_mode?
+          @logger.debug("[MessageSystem] Cleared options and exited selection mode after option selection")
         end
       end
 
@@ -162,6 +167,9 @@ module Vanilla
             @logger.debug("[MessageSystem] Combat collision message added to queue with 2 options")
             # Process the message queue immediately so message appears right away
             process_message_queue
+            # Automatically enter selection mode so player can immediately choose an option
+            @manager.toggle_selection_mode unless @manager.selection_mode?
+            @logger.debug("[MessageSystem] Auto-enabled selection mode for combat menu")
           elsif entity&.has_tag?(:player) && other&.has_tag?(:stairs)
             add_message("level.stairs_found", importance: :normal)
             process_message_queue
