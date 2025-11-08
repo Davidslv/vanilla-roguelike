@@ -109,6 +109,27 @@ The system handles pickup, use, and removal, emitting events for other systems t
 
 Items interact with entities through systems:
 
+```mermaid
+stateDiagram-v2
+    [*] --> OnGround: Item Spawned
+    OnGround --> PickedUp: Player Collides
+    PickedUp --> InInventory: Added to Inventory
+    InInventory --> Used: Use Command
+    InInventory --> Dropped: Drop Command
+    Used --> [*]: Consumed
+    Dropped --> OnGround: Placed at Position
+
+    note right of OnGround
+        Item has PositionComponent
+        Visible in world
+    end note
+
+    note right of InInventory
+        Item in InventoryComponent
+        Not visible in world
+    end note
+```
+
 **Pickup:**
 - `ItemPickupSystem` detects player on item
 - Adds item to inventory
