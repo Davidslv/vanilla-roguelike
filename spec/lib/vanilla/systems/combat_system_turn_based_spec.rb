@@ -32,6 +32,7 @@ RSpec.describe Vanilla::Systems::CombatSystem do
     allow(world).to receive(:emit_event)
     allow(world).to receive(:remove_entity)
     allow(world).to receive(:get_entity).and_return(nil)
+    allow(world).to receive(:systems).and_return([]) # No LootSystem in tests
   end
 
   describe 'turn-based combat' do

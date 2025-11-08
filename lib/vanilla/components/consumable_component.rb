@@ -4,7 +4,8 @@ module Vanilla
   module Components
     # Component for items that can be consumed/used and have effects
     class ConsumableComponent < Component
-      attr_reader :charges, :effects, :auto_identify
+      attr_accessor :charges
+      attr_reader :effects, :auto_identify
 
       # Initialize a new consumable component
       # @param charges [Integer] Number of uses before the item is consumed
