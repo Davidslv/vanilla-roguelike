@@ -63,9 +63,10 @@ module Vanilla
       @world.add_system(Vanilla::Systems::CombatSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::MonsterSystem.new(@world, player: @player), 4)
+      message_system = Vanilla::Systems::MessageSystem.new(@world)
+      @world.add_system(message_system, 5) # Add MessageSystem to world systems so update() is called
+      Vanilla::ServiceRegistry.register(:message_system, message_system)
       @world.add_system(Vanilla::Systems::RenderSystem.new(@world, @difficulty, @seed), 10) # Render last
-
-      Vanilla::ServiceRegistry.register(:message_system, Vanilla::Systems::MessageSystem.new(@world))
     end
 
     def game_loop
