@@ -5,7 +5,8 @@ module Vanilla
     # Message represents a single message in the game's message log.
     # It supports translation through I18n, selectable options, and shortcut keys.
     class Message
-      attr_reader :content, :category, :importance, :turn, :timestamp, :metadata, :options
+      attr_reader :content, :category, :importance, :turn, :timestamp, :metadata
+      attr_accessor :options
       attr_accessor :selectable, :selection_callback, :shortcut_key
 
       # Initialize a new message

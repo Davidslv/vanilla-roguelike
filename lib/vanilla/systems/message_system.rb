@@ -146,6 +146,8 @@ module Vanilla
           @logger.debug("[MessageSystem] Entity: #{entity&.id}, tags: #{entity&.tags&.inspect}, Other: #{other&.id}, tags: #{other&.tags&.inspect}")
           if entity&.has_tag?(:player) && other&.has_tag?(:monster)
             @logger.info("[MessageSystem] Player-monster collision detected, adding combat message")
+            # Clear options from previous combat collision messages to prevent duplicates
+            clear_previous_combat_options
             # Store collision data for attack/run away commands
             @last_collision_data = data
             enemy_name = other.name || "Monster"
@@ -309,6 +311,9 @@ module Vanilla
       end
 
       def handle_flee_success(data)
+        # Clear collision data and options since player fled
+        @last_collision_data = nil
+        clear_previous_combat_options
         add_message("combat.flee_success", importance: :normal, category: :combat)
         process_message_queue
       end
@@ -318,6 +323,18 @@ module Vanilla
         monster_name = monster&.name || "monster"
         add_message("combat.flee_failed", metadata: { enemy: monster_name }, importance: :high, category: :combat)
         process_message_queue
+      end
+
+      # Clear options from previous combat collision messages to prevent duplicates
+      def clear_previous_combat_options
+        message_log = @manager.instance_variable_get(:@message_log)
+        message_log.messages.each do |msg|
+          # Check if this is a combat collision message
+          if msg.content.to_s == "combat.collision" || msg.content.to_s.include?("combat.collision")
+            msg.options = []
+            @logger.debug("[MessageSystem] Cleared options from previous combat collision message")
+          end
+        end
       end
     end
   end
