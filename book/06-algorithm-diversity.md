@@ -288,6 +288,21 @@ Use Recursive Division when:
 
 Here's a quick comparison:
 
+```mermaid
+graph LR
+    subgraph "Algorithm Comparison"
+        A[Binary Tree<br/>Fast, Biased, Many Dead Ends]
+        B[Aldous-Broder<br/>Slow, Unbiased, Medium Dead Ends]
+        C[Recursive Backtracker<br/>Fast, Unbiased, Few Dead Ends]
+        D[Recursive Division<br/>Medium, Unbiased, Boxy]
+    end
+
+    style A fill:#ffe1e1
+    style B fill:#fff4e1
+    style C fill:#e1ffe1
+    style D fill:#e1f5ff
+```
+
 | Algorithm | Bias | Speed | Dead Ends | Feel |
 |-----------|------|-------|-----------|------|
 | Binary Tree | Northeast | Fast | Many | Simple, biased |
