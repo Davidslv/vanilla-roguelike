@@ -381,8 +381,8 @@ graph LR
 | Algorithm | Bias | Time Complexity | Space Complexity | Dead Ends | Feel |
 |-----------|------|----------------|------------------|-----------|------|
 | Binary Tree | Northeast | O(n) | O(1) | Many | Simple, biased |
-| Aldous-Broder | None | O(n²) worst, O(n log n) avg | O(1) | Medium | Completely random |
-| Recursive Backtracker | None | O(n) | O(n) worst, O(log n) typical | Few | Dungeon-like |
+| Aldous-Broder | None | O(n²) worst,<br> O(n log n) avg | O(1) | Medium | Completely random |
+| Recursive Backtracker | None | O(n) | O(n) worst,<br> O(log n) typical | Few | Dungeon-like |
 | Recursive Division | None | O(n log n) | O(log n) | Medium | Boxy, structured |
 
 **Understanding the complexities:**

@@ -141,3 +141,5 @@ Good luck on your journey. May your mazes be solvable, your architecture be clea
 
 Now go build something amazing.
 
+Thank you for reading,
+David Silva
