@@ -115,6 +115,35 @@ When health reaches 0:
 - Remove entity from world
 - Other systems can react to the event (loot generation, etc.)
 
+### Events: System Communication
+
+You may have noticed `emit_event` calls in the combat system. Events are messages that systems can send to notify other systems about what happened, without systems needing to know about each other directly.
+
+**What events do:**
+- Allow systems to communicate without direct dependencies
+- Enable loose coupling between systems
+- Support logging, debugging, and reactive behaviors
+
+**Example from combat:**
+```ruby
+emit_event(:combat_death, {
+  entity_id: entity.id,
+  killer_id: killer&.id
+})
+```
+
+This event notifies any system that's listening: "An entity died in combat." Other systems can react:
+- A loot system might generate items at the death location
+- A statistics system might record the kill
+- A message system might display "Monster killed!"
+
+**The event system:**
+- Systems can emit events (send messages)
+- Systems can subscribe to events (listen for messages)
+- The World coordinates event delivery
+
+Events are explained in detail in Chapter 18, including how to subscribe to events and build reactive systems. For now, understand that `emit_event` sends a message that other systems can react to, keeping systems decoupled.
+
 ## Combat Components: Attack Power, Defense, Accuracy
 
 Combat stats are stored in components:

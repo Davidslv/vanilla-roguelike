@@ -147,6 +147,65 @@ Notice: Both have `PositionComponent`, `RenderComponent`, `HealthComponent`, and
 
 Components are pure data. They define *what* an entity is, not *how* it behaves. They're simple data containers with no logic.
 
+### The Component Base Class
+
+All components in Vanilla inherit from a base `Component` class. This base class provides the foundation for the component system:
+
+```ruby
+module Vanilla
+  module Components
+    # Base class for all components
+    class Component
+      # Registry of component types to their implementation classes
+      @component_classes = {}
+
+      class << self
+        # Register a component subclass
+        def register(klass)
+          instance = klass.new rescue return
+          type = instance.type rescue return
+          @component_classes[type] = klass
+        end
+
+        # Get a component class by type
+        def get_class(type)
+          @component_classes[type]
+        end
+      end
+
+      # Initialize the component and check that type is implemented
+      def initialize(*)
+        type
+      end
+
+      # Required method that returns the component type
+      # @return [Symbol] the component type
+      def type
+        raise NotImplementedError, "Component subclasses must implement #type"
+      end
+
+      # Convert component to a hash representation
+      def to_hash
+        { type: type }
+      end
+    end
+  end
+end
+```
+
+**Key points:**
+- **`type` method**: Every component must implement this method, returning a symbol (e.g., `:position`, `:health`)
+- **Registration**: The base class maintains a registry of component types (used for serialization and lookup)
+- **Initialization check**: The base class ensures `type` is implemented when a component is created
+- **Serialization**: The `to_hash` method provides a basic serialization format
+
+For most components, you only need to:
+1. Inherit from `Component`
+2. Implement the `type` method
+3. Store your data in instance variables
+
+The base class handles the rest. This is why you see `super()` in component initializers—it calls the base class initialization which verifies `type` is implemented.
+
 ### PositionComponent: Where Something Is
 
 ```ruby

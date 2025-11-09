@@ -175,6 +175,42 @@ graph TD
 6. **Component Updates**: Components store the new state
 7. **Repeat**: Next frame, systems query and process again
 
+### How ECS Pieces Fit Together
+
+Understanding how Entities, Components, Systems, and World relate to each other is crucial:
+
+```mermaid
+graph TD
+    W[World: Coordinator] --> E[Entities: Containers]
+    W --> S[Systems: Logic]
+    E --> C[Components: Data]
+    S -->|Query| W
+    S -->|Update| C
+    W -->|Manages| S
+
+    style W fill:#e1f5ff
+    style E fill:#e1ffe1
+    style C fill:#fff4e1
+    style S fill:#ffe1e1
+```
+
+**The relationship:**
+- **World** is the coordinator that holds everything together. It stores entities, manages systems, and coordinates updates.
+- **Entities** are stored in the World. They're just containers with IDs.
+- **Components** are attached to Entities. They store data.
+- **Systems** query the World to find entities with specific components, then process them.
+
+**The flow:**
+1. World stores entities (with their components)
+2. Systems ask World: "Give me entities with PositionComponent and MovementComponent"
+3. World returns matching entities
+4. Systems process those entities, updating their components
+5. World coordinates the update cycle
+
+**Important**: The World doesn't contain game logic—it's a coordinator. Systems contain the logic. Entities are just data containers. This separation is what makes ECS flexible.
+
+We'll see how the World coordinates everything in detail in Chapter 12. For now, understand that World is the central hub that connects everything together.
+
 ## ECS vs. Traditional OOP
 
 ```mermaid

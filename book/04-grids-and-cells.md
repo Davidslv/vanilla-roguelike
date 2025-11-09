@@ -63,6 +63,27 @@ Notice how the grid:
 - Automatically sets up neighbor relationships when created
 - Validates bounds to prevent out-of-range access
 
+### CellTypeFactory: Managing Cell Types
+
+You may have noticed the `type_factory: CellTypeFactory.new` parameter in the Grid initialization. This is an optional parameter that uses the Flyweight pattern to manage cell types efficiently.
+
+**What it does:**
+- Creates and reuses cell type objects (like `:wall`, `:floor`, `:empty`)
+- Ensures identical types are shared rather than duplicated
+- Provides a registry of cell types with their properties (walkable, renderable, etc.)
+
+**Example usage:**
+```ruby
+factory = CellTypeFactory.new
+wall_type = factory.get_cell_type(:wall)  # Returns a CellType object
+floor_type = factory.get_cell_type(:floor)
+```
+
+**Why it's optional:**
+The Grid constructor provides a default `CellTypeFactory`, so you can ignore this parameter for now. It's an implementation detail that helps with memory efficiency and type management, but you don't need to understand it to use grids effectively. The grid works fine with the default factory.
+
+For the purposes of learning about grids and cells, you can treat `CellTypeFactory` as an internal detail. When you create a grid, it automatically sets up the necessary cell types.
+
 ## Cell Concepts: Walls, Floors, Connections
 
 Each cell in the grid represents a position in the game world. But cells are more than just positions—they have properties and relationships.

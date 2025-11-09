@@ -53,6 +53,42 @@ This handler:
 - Creates command objects instead of directly modifying state
 - Returns `NullCommand` for unrecognized keys (no-op)
 
+### Terminal Input: DisplayHandler and KeyboardHandler
+
+Before input reaches the `InputHandler`, it flows through terminal input handlers. These are simple wrappers around Ruby's standard library:
+
+**DisplayHandler**: A simple wrapper that provides access to input and rendering:
+
+```ruby
+module Vanilla
+  class DisplayHandler
+    attr_reader :keyboard_handler
+
+    def initialize
+      @keyboard_handler = Vanilla::KeyboardHandler.new
+    end
+  end
+end
+```
+
+**KeyboardHandler**: Does the actual work of reading keyboard input:
+
+```ruby
+module Vanilla
+  class KeyboardHandler
+    def wait_for_input
+      $stdin.raw { $stdin.getc }
+    end
+  end
+end
+```
+
+The `KeyboardHandler` uses Ruby's `io/console` library (via `require 'io/console'`) to read single keypresses without waiting for Enter. The `raw` mode reads characters immediately, which is essential for responsive game input.
+
+**The flow**: `KeyboardHandler.wait_for_input` → `DisplayHandler.keyboard_handler` → `InputSystem` → `InputHandler`
+
+This separation keeps input handling modular and testable. The `DisplayHandler` is just a container, while `KeyboardHandler` does the actual terminal I/O work.
+
 ### InputSystem: Processing Commands
 
 The `InputSystem` processes input and queues commands:
@@ -62,9 +98,9 @@ module Vanilla
   module Systems
     class InputSystem < System
       def update(_delta_time)
-        return unless @world.display.ready?
+        return unless @world.display.keyboard_handler
 
-        key = @world.display.get_key
+        key = @world.display.keyboard_handler.wait_for_input
         return unless key
 
         player = @world.find_entity_by_tag(:player)
