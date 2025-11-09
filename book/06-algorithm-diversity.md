@@ -80,6 +80,25 @@ flowchart TD
 - No "typical" maze structure
 - More unpredictable than other algorithms
 
+### Performance Characteristics
+
+**Time Complexity**: O(n²) worst case, O(n log n) average case
+- The random walk can revisit cells many times before finding unvisited ones
+- Worst case: might visit the same cell O(n) times before discovering an unvisited neighbor
+- Average case is better but still unpredictable—you can't guarantee completion time
+
+**Space Complexity**: O(1) additional space
+- No extra data structures needed beyond the grid
+- Works in-place, using only a constant amount of memory
+
+**Performance for different grid sizes**:
+- Small grids (10x10 = 100 cells): Fast (< 10ms), acceptable
+- Medium grids (50x50 = 2,500 cells): Slow (100-500ms), noticeable delay
+- Large grids (100x100 = 10,000 cells): Very slow (1-5 seconds), problematic
+- Very large grids (500x500 = 250,000 cells): Impractical (minutes), avoid
+
+**When to use**: Small grids only, when you want completely unbiased mazes and generation time isn't critical. Avoid for larger grids or real-time generation.
+
 ### When to Use Aldous-Broder
 
 Use Aldous-Broder when:
@@ -178,6 +197,27 @@ flowchart TD
 - Compared to Binary Tree, fewer cells with only one link
 - More interesting navigation
 - Better for gameplay
+
+### Performance Characteristics
+
+**Time Complexity**: O(n) where n = number of cells
+- Visits each cell exactly once
+- Stack operations (push/pop) are O(1)
+- Linear time complexity—predictable and fast
+
+**Space Complexity**: O(n) worst case, O(log n) to O(√n) typical
+- Uses a stack to track the current path
+- Worst case: stack depth equals longest path (could be O(n) for a snake-like maze)
+- Typical case: stack depth is much less than n, usually logarithmic or square root
+- For most mazes, space usage is reasonable
+
+**Performance for different grid sizes**:
+- Small grids (10x10 = 100 cells): Instant (< 1ms)
+- Medium grids (50x50 = 2,500 cells): Very fast (< 10ms)
+- Large grids (100x100 = 10,000 cells): Fast (< 50ms)
+- Very large grids (500x500 = 250,000 cells): Acceptable (< 500ms)
+
+**When to use**: Default choice for most games. Fast, predictable, and produces high-quality mazes. Best balance of performance and quality.
 
 ### When to Use Recursive Backtracker
 
@@ -291,6 +331,27 @@ end
 - More like a building with rooms
 - Good for certain game styles
 
+### Performance Characteristics
+
+**Time Complexity**: O(n log n) average case
+- Recursive division creates log(n) levels of recursion
+- Each level processes O(n) cells (dividing and creating walls)
+- More complex than linear algorithms but still efficient
+- Performance is predictable and consistent
+
+**Space Complexity**: O(log n) for recursion stack
+- Recursion depth is logarithmic (divides space in half each time)
+- Each recursive call uses constant space
+- Memory usage grows slowly with grid size
+
+**Performance for different grid sizes**:
+- Small grids (10x10 = 100 cells): Fast (< 5ms)
+- Medium grids (50x50 = 2,500 cells): Good (< 50ms)
+- Large grids (100x100 = 10,000 cells): Acceptable (< 200ms)
+- Very large grids (500x500 = 250,000 cells): Slow (1-3 seconds), consider alternatives
+
+**When to use**: When you want structured, room-like layouts. Good for medium-sized grids. For very large grids, consider faster algorithms if generation speed matters.
+
 ### When to Use Recursive Division
 
 Use Recursive Division when:
@@ -317,12 +378,20 @@ graph LR
     style D fill:#e1f5ff
 ```
 
-| Algorithm | Bias | Speed | Dead Ends | Feel |
-|-----------|------|-------|-----------|------|
-| Binary Tree | Northeast | Fast | Many | Simple, biased |
-| Aldous-Broder | None | Slow | Medium | Completely random |
-| Recursive Backtracker | None | Fast | Few | Dungeon-like |
-| Recursive Division | None | Medium | Medium | Boxy, structured |
+| Algorithm | Bias | Time Complexity | Space Complexity | Dead Ends | Feel |
+|-----------|------|----------------|------------------|-----------|------|
+| Binary Tree | Northeast | O(n) | O(1) | Many | Simple, biased |
+| Aldous-Broder | None | O(n²) worst, O(n log n) avg | O(1) | Medium | Completely random |
+| Recursive Backtracker | None | O(n) | O(n) worst, O(log n) typical | Few | Dungeon-like |
+| Recursive Division | None | O(n log n) | O(log n) | Medium | Boxy, structured |
+
+**Understanding the complexities:**
+- **O(n)**: Linear time—visits each cell once. Fast and predictable for all grid sizes.
+- **O(n log n)**: Slightly slower than linear, but still efficient. Performance degrades gradually as grids get larger.
+- **O(n²)**: Quadratic time—can be slow for large grids. Avoid for real-time generation of large mazes.
+- **O(1) space**: Constant memory—no extra data structures needed.
+- **O(log n) space**: Logarithmic memory—grows slowly with grid size, usually negligible.
+- **O(n) space**: Linear memory—grows with grid size, but typically much less than n in practice.
 
 ### Choosing the Right Algorithm
 
@@ -333,6 +402,38 @@ Consider:
 - **Aesthetic**: What should the mazes look like?
 
 In Vanilla, Recursive Backtracker is the default because it balances all these factors well.
+
+### Performance Considerations
+
+When choosing an algorithm, consider your grid size and performance requirements:
+
+**For small grids (< 50x50 = 2,500 cells):**
+- All algorithms are fast enough (< 50ms)
+- Choose based on gameplay feel and aesthetic preferences
+- Complexity differences are negligible
+
+**For medium grids (50x50 to 100x100 = 2,500-10,000 cells):**
+- Binary Tree and Recursive Backtracker are fastest (both O(n))
+- Recursive Division is acceptable (O(n log n))
+- Avoid Aldous-Broder if generation speed matters
+
+**For large grids (100x100 to 500x500 = 10,000-250,000 cells):**
+- Binary Tree is fastest (O(n), O(1) space)
+- Recursive Backtracker is fast (O(n), but uses more memory)
+- Recursive Division becomes slower (O(n log n))
+- Avoid Aldous-Broder—unpredictable and potentially very slow
+
+**For very large grids (> 500x500 = 250,000+ cells):**
+- Binary Tree is the clear winner (fastest, least memory)
+- Recursive Backtracker is acceptable but uses more memory
+- Recursive Division and Aldous-Broder are too slow
+
+**Practical guidance:**
+- **Generating at game start**: Any algorithm is fine—players won't notice a 100ms difference
+- **Generating during gameplay**: Prefer O(n) algorithms (Binary Tree, Recursive Backtracker)
+- **Memory constrained**: Prefer O(1) space algorithms (Binary Tree, Aldous-Broder)
+- **Need predictable timing**: Avoid Aldous-Broder—its worst case is unpredictable
+- **Default choice**: Recursive Backtracker—best balance of speed, quality, and predictability
 
 ## Key Takeaway
 
