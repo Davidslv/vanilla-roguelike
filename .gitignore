@@ -14,3 +14,4 @@ test_results/**/*.log
 test_results/
 combined_game.rb
 current_diff.diff
+book_output/

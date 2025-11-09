@@ -1,0 +1,13 @@
+{
+  "name": "vanilla-roguelike-book",
+  "version": "1.0.0",
+  "description": "Build tools for converting the book to PDF",
+  "scripts": {
+    "install-mermaid": "npm install -g @mermaid-js/mermaid-cli"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^10.6.1"
+  }
+}
+
+
