@@ -50,8 +50,10 @@ module Vanilla
   module Systems
     class MovementSystem < System
       def update(_delta_time)
-        movable_entities = entities_with(:position, :movement, :input, :render)
-        movable_entities.each { |entity| process_entity_movement(entity) }
+        movable_entities = entities_with(:position, :movement, :input,
+              :render)
+        movable_entities.
+              each { |entity| process_entity_movement(entity) }
       end
 
       def process_entity_movement(entity)
@@ -158,7 +160,8 @@ module Vanilla
       end
 
       def calculate_damage(attacker_combat, defender_combat)
-        damage = attacker_combat.attack_power - defender_combat.defense
+        damage = attacker_combat.attack_power - defender_combat.
+              defense
         [damage, 1].max  # Minimum 1 damage
       end
 
@@ -166,7 +169,8 @@ module Vanilla
         health = target.get_component(:health)
         return unless health
 
-        health.current_health = [health.current_health - damage, 0].max
+        health.current_health = [health.
+              current_health - damage, 0].max
 
         emit_event(:combat_damage, {
           target_id: target.id,
@@ -226,12 +230,14 @@ graph TD
 
 ```ruby
 # Systems are added with priorities
-@world.add_system(MazeSystem.new(@world), 0)        # Generate maze first
+@world.add_system(MazeSystem.
+      new(@world), 0)        # Generate maze first
 @world.add_system(InputSystem.new(@world), 1)        # Process input
 @world.add_system(MovementSystem.new(@world), 2)     # Move entities
 @world.add_system(CombatSystem.new(@world), 3)       # Handle combat
 @world.add_system(CollisionSystem.new(@world), 3)   # Check collisions
-@world.add_system(MonsterSystem.new(@world), 4)     # Update monster AI
+@world.add_system(MonsterSystem.
+      new(@world), 4)     # Update monster AI
 @world.add_system(RenderSystem.new(@world), 10)     # Render last
 ```
 

@@ -58,7 +58,8 @@ module Vanilla
 
         # Simple AI: move toward player
         direction = choose_direction(monster_pos, player_pos)
-        movement_system = @world.systems.find { |s, _| s.is_a?(MovementSystem) }&.first
+        movement_system = @world.systems.find { |s, _| s.
+              is_a?(MovementSystem) }&.first
         movement_system.move(monster, direction) if direction
       end
 
@@ -99,7 +100,8 @@ def spawn_monster(level, grid)
   cell = floor_cells.sample
 
   # Create monster entity
-  monster = EntityFactory.create_monster(:goblin, cell.row, cell.column, 30, 5)
+  monster = EntityFactory.create_monster(:goblin, cell.
+        row, cell.column, 30, 5)
   @world.add_entity(monster)
   @monsters << monster
 end

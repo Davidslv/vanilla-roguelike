@@ -42,7 +42,8 @@ module Vanilla
         return unless entity
 
         position = entity.get_component(:position)
-        entities_at_position = find_entities_at_position(position.row, position.column)
+        entities_at_position = find_entities_at_position(position.
+              row, position.column)
 
         entities_at_position.each do |other_entity|
           next if other_entity.id == entity.id

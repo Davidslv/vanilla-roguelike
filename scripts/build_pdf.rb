@@ -137,7 +137,9 @@ class BookPDFBuilder
       content = File.read(chapter_path)
       updated_content = content.gsub(/```mermaid\n(.*?)```/m) do |match|
         diagram_code = Regexp.last_match(1)
-        render_single_diagram(diagram_code, chapter_file)
+        # Extract caption from context (heading or paragraph before diagram)
+        caption = extract_caption(content, match)
+        render_single_diagram(diagram_code, chapter_file, caption)
       end
 
       # Write updated content to temp file for later use
@@ -148,13 +150,47 @@ class BookPDFBuilder
     puts "  ✓ Rendered #{@diagram_counter} diagrams"
   end
 
-  def render_single_diagram(diagram_code, source_file)
+  def extract_caption(content, diagram_match)
+    # Find the position of the diagram in the content
+    diagram_pos = content.index(diagram_match)
+    return "Diagram" if diagram_pos.nil?
+
+    # Look backwards for the most recent heading or paragraph
+    before_diagram = content[0...diagram_pos]
+
+    # Find the LAST heading before the diagram (most recent)
+    # Escape # to avoid string interpolation in regex
+    headings = before_diagram.scan(/(?:^|\n)(\#{1,6})\s+(.+?)(?:\n|$)/m)
+    if headings.any?
+      heading_text = headings.last[1].strip
+      # Clean up markdown formatting
+      heading_text = heading_text.gsub(/\*\*([^*]+)\*\*/, '\1') # Remove bold
+      heading_text = heading_text.gsub(/\*([^*]+)\*/, '\1') # Remove italic
+      heading_text = heading_text.gsub(/\[([^\]]+)\]\([^)]+\)/, '\1') # Remove links
+      return heading_text unless heading_text.empty?
+    end
+
+    # Fallback: look for paragraph text before diagram
+    paragraphs = before_diagram.split(/\n\n+/)
+    if paragraphs.length > 0
+      last_para = paragraphs[-1].strip
+      # Remove markdown formatting and take first sentence
+      last_para = last_para.gsub(/[#*\[\]()]/, '').strip
+      if last_para.length > 0 && last_para.length < 100
+        return last_para.split(/[.!?]/).first || "Diagram"
+      end
+    end
+
+    "Diagram"
+  end
+
+  def render_single_diagram(diagram_code, source_file, caption = "Diagram")
     @diagram_counter += 1
     diagram_id = "diagram_#{@diagram_counter}"
 
     # Use PNG if rsvg-convert is not available (Pandoc can't handle SVG without it)
     # PNG at high resolution (1200x800) is still good for print
-    extension = @use_svg ? 'svg' : 'png'
+    extension = 'png'# @use_svg ? 'svg' : 'png'
     output_file = File.join(DIAGRAMS_DIR, "#{diagram_id}.#{extension}")
 
     # Create temporary mermaid file
@@ -165,6 +201,8 @@ class BookPDFBuilder
     # Render with mermaid-cli
     # For PNG: high resolution (1200x800) for print quality
     # For SVG: vector format for best print quality (requires rsvg-convert)
+    # Note: If text doesn't appear in PDF, it may be a font embedding issue with rsvg-convert
+    # Try using PNG format instead, or ensure fonts are available to rsvg-convert
     cmd = "mmdc -i #{temp_mmd.path} -o #{output_file} -w 1200 -H 800 -b transparent"
     success = system(cmd)
 
@@ -175,31 +213,40 @@ class BookPDFBuilder
 
     temp_mmd.unlink
 
-    # Return markdown image reference with relative path
-    # This will be converted to proper relative path in combine_markdown
-    "![Mermaid Diagram](#{output_file})"
+    # Return markdown image reference with caption
+    # Add LaTeX float placement [H] to force image to appear "here" (not floating)
+    # This prevents images from appearing in the middle of text
+    "![#{caption}](#{output_file}){width=95%}"
   end
 
   def combine_markdown
     puts "\n[4/5] Combining markdown files..."
 
     combined = String.new
+    combined << "\\newpage"
     combined << "# Building Your Own Roguelike: A Practical Guide\n\n"
     # combined << "*Generated for Amazon KDP*\n\n"
-    combined << "---\n\n"
+    combined << "\\newpage"
 
     CHAPTERS.each do |chapter_file|
       processed_file = File.join(OUTPUT_DIR, "#{chapter_file}.processed")
       if File.exist?(processed_file)
         content = File.read(processed_file)
         # Convert image paths to relative paths from OUTPUT_DIR
-        content = content.gsub(/!\[([^\]]*)\]\(([^)]+)\)/) do |match|
+        # Also add LaTeX float placement to prevent images from floating into text
+        content = content.gsub(/!\[([^\]]*)\]\(([^)]+)\)(?:\{([^}]*)\})?/) do |match|
           alt_text = Regexp.last_match(1)
           img_path = Regexp.last_match(2)
+          existing_attrs = Regexp.last_match(3)
+
           # If it's an absolute path to a diagram, make it relative
           if img_path.include?('diagrams/') && File.exist?(img_path)
             relative_path = File.join('diagrams', File.basename(img_path))
-            "![#{alt_text}](#{relative_path})"
+            # Add LaTeX placement to force image here (not floating)
+            # Use width attribute and FloatBarrier to prevent floating
+            attrs = existing_attrs ? "#{existing_attrs}" : "width=100%"
+            # Add FloatBarrier before image to prevent it from floating into previous text
+            "\\FloatBarrier\n\n![#{alt_text}](#{relative_path}){#{attrs}}\n\n"
           elsif File.exist?(img_path)
             # Absolute path exists, use it
             match
@@ -208,13 +255,13 @@ class BookPDFBuilder
           end
         end
         combined << content
-        combined << "\n\n---\n\n"
+        combined << "\n\n\\newpage\n\n" # Page break between chapters
       else
         # Fallback to original if processed doesn't exist
         original_file = File.join(BOOK_DIR, chapter_file)
         if File.exist?(original_file)
           combined << File.read(original_file)
-          combined << "\n\n---\n\n"
+          combined << "\n\n\\newpage\n\n" # Page break between chapters
         end
       end
     end
@@ -236,12 +283,150 @@ class BookPDFBuilder
       # --variable=geometry:paperheight=9.25in
       # --variable=geometry:includehead=true
       # --variable=geometry:includefoot=true
+      # Create LaTeX header to control image placement and code wrapping
+      # Use placeins package for \FloatBarrier and floatrow for better control
+      latex_header = <<~LATEX
+        % Font configuration (XeLaTeX supports system fonts)
+        \\usepackage{fontspec}
+        % Note: If font not found, XeLaTeX will use default font
+        % Check available fonts with: fc-list | grep -i "fontname"
+        \\setmainfont{Helvetica}     % Body text font (Calibri not on macOS by default)
+        \\setsansfont{Helvetica}   % Sans-serif font for headings
+        \\setmonofont{Menlo}       % Monospace font for code
+        %
+        % Popular font choices:
+        % Serif: Times New Roman, Georgia, Palatino, Minion Pro, Garamond
+        % Sans-serif: Arial, Helvetica, Calibri, Verdana, Open Sans
+        % Monospace: Courier New, Consolas, Monaco, Menlo, Source Code Pro
+        %
+        % For Amazon KDP, Times New Roman or similar serif fonts are common
+
+        \\usepackage{placeins}
+        \\usepackage{float}
+        \\floatplacement{figure}{H}
+        \\usepackage{graphicx}
+        % Table configuration - make tables fit page width
+        \\usepackage{tabularx}
+        \\usepackage{longtable}
+        \\usepackage{booktabs}
+        % Make all tables fit within page margins
+        \\usepackage{adjustbox}
+        % Configure tables to auto-resize
+        \\renewcommand{\\tabularxcolumn}[1]{m{#1}}
+        % Set default table width to text width
+        \\setlength{\\tabcolsep}{4pt}  % Reduce column separation
+        \\renewcommand{\\arraystretch}{1.2}  % Slightly increase row height for readability
+        % Auto-resize tables to fit page width using adjustbox
+        % This wraps all tables to fit within text width
+        \\usepackage{environ}
+        \\NewEnviron{resizetable}{%
+          \\begin{adjustbox}{width=\\textwidth,center}
+            \\BODY
+          \\end{adjustbox}
+        }
+        % Make all tables use resizetable environment
+        \\let\\oldtable\\table
+        \\let\\oldendtable\\endtable
+        \\renewenvironment{table}{\\begin{resizetable}\\begin{oldtable}}{\\end{oldtable}\\end{resizetable}}
+        % Code wrapping and formatting
+        \\usepackage{listings}
+        \\usepackage{xcolor}
+        \\usepackage{fancyvrb}
+        \\usepackage{upquote}
+        % Configure code blocks to wrap and fit page width
+        \\lstset{
+          breaklines=true,
+          breakatwhitespace=true,
+          postbreak=\\mbox{\\textcolor{red}{$\\hookrightarrow$}\\space},
+          basicstyle=\\ttfamily\\footnotesize,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framesep=3pt,
+          framerule=0.5pt,
+          rulecolor=\\color{gray!40},
+          backgroundcolor=\\color{white},
+          xleftmargin=5pt,
+          xrightmargin=5pt,
+          aboveskip=10pt,
+          belowskip=10pt,
+          linewidth=\\textwidth,
+          breakindent=0pt
+        }
+        % Configure Verbatim (used by Pandoc for code blocks)
+        % Use smaller font and frame, but rely on listings for wrapping
+        \\fvset{
+          fontsize=\\footnotesize,
+          frame=single,
+          framesep=3pt,
+          framerule=0.5pt,
+          rulecolor=\\color{gray!40}
+        }
+        % Create a custom verbatim environment that wraps
+        \\usepackage{etoolbox}
+        \\makeatletter
+        % Patch verbatim to use smaller font and respect margins better
+        \\apptocmd{\\@verbatim}{%
+          \\footnotesize%
+          \\setlength{\\leftskip}{\\@totalleftmargin}%
+          \\setlength{\\rightskip}{0pt}%
+        }{}{}
+        \\makeatother
+        % Use tcolorbox for better code block wrapping (if available)
+        % Otherwise, configure verbatim to use smaller font and respect margins
+        \\makeatletter
+        \\renewcommand{\\verbatim@font}{\\ttfamily\\footnotesize}
+        % Make verbatim respect page margins
+        \\def\\@verbatim{%
+          \\trivlist
+          \\item\\relax
+          \\if@minipage\\else
+            \\vskip\\parskip
+          \\fi
+          \\leftskip\\@totalleftmargin\\rightskip\\z@skip
+          \\parindent\\z@\\parfillskip\\@flushglue\\parskip\\z@
+          \\@tempswafalse
+          \\def\\par{%
+            \\if@tempswa
+              \\leavevmode\\null\\@@par\\penalty\\interlinepenalty
+            \\else
+              \\@tempswatrue
+              \\ifhmode\\@@par\\penalty\\interlinepenalty\\fi
+            \\fi
+          }%
+          \\obeylines\\verbatim@font\\@noligs
+          \\let\\do\\@makeother\\dospecials
+          \\everypar\\expandafter{\\the\\everypar\\unpenalty}%
+        }
+        \\makeatother
+        % Use listings package for code blocks that need wrapping
+        % Pandoc will use this for code blocks
+        \\lstdefinestyle{codeblock}{
+          breaklines=true,
+          breakatwhitespace=false,
+          breakindent=0pt,
+          postbreak=\\raisebox{0ex}[0ex][0ex]{\\ensuremath{\\hookrightarrow\\space}},
+          basicstyle=\\ttfamily\\footnotesize,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framesep=3pt,
+          framerule=0.5pt,
+          backgroundcolor=\\color{white}
+        }
+      LATEX
+
+      # Write header to temp file
+      header_file = File.join(OUTPUT_DIR, 'latex_header.tex')
+      File.write(header_file, latex_header)
+
       # Build command array for better handling
       cmd_parts = [
         'pandoc',
         'combined.md',
         '-o', File.basename(FINAL_PDF),
         '--pdf-engine=xelatex', # Better Unicode support
+        '--include-in-header', header_file,
         '--variable=geometry:margin=0.5in',
         '--variable=geometry:paperwidth=6in',
         '--variable=geometry:paperheight=9in',
@@ -252,7 +437,8 @@ class BookPDFBuilder
         '--toc', # Table of contents
         '--toc-depth=2',
         '--number-sections',
-        '--syntax-highlighting=tango' # Updated from deprecated --highlight-style
+        '--syntax-highlighting=tango', # Updated from deprecated --highlight-style
+        '--wrap=preserve' # Preserve line breaks but allow wrapping
       ]
 
       # For xelatex, font embedding is automatic, but we can ensure it

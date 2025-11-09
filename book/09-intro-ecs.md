@@ -95,8 +95,14 @@ module Vanilla
   module Systems
     class MovementSystem < System
       def update(_delta_time)
-        movable_entities = entities_with(:position, :movement, :input, :render)
-        movable_entities.each { |entity| process_entity_movement(entity) }
+        movable_entities = entities_with(
+          :position,
+          :movement,
+          :input,
+          :render
+        )
+        movable_entities.
+              each { |entity| process_entity_movement(entity) }
       end
     end
   end
@@ -227,8 +233,10 @@ player.add_component(HealthComponent.new(max_health: 100))
 player.add_component(RenderComponent.new(character: '@'))
 
 # Systems handle the logic
-MovementSystem.process(player)  # System moves entities with PositionComponent
-RenderSystem.process(player)   # System renders entities with RenderComponent
+MovementSystem.
+      process(player)  # System moves entities with PositionComponent
+RenderSystem.
+      process(player)   # System renders entities with RenderComponent
 ```
 
 The difference: In OOP, the `Player` class contains both data and behavior. In ECS, components contain data, and systems contain behavior.

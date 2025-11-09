@@ -46,7 +46,12 @@ module Vanilla
           cell.unlink(cell: cell.south)
         end
         divide(row, column, divide_south_of + 1, width)
-        divide(row + divide_south_of + 1, column, height - divide_south_of - 1, width)
+        divide(
+          row + divide_south_of + 1,
+          column,
+          height - divide_south_of - 1,
+          width
+        )
       end
 
       def divide_vertically(row, column, height, width)
@@ -59,7 +64,12 @@ module Vanilla
           cell.unlink(cell: cell.east)
         end
         divide(row, column, height, divide_east_of + 1)
-        divide(row, column + divide_east_of + 1, height, width - divide_east_of - 1)
+        divide(
+          row,
+          column + divide_east_of + 1,
+          height,
+          width - divide_east_of - 1
+        )
       end
     end
   end

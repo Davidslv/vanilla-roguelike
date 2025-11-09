@@ -113,7 +113,8 @@ describe "Combat Integration" do
     monster = create_monster(world, health: 10)
 
     # Execute
-    combat_system = world.systems.find { |s, _| s.is_a?(CombatSystem) }[0]
+    combat_system = world.systems.find { |s, _| s.
+          is_a?(CombatSystem) }[0]
     combat_system.process_attack(player, monster)
 
     # Verify

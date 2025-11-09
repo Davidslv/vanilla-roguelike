@@ -16,12 +16,14 @@ module Vanilla
 
     def initialize
       @entities = {}                    # Hash of entity_id => Entity
-      @systems = []                     # Array of [System, Priority] pairs
+      @systems = []                     # Array of [System,
+            Priority] pairs
       @quit = false                     # Game exit flag
       @display = DisplayHandler.new     # Rendering handler
       @current_level = nil              # Current level data
       @level_changed = false            # Level transition flag
-      @event_subscribers = Hash.new { |h, k| h[k] = [] }  # Event subscriptions
+      @event_subscribers = Hash.
+            new { |h, k| h[k] = [] }  # Event subscriptions
       @event_queue = Queue.new          # Pending events
       @command_queue = Queue.new       # Pending commands
     end
@@ -127,7 +129,8 @@ module Vanilla
       end
 
       def execute(world)
-        movement_system = world.systems.find { |s, _| s.is_a?(MovementSystem) }&.first
+        movement_system = world.systems.find { |s, _| s.
+              is_a?(MovementSystem) }&.first
         movement_system.move(@entity, @direction)
       end
     end
@@ -186,7 +189,8 @@ def process_events
     event_type, data = @event_queue.shift
 
     # Store event
-    event_manager.publish_event(event_type, self, data) if event_manager
+    event_manager.
+          publish_event(event_type, self, data) if event_manager
 
     # Notify subscribers
     @event_subscribers[event_type].each do |subscriber|

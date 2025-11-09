@@ -25,12 +25,17 @@ module Vanilla
     class Grid
       attr_reader :rows, :columns
 
-      def initialize(rows, columns, type_factory: CellTypeFactory.new)
+      def initialize(rows,
+                     columns,
+                     type_factory: CellTypeFactory.new)
+
         @rows = rows
         @columns = columns
         @type_factory = type_factory
         @grid = Array.new(rows * columns) do |i|
-          Cell.new(row: i / columns, column: i % columns, type_factory: @type_factory)
+          Cell.
+                new(row: i / columns, column: i % columns,
+                      type_factory: @type_factory)
         end
         # Set neighbors for each cell
         each_cell do |cell|
@@ -43,7 +48,8 @@ module Vanilla
       end
 
       def [](row, col)
-        return nil unless row.between?(0, @rows - 1) && col.between?(0, @columns - 1)
+        return nil unless row.between?(0, @rows - 1) && col.
+              between?(0, @columns - 1)
         @grid[row * @columns + col]
       end
     end

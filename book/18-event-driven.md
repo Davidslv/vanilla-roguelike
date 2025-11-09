@@ -26,7 +26,8 @@ With events, systems are independent:
 class MovementSystem
   def move(entity)
     # ... movement logic ...
-    emit_event(:entity_moved, { entity_id: entity.id })  # No dependencies
+    emit_event(:entity_moved, { entity_id: entity.
+          id })  # No dependencies
   end
 end
 ```

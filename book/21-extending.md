@@ -18,7 +18,8 @@ end
 
 # Modify MovementSystem
 def can_move_to?(cell, entity)
-  return true if entity.has_component?(:flying)  # Flying entities ignore walls
+  return true if entity.
+        has_component?(:flying)  # Flying entities ignore walls
   return false if cell.links.empty?
   true
 end

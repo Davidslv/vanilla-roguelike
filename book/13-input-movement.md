@@ -120,8 +120,10 @@ module Vanilla
 
         emit_event(:movement_succeeded, {
           entity_id: entity.id,
-          old_position: { row: current_cell.row, column: current_cell.column },
-          new_position: { row: new_cell.row, column: new_cell.column },
+          old_position: { row: current_cell.row, column: current_cell.
+                column },
+          new_position: { row: new_cell.row, column: new_cell.
+                column },
           direction: direction
         })
 
@@ -165,7 +167,8 @@ The grid's `[]` method handles boundary checking:
 
 ```ruby
 def [](row, col)
-  return nil unless row.between?(0, @rows - 1) && col.between?(0, @columns - 1)
+  return nil unless row.between?(0, @rows - 1) && col.
+        between?(0, @columns - 1)
   @grid[row * @columns + col]
 end
 ```

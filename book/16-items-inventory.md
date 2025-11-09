@@ -87,7 +87,8 @@ module Vanilla
 
       def use_item(entity, item)
         return false unless entity.has_component?(:inventory)
-        return false unless entity.get_component(:inventory).items.include?(item)
+        return false unless entity.get_component(:inventory).items.
+              include?(item)
 
         consumable = item.get_component(:consumable)
         return false unless consumable

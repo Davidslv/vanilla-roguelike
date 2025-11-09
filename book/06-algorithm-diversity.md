@@ -118,7 +118,8 @@ module Vanilla
 
         while stack.any?
           current = stack.last
-          neighbors = current.neighbors.select { |cell| cell.links.empty? }
+          neighbors = current.neighbors.select { |cell| cell.
+                links.empty? }
 
           if neighbors.empty?
             stack.pop
@@ -130,7 +131,8 @@ module Vanilla
         end
 
         grid.each_cell do |cell|
-          cell.tile = Vanilla::Support::TileType::WALL if cell.links.empty?
+          cell.tile = Vanilla::Support::TileType::WALL if cell.
+                links.empty?
         end
 
         grid
@@ -215,10 +217,12 @@ module Vanilla
       def process
         # Start with all cells linked
         @grid.each_cell do |cell|
-          cell.neighbors.each { |n| cell.link(cell: n, bidirectional: false) }
+          cell.neighbors.each { |n| cell.
+                link(cell: n, bidirectional: false) }
         end
         divide(0, 0, @grid.rows, @grid.columns)
-        @grid.each_cell { |cell| cell.tile = :WALL if cell.links.empty? }
+        @grid.each_cell { |cell| cell.tile = :WALL if cell.
+              links.empty? }
         @grid
       end
 
@@ -241,7 +245,12 @@ module Vanilla
           cell.unlink(cell: cell.south)
         end
         divide(row, column, divide_south_of + 1, width)
-        divide(row + divide_south_of + 1, column, height - divide_south_of - 1, width)
+        divide(
+          row + divide_south_of + 1,
+          column,
+          height - divide_south_of - 1,
+          width
+        )
       end
 
       def divide_vertically(row, column, height, width)
@@ -253,7 +262,12 @@ module Vanilla
           cell.unlink(cell: cell.east)
         end
         divide(row, column, height, divide_east_of + 1)
-        divide(row, column + divide_east_of + 1, height, width - divide_east_of - 1)
+        divide(
+          row,
+          column + divide_east_of + 1,
+          height,
+          width - divide_east_of - 1
+          )
       end
     end
   end

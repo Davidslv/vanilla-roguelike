@@ -25,7 +25,9 @@ module Vanilla
 
       def add_component(component)
         type = component.type
-        raise ArgumentError, "Entity already has component of type #{type}" if @component_map.key?(type)
+        raise ArgumentError,
+              "Entity already has component of type #{type}" if
+                    @component_map.key?(type)
 
         @components << component
         @component_map[type] = component
@@ -120,7 +122,8 @@ graph TD
 ```ruby
 player = Entity.new
 player.add_component(PositionComponent.new(row: 0, column: 0))
-player.add_component(RenderComponent.new(character: '@', color: :white))
+player.add_component(RenderComponent.
+      new(character: '@', color: :white))
 player.add_component(HealthComponent.new(max_health: 100))
 player.add_component(MovementComponent.new(active: true))
 player.add_component(InputComponent.new)
@@ -134,7 +137,8 @@ monster.add_component(PositionComponent.new(row: 5, column: 5))
 monster.add_component(RenderComponent.new(character: 'M'))
 monster.add_component(HealthComponent.new(max_health: 50))
 monster.add_component(MovementComponent.new(active: true))
-monster.add_component(CombatComponent.new(attack_power: 10, defense: 5))
+monster.add_component(CombatComponent.
+      new(attack_power: 10, defense: 5))
 ```
 
 Notice: Both have `PositionComponent`, `RenderComponent`, `HealthComponent`, and `MovementComponent`. The systems that process these components work on both player and monsters. That's the power of composition.
@@ -350,8 +354,10 @@ module Vanilla
   class EntityFactory
     def self.create_player(row, column)
       player = Entity.new
-      player.add_component(PositionComponent.new(row: row, column: column))
-      player.add_component(RenderComponent.new(character: '@', color: :white))
+      player.add_component(PositionComponent.
+            new(row: row, column: column))
+      player.add_component(RenderComponent.
+            new(character: '@', color: :white))
       player.add_component(HealthComponent.new(max_health: 100))
       player.add_component(MovementComponent.new(active: true))
       player.add_component(InputComponent.new)
@@ -363,11 +369,13 @@ module Vanilla
 
     def self.create_monster(type, row, column, health, attack)
       monster = Entity.new
-      monster.add_component(PositionComponent.new(row: row, column: column))
+      monster.add_component(PositionComponent.
+            new(row: row, column: column))
       monster.add_component(RenderComponent.new(character: 'M'))
       monster.add_component(HealthComponent.new(max_health: health))
       monster.add_component(MovementComponent.new(active: true))
-      monster.add_component(CombatComponent.new(attack_power: attack, defense: 5))
+      monster.add_component(CombatComponent.
+            new(attack_power: attack, defense: 5))
       monster.add_tag(:monster)
       monster.name = "Monster"
       monster

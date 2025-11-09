@@ -70,7 +70,8 @@ Sometimes algorithms or entity placement can create disconnected regions. Vanill
 def ensure_path(grid, start_cell, goal_cell)
   current = start_cell
   until current == goal_cell
-    next_cell = [current.north, current.south, current.east, current.west]
+    next_cell = [current.north, current.south, current.
+          east, current.west]
       .compact
       .min_by { |cell| manhattan_distance(cell, goal_cell) }
 

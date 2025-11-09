@@ -53,7 +53,8 @@ module Vanilla
       end
 
       def calculate_damage(attacker_combat, defender_combat)
-        damage = attacker_combat.attack_power - defender_combat.defense
+        damage = attacker_combat.attack_power - defender_combat.
+              defense
         [damage, 1].max  # Minimum 1 damage
       end
     end

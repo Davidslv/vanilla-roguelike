@@ -1,4 +1,4 @@
-# Chapter 5: Maze Generation Algorithms - The Journey Begins
+# Chapter 5: Maze Generation Algorithms
 
 ## Binary Tree Algorithm: The Simplest Starting Point
 
@@ -19,7 +19,8 @@ module Vanilla
           has_north = !cell.north.nil?
           has_east = !cell.east.nil?
           if has_north && has_east
-            cell.link(cell: rand(2) == 0 ? cell.north : cell.east, bidirectional: true)
+            cell.link(cell: rand(2) == 0 ? cell.north : cell.
+                  east, bidirectional: true)
           elsif has_north
             cell.link(cell: cell.north, bidirectional: true)
           elsif has_east
