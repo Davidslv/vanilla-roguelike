@@ -126,6 +126,8 @@ This book follows the development of Vanilla Roguelike, a game built in Ruby ove
 
 You don't need to be an expert programmer. You need curiosity, persistence, and a willingness to learn. By the end of this book, you'll understand not just how to build a roguelike, but how to think about software architecture, algorithms, and game design.
 
+**Exploring the Source Code**: The complete source code for Vanilla Roguelike is available on GitHub at [github.com/Davidslv/vanilla-roguelike](https://github.com/Davidslv/vanilla-roguelike). You can explore the implementation, see how concepts from this book are applied in practice, and discover additional features and topics not covered in these pages. The codebase serves as a reference implementation and a learning resource.
+
 ## Key Takeaway
 
 Roguelikes are more than games—they're technical and creative challenges. Understanding what makes them unique helps you appreciate both the genre and the skills you'll develop building one. The journey ahead will teach you algorithms, architecture, and design patterns that apply far beyond game development.

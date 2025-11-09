@@ -169,7 +169,38 @@ end
 
 In Vanilla, this is handled by the `RenderSystem`, but for now, think of it as a simple function that draws characters to the terminal.
 
+### Using Ruby's Built-in Terminal Features
+
+Ruby's standard library provides everything you need for terminal-based games—no external libraries required. Here's what you'll use:
+
+**Keyboard Input**: Ruby's `io/console` library lets you read single keypresses without waiting for Enter:
+
+```ruby
+require 'io/console'
+
+def get_keypress
+  $stdin.raw { $stdin.getc.chr }
+end
+```
+
+The `raw` mode reads characters immediately, which is perfect for real-time input in games.
+
+**Screen Clearing**: Use the system's clear command:
+
+```ruby
+def clear_screen
+  system("clear")  # On Unix/macOS
+  # or system("cls")  # On Windows
+end
+```
+
+**Rendering**: Simple `print` and `puts` statements are sufficient. You'll build a string representing the entire screen, then print it all at once.
+
+**No External Dependencies**: This approach uses only Ruby's standard library. No gems, no complex setup—just pure Ruby. This keeps the code simple and portable.
+
 ## Building the Prototype
+
+**Note on Code Structure**: For this prototype, you can put everything in a single file. The code snippets below show individual pieces, but they all combine into one complete program. Later chapters will show more organized structures, but for now, simplicity is key.
 
 Let's outline what you need for the minimal prototype:
 
