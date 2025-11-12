@@ -33,6 +33,14 @@ OptionParser.new do |opts|
     end
   end
 
+  opts.on("--dev-mode", "Enable developer mode (disables FOV)") do
+    options[:dev_mode] = true
+  end
+
+  opts.on("--fov-disabled", "Disable field of view system") do
+    options[:fov_disabled] = true
+  end
+
   opts.on("-h", "--help", "Show this help message") do
     puts opts
     exit
