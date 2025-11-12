@@ -8,6 +8,7 @@ require_relative 'commands/change_level_command'
 require_relative 'commands/toggle_menu_mode_command'
 require_relative 'commands/attack_command'
 require_relative 'commands/run_away_command'
+require_relative 'commands/toggle_fov_command'
 # Update Flow:
 # KeyboardHandler → InputHandler → Creates commands → InputSystem queues them in World.
 
@@ -89,6 +90,9 @@ module Vanilla
       when 'm'
         @logger.info("[InputHandler] User attempting to toggle message menu")
         Commands::ToggleMenuModeCommand.new
+      when 'f', 'F'
+        @logger.info("[InputHandler] User toggling FOV")
+        Commands::ToggleFOVCommand.new
       when 'q', "\C-c", "\u0003" # 'q' or Ctrl+C
         @logger.info("[InputHandler] User attempting to exit game")
         Commands::ExitCommand.new
