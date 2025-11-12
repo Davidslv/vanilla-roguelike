@@ -41,7 +41,16 @@ module Vanilla
 
       def render_grid
         grid = @world.current_level&.grid
-        @renderer.draw_grid(grid, @world.current_level&.algorithm&.demodulize || "Unknown")
+        player = @world.find_entity_by_tag(:player)
+        visibility = player&.get_component(:visibility)
+        dev_mode = player&.get_component(:dev_mode)
+
+        @renderer.draw_grid(
+          grid,
+          @world.current_level&.algorithm&.demodulize || "Unknown",
+          visibility: visibility,
+          dev_mode: dev_mode
+        )
       end
 
       def render_messages

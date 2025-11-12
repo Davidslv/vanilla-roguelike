@@ -27,8 +27,11 @@ module Vanilla
       end
 
       # --- Core Lifecycle Methods ---
-      def draw_grid(grid, algorithm)
+      def draw_grid(grid, algorithm, visibility: nil, dev_mode: nil)
         Vanilla::Logger.instance.warn("[TerminalRenderer] Drawing grid with algorithm: #{algorithm}")
+
+        # Check if FOV is active
+        fov_active = visibility && !(dev_mode&.fov_disabled)
 
         # Build status lines
         header_parts = []
@@ -36,6 +39,11 @@ module Vanilla
 
         if @seed
           header_parts << "Seed: #{@seed}"
+        end
+
+        # Add dev mode indicator if active
+        if dev_mode&.fov_disabled
+          header_parts << "DEV MODE: FOV OFF"
         end
 
         # Build HP and Level line
@@ -67,12 +75,41 @@ module Vanilla
           row_walls = "+" # Start with corner
           grid.columns.times do |col|
             cell = grid[row, col]
-            # Cell content: tile (or '.' if empty), padded with spaces
-            row_cells += " #{cell.tile || '.'} "
-            # East wall: space if linked (open), | if not (wall), or | for last column
-            row_cells += col == grid.columns - 1 ? "|" : (cell.linked?(cell.east) ? " " : "|")
-            # South wall: spaces if linked (open path), --- if not (wall)
-            row_walls += cell.linked?(cell.south) ? "   +" : "---+"
+
+            # Determine visibility state
+            if fov_active
+              is_visible = visibility.tile_visible?(row, col)
+              is_explored = visibility.tile_explored?(row, col)
+
+              if is_visible
+                # Currently visible - render normally
+                row_cells += " #{cell.tile || '.'} "
+              elsif is_explored
+                # Explored but not visible - render dimmed (walls only, no entities)
+                # Show the terrain but replace entities with floor
+                tile_char = dimmed_tile_for_cell(cell)
+                row_cells += " #{tile_char} "
+              else
+                # Unexplored - render as blank
+                row_cells += "   "
+              end
+
+              # Walls rendering
+              if is_visible || is_explored
+                # Show walls if tile has been explored
+                row_cells += col == grid.columns - 1 ? "|" : (cell.linked?(cell.east) ? " " : "|")
+                row_walls += cell.linked?(cell.south) ? "   +" : "---+"
+              else
+                # Unexplored walls
+                row_cells += col == grid.columns - 1 ? "|" : " "
+                row_walls += "   +"
+              end
+            else
+              # FOV disabled - render normally
+              row_cells += " #{cell.tile || '.'} "
+              row_cells += col == grid.columns - 1 ? "|" : (cell.linked?(cell.east) ? " " : "|")
+              row_walls += cell.linked?(cell.south) ? "   +" : "---+"
+            end
           end
           output << row_cells # e.g., "| . | @ |"
           output << row_walls # e.g., "+---+   +"
@@ -94,6 +131,27 @@ module Vanilla
         # This will allow us to use the same code for both terminal and graphical output
         # and we can just swap out the #present method for a different implementation
         # for graphical output
+      end
+
+      private
+
+      # Get dimmed tile character for explored but not visible cells
+      # Shows terrain but not entities
+      def dimmed_tile_for_cell(cell)
+        tile = cell.tile
+
+        # Check if tile represents an entity (player, monster, stairs)
+        # These should be hidden when not visible
+        case tile
+        when Vanilla::Support::TileType::PLAYER,
+             Vanilla::Support::TileType::MONSTER,
+             Vanilla::Support::TileType::STAIRS
+          # Replace entities with floor/empty
+          Vanilla::Support::TileType::FLOOR
+        else
+          # Keep terrain tiles (floor, walls, etc.)
+          tile || '.'
+        end
       end
     end
   end
