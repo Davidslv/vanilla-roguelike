@@ -69,12 +69,12 @@ class MoveCommand < Command
     return unless movement_system
 
     movement_system.move(@entity, @direction)
-    
+
     # Check for stairs
     if at_stairs?(@entity, world)
       world.queue_command(ChangeLevelCommand.new(world.current_level.difficulty + 1, @entity))
     end
-    
+
     @executed = true
   end
 end
@@ -175,9 +175,9 @@ describe MoveCommand do
   it "moves entity north" do
     entity = create_entity_at(5, 5)
     command = MoveCommand.new(entity, :north)
-    
+
     command.execute(world)
-    
+
     expect(entity.position.row).to eq(4)
   end
 end
@@ -209,7 +209,7 @@ class ChangeLevelCommand < Command
   end
 
   def execute(world)
-    world.emit_event(:level_transition_requested, { 
+    world.emit_event(:level_transition_requested, {
       player_id: @player.id,
       new_difficulty: @new_difficulty
     })
@@ -304,4 +304,5 @@ end
 The Command pattern has been valuable for representing user actions. Commands enable queuing, logging, and potential undo/redo while keeping the code testable and maintainable. The key is using commands for user actions, not internal system updates.
 
 By encapsulating actions as objects, we've made the code more flexible and easier to extend. The structure has served us well as we've added new features.
+
 

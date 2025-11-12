@@ -35,7 +35,7 @@ graph TB
     E --> G[4 Characters]
     F --> H[Total: 9 Characters per Cell]
     G --> H
-    
+
     style A fill:#e1f5ff
     style H fill:#e8f5e9
 ```
@@ -92,21 +92,21 @@ def draw_grid(grid, algorithm)
   grid.rows.times do |row|
     row_cells = "|"  # Start with left border
     row_walls = "+"  # Start with corner
-    
+
     grid.columns.times do |col|
       cell = grid[row, col]
-      
+
       # Cell content: tile (or '.' if empty), padded with spaces
       row_cells += " #{cell.tile || '.'} "
-      
+
       # East wall: space if linked (open), | if not (wall)
-      row_cells += col == grid.columns - 1 ? "|" : 
+      row_cells += col == grid.columns - 1 ? "|" :
                    (cell.linked?(cell.east) ? " " : "|")
-      
+
       # South wall: spaces if linked (open path), --- if not (wall)
       row_walls += cell.linked?(cell.south) ? "   +" : "---+"
     end
-    
+
     output << row_cells  # e.g., "| . | @ |"
     output << row_walls  # e.g., "+---+   +"
   end

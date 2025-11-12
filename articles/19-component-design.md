@@ -206,10 +206,10 @@ graph LR
     A --> C[RenderComponent]
     A --> D[HealthComponent]
     A --> E[MovementComponent]
-    
+
     F[System] --> G[Query by Components]
     G --> A
-    
+
     style A fill:#e1f5ff
     style F fill:#fff4e1
 ```
@@ -303,4 +303,5 @@ end
 Components are the foundation of ECS architecture. They're pure data containers—no logic, just storage. By keeping components small and focused, we've made the code more flexible and easier to understand. The key is remembering: components store data, systems contain logic.
 
 This separation has made it easier to add new features and modify existing ones. The structure has held up well as the game has grown.
+
 

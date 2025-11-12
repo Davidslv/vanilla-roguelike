@@ -85,7 +85,7 @@ class Level
     @grid.each_cell do |cell|
       cell.tile = cell.links.empty? ? TileType::WALL : TileType::EMPTY
     end
-    
+
     # Update with all entities
     @entities.each { |e| update_grid_with_entity(e) }
   end
@@ -244,7 +244,7 @@ def populate_entities(grid)
   # Create entities
   player = create_player(0, 0)
   @world.add_entity(player)
-  
+
   # Sync with level
   level = Level.new(grid: grid, difficulty: @difficulty, algorithm: @algorithm)
   @world.entities.values.each { |e| level.add_entity(e) }

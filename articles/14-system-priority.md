@@ -92,7 +92,7 @@ flowchart TD
     H --> I[Priority 10: RenderSystem]
     I --> J[Process Commands]
     J --> K[Process Events]
-    
+
     style C fill:#e1f5ff
     style D fill:#fff4e1
     style I fill:#e8f5e9
@@ -247,4 +247,5 @@ add_system(LootSystem.new, 3)
 System priority is crucial for ECS architecture. Getting the order right prevents subtle bugs and ensures systems run when they need to. The key is understanding dependencies between systems and assigning priorities accordingly.
 
 By using a priority-based system with meaningful gaps, we've found it easier to add new systems and maintain correct execution order. The structure has helped us avoid many ordering-related bugs.
+
 

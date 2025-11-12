@@ -146,7 +146,7 @@ Adding new collision types is easy:
 ```ruby
 def handle_specific_collisions(entity, other_entity)
   # Existing collisions...
-  
+
   # New collision type
   if entity.has_tag?(:player) && other_entity.has_tag?(:trap)
     handle_trap_collision(entity, other_entity)
@@ -233,4 +233,5 @@ end
 Grid-based collision detection is simpler than continuous collision, but it still needs careful design. Event-driven detection provides flexibility while keeping the code maintainable. The key is detecting collisions and letting appropriate systems handle them.
 
 By keeping collision detection simple and event-driven, we've found it easy to add new collision types and behaviors. The structure has served us well as the game has grown.
+
 

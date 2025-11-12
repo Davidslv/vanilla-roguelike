@@ -138,19 +138,19 @@ graph TB
         C[Command Queue]
         D[Event Queue]
     end
-    
+
     subgraph "Entities"
         E[Player]
         F[Monster]
         G[Item]
     end
-    
+
     subgraph "Systems"
         H[MovementSystem]
         I[RenderSystem]
         J[CollisionSystem]
     end
-    
+
     A --> E
     A --> F
     A --> G
@@ -159,7 +159,7 @@ graph TB
     B --> J
     C --> H
     D --> J
-    
+
     style A fill:#e1f5ff
     style B fill:#fff4e1
     style C fill:#ffe1f5
@@ -270,4 +270,5 @@ end
 The World class is the coordinator of ECS architecture. It doesn't contain game logic—it just coordinates entities, systems, commands, and events. This separation enables flexibility and makes the code easier to understand and test.
 
 By keeping World simple and focused on coordination, we've found it easier to add new systems and features. The structure has held up well as the game has grown.
+
 
