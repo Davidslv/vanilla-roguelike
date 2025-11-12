@@ -32,6 +32,17 @@ module Vanilla
         @visible_tiles.clear
       end
 
+      # Clear all explored tiles (used when transitioning to a new level)
+      def clear_explored_tiles
+        @explored_tiles.clear
+      end
+
+      # Reset visibility completely (clears both visible and explored tiles)
+      def reset
+        @visible_tiles.clear
+        @explored_tiles.clear
+      end
+
       # Check if a tile is currently visible
       def tile_visible?(row, col)
         @visible_tiles.include?([row, col])

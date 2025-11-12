@@ -33,7 +33,20 @@ module Vanilla
           position = @player.get_component(:position)
           position.set_position(0, 0) # Reset to [0, 0] as per MazeSystem
           @logger.debug("[ChangeLevelCommand] Player position reset to [0, 0]")
+          
+          # Reset FOV for new level - clear explored and visible tiles
+          visibility = @player.get_component(:visibility)
+          if visibility
+            visibility.reset
+            @logger.debug("[ChangeLevelCommand] Player visibility reset for new level")
+          end
+          
           world.current_level.add_entity(@player) # Ensure player is in new level's entities
+          
+          # Trigger FOV recalculation immediately for new level
+          fov_system = world.systems.find { |s, _| s.is_a?(Vanilla::Systems::FOVSystem) }&.first
+          fov_system&.update(nil)
+          @logger.debug("[ChangeLevelCommand] FOV recalculated for new level")
         else
           @logger.error("[ChangeLevelCommand] No player provided")
         end
