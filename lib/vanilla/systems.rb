@@ -19,6 +19,7 @@ module Vanilla
     # Load other system classes
     require_relative 'systems/input_system'
     require_relative 'systems/movement_system'
+    require_relative 'systems/fov_system'
     require_relative 'systems/collision_system'
     require_relative 'systems/combat_system'
     require_relative 'systems/message_system'

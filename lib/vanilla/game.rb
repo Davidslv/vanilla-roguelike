@@ -8,6 +8,7 @@ module Vanilla
     def initialize(options = {})
       @difficulty = options[:difficulty] || 1
       @seed = options[:seed] || Random.new_seed
+      @dev_mode = options[:dev_mode] || options[:fov_disabled] || false
       @logger = Vanilla::Logger.instance
       @turn = 0
 
@@ -51,7 +52,7 @@ module Vanilla
       # Should EventManager be registered as a service? or should it be a singleton?
       Vanilla::ServiceRegistry.register(:event_manager, @event_manager)
 
-      @player = Vanilla::EntityFactory.create_player(0, 0)
+      @player = Vanilla::EntityFactory.create_player(0, 0, dev_mode: @dev_mode)
       @world.add_entity(@player)
 
       # Maze system is first to run and needed in game loop
@@ -60,6 +61,8 @@ module Vanilla
 
       @world.add_system(Vanilla::Systems::InputSystem.new(@world), 1)
       @world.add_system(Vanilla::Systems::MovementSystem.new(@world), 2)
+      # FOV System runs after movement (priority 2.5) - will get grid dynamically
+      @world.add_system(Vanilla::Systems::FOVSystem.new(@world), 2.5)
       @world.add_system(Vanilla::Systems::CombatSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::LootSystem.new(@world), 3)
