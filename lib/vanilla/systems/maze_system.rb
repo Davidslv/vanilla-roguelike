@@ -57,9 +57,20 @@ module Vanilla
 
       def populate_entities(grid)
         @logger.debug("[MazeSystem] Populating entities")
-        @world.entities.clear
-        player = Vanilla::EntityFactory.create_player(0, 0)
-        @world.add_entity(player)
+        # Find existing player to preserve components (visibility, dev_mode, etc.)
+        existing_player = @world.find_entity_by_tag(:player)
+        if existing_player
+          # Reset player position to (0, 0) for new level
+          existing_player.get_component(:position).set_position(0, 0)
+          player = existing_player
+        else
+          # Create new player if none exists (shouldn't happen in normal flow)
+          @world.entities.clear
+          player = Vanilla::EntityFactory.create_player(0, 0)
+          @world.add_entity(player)
+        end
+        # Clear other entities but keep player
+        @world.entities.delete_if { |_id, entity| !entity.has_tag?(:player) }
         player_cell = grid[0, 0]
         player_cell.tile = player.get_component(:render).character
         @logger.debug("[MazeSystem] Player tile set: #{player_cell.tile}")

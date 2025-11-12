@@ -29,6 +29,8 @@ module Vanilla
       srand(@seed)
       @logger.debug("[Game] Game#start - Starting @world.update(nil)")
       @maze_system.update(nil) # Generate initial maze
+      # Run FOV system once before first render to ensure player is visible
+      @fov_system&.update(nil)
       @logger.debug("[Game] Game#start - Rendering")
       render
       @logger.debug("[Game] Game#start - Starting game loop")
@@ -62,7 +64,8 @@ module Vanilla
       @world.add_system(Vanilla::Systems::InputSystem.new(@world), 1)
       @world.add_system(Vanilla::Systems::MovementSystem.new(@world), 2)
       # FOV System runs after movement (priority 2.5) - will get grid dynamically
-      @world.add_system(Vanilla::Systems::FOVSystem.new(@world), 2.5)
+      @fov_system = Vanilla::Systems::FOVSystem.new(@world)
+      @world.add_system(@fov_system, 2.5)
       @world.add_system(Vanilla::Systems::CombatSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::LootSystem.new(@world), 3)
