@@ -2,7 +2,7 @@
 
 module Vanilla
   class EntityFactory
-    def self.create_player(row, column)
+    def self.create_player(row, column, dev_mode: false)
       player = Vanilla::Entities::Entity.new
 
       player.name = "Player"
@@ -15,6 +15,12 @@ module Vanilla
       player.add_component(Vanilla::Components::CombatComponent.new(attack_power: 10, defense: 2, accuracy: 0.8))
       player.add_component(Vanilla::Components::InventoryComponent.new(max_size: 20))
       player.add_component(Vanilla::Components::CurrencyComponent.new(0, :gold))
+      player.add_component(Vanilla::Components::VisibilityComponent.new(vision_radius: 8))
+
+      # Add dev mode component if requested
+      if dev_mode
+        player.add_component(Vanilla::Components::DevModeComponent.new(fov_disabled: true))
+      end
 
       player
     end
