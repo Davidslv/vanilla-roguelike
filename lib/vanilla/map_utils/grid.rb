@@ -42,6 +42,26 @@ module Vanilla
       def size
         @rows * @columns
       end
+
+      # Check if coordinates are within grid bounds
+      # @param row [Integer] Row coordinate
+      # @param col [Integer] Column coordinate
+      # @return [Boolean] True if within bounds
+      def in_bounds?(row, col)
+        row.between?(0, @rows - 1) && col.between?(0, @columns - 1)
+      end
+
+      # Check if a tile at the given coordinates blocks vision
+      # @param row [Integer] Row coordinate
+      # @param col [Integer] Column coordinate
+      # @return [Boolean] True if vision is blocked
+      def blocks_vision?(row, col)
+        cell = self[row, col]
+        return true unless cell # Out of bounds blocks vision
+
+        # Check if cell has no links (it's a wall)
+        cell.links.empty?
+      end
     end
   end
 end
