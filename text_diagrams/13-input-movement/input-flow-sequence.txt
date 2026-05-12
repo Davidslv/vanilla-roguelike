@@ -1,0 +1,285 @@
+Input Handling Flow
+====================
+
+Complete Input to Movement Flow:
+=================================
+
+Keyboard  KeyboardHandler  InputHandler  InputSystem  World  Command  MovementSystem
+   │            │               │            │         │        │          │
+   │  [1]       │               │            │         │        │          │
+   ├───────────>│               │            │         │        │          │
+   │            │               │            │         │        │          │
+   │            │     [2]       │            │         │        │          │
+   │            ├──────────────>│            │         │        │          │
+   │            │               │            │         │        │          │
+   │            │               │    [3]     │         │        │          │
+   │            │               ├───────────>│         │        │          │
+   │            │               │            │         │        │          │
+   │            │               │            │   [4]   │        │          │
+   │            │               │            ├────────>│        │          │
+   │            │               │            │         │        │          │
+   │            │               │            │     [5] │        │          │
+   │            │               │            ├─────────┼───────>│          │
+   │            │               │            │         │        │          │
+   │            │               │            │              [6] │          │
+   │            │               │            │         │<───────┤          │
+   │            │               │            │         │        │          │
+   │            │               │            │         │        │    [7]   │
+   │            │               │            │         │        ├─────────>│
+   │            │               │            │         │        │          │
+   │            │               │            │         │   [8]  │          │
+   │            │               │            │<────────┴────────┴──────────┤
+   │            │               │            │         │        │          │
+
+
+Legend:
+=======
+
+[1] Player presses key (e.g., 'k' for north)
+[2] KeyboardHandler reads input
+[3] InputHandler converts key to action
+[4] InputSystem creates Command object
+[5] InputSystem queues Command to World
+[6] World stores in command queue
+[7] World executes Command
+[8] MovementSystem processes movement
+
+
+Detailed Step-by-Step:
+=======================
+
+Step 1: Key Press
+─────────────────
+
+Player presses 'k'
+       │
+       ▼
+┌──────────────────┐
+│ KeyboardHandler  │
+│ wait_for_input() │
+└────────┬─────────┘
+         │
+         └─> Returns: 'k'
+
+
+Step 2: Input Conversion
+─────────────────────────
+
+InputHandler receives 'k'
+       │
+       ▼
+┌──────────────────────────┐
+│ def handle_input(key)    │
+│   case key               │
+│   when 'k' then          │
+│     MoveCommand.new(     │
+│       entity,            │
+│       :north             │
+│     )                    │
+│   end                    │
+└────────┬─────────────────┘
+         │
+         └─> Returns: MoveCommand
+
+
+Step 3: Command Queuing
+────────────────────────
+
+InputSystem.update()
+       │
+       ├─> 1. Read input
+       │      key = display.keyboard_handler.wait_for_input
+       │
+       ├─> 2. Find player
+       │      player = world.find_entity_by_tag(:player)
+       │
+       ├─> 3. Create command
+       │      command = InputHandler.new.handle_input(key, player)
+       │
+       └─> 4. Queue command
+              world.queue_command(command)
+
+
+Step 4: Command Storage
+────────────────────────
+
+World receives command
+       │
+       ▼
+┌──────────────────────┐
+│ @command_queue       │
+│ └─> [MoveCommand]    │
+└──────────────────────┘
+
+
+Step 5: Command Execution (After Systems Update)
+──────────────────────────────────────────────────
+
+World.process_commands()
+       │
+       ├─> Dequeue: command = @command_queue.shift
+       │
+       └─> Execute: command.execute(world)
+              │
+              ▼
+       ┌──────────────────────────┐
+       │ MoveCommand.execute()    │
+       │   movement_system =      │
+       │     world.find_system(   │
+       │       MovementSystem     │
+       │     )                    │
+       │   movement_system.move(  │
+       │     @entity,             │
+       │     @direction           │
+       │   )                      │
+       └──────────────────────────┘
+
+
+Step 6: Movement Processing
+────────────────────────────
+
+MovementSystem.move(entity, :north)
+       │
+       ├─> 1. Get components
+       │      position = entity.get_component(:position)
+       │      movement = entity.get_component(:movement)
+       │
+       ├─> 2. Calculate new position
+       │      current_cell = grid[position.row, position.column]
+       │      new_cell = current_cell.north
+       │
+       ├─> 3. Validate movement
+       │      return false if new_cell.nil?
+       │      return false if new_cell.links.empty?
+       │
+       ├─> 4. Update position
+       │      position.set_position(new_cell.row, new_cell.column)
+       │
+       └─> 5. Emit event
+              emit_event(:entity_moved, {...})
+
+
+Input Mapping:
+==============
+
+Key → Direction Mapping:
+─────────────────────────
+
+┌────────────────────────────┐
+│  'k' or ↑  →  :north       │
+│  'j' or ↓  →  :south       │
+│  'h' or ←  →  :west        │
+│  'l' or →  →  :east        │
+│  'q'       →  :quit        │
+│  other     →  nil (ignore) │
+└────────────────────────────┘
+
+
+Movement Validation:
+====================
+
+Validation Steps:
+─────────────────
+
+1. Check Movement Component
+   │
+   ├─> Has movement component?
+   │   └─> No  → Return false
+   │   └─> Yes → Continue
+   │
+   └─> Is movement active?
+       └─> No  → Return false
+       └─> Yes → Continue
+
+2. Check Target Cell
+   │
+   ├─> Get target cell in direction
+   │   └─> nil? → Return false (out of bounds)
+   │   └─> Valid → Continue
+   │
+   └─> Check if passable
+       └─> Links empty? → Return false (wall)
+       └─> Has links → Continue
+
+3. Update Position
+   │
+   └─> position.set_position(new_row, new_col)
+
+
+Complete Flow Diagram:
+=======================
+
+┌──────────────────────────────────────────────────────────────┐
+│                     Input → Movement                         │
+│                                                              │
+│  Keyboard                                                    │
+│     │                                                        │
+│     ▼                                                        │
+│  KeyboardHandler.wait_for_input()                           │
+│     │                                                        │
+│     ▼                                                        │
+│  InputHandler.handle_input(key)                             │
+│     │                                                        │
+│     ├─> Creates MoveCommand(entity, direction)              │
+│     │                                                        │
+│     ▼                                                        │
+│  InputSystem.update()                                       │
+│     │                                                        │
+│     ├─> world.queue_command(command)                        │
+│     │                                                        │
+│     ▼                                                        │
+│  World Command Queue                                        │
+│     │                                                        │
+│     ▼                                                        │
+│  [All Systems Update]                                       │
+│     │                                                        │
+│     ▼                                                        │
+│  World.process_commands()                                   │
+│     │                                                        │
+│     ├─> command.execute(world)                              │
+│     │                                                        │
+│     ▼                                                        │
+│  MovementSystem.move(entity, direction)                     │
+│     │                                                        │
+│     ├─> Validate movement                                   │
+│     ├─> Update PositionComponent                            │
+│     └─> Emit :entity_moved event                            │
+│                                                              │
+│  Result: Entity moved (if valid)                            │
+└──────────────────────────────────────────────────────────────┘
+
+
+Turn-Based Behavior:
+=====================
+
+┌────────────────────────────┐
+│     Game Loop              │
+│                            │
+│  loop do                   │
+│    │                       │
+│    ├─> Wait for input ◄────┼──── BLOCKS HERE
+│    │    (blocking)         │
+│    │                       │
+│    ├─> Process input       │
+│    │                       │
+│    ├─> Update systems      │
+│    │                       │
+│    ├─> Process commands    │
+│    │   (move player)       │
+│    │                       │
+│    ├─> Process events      │
+│    │                       │
+│    ├─> Monsters act        │
+│    │                       │
+│    ├─> Render              │
+│    │                       │
+│    └─> Loop (wait again)   │
+│  end                       │
+└────────────────────────────┘
+
+One keypress = One turn for everyone
+
+
+
+
+

@@ -1,0 +1,195 @@
+ECS Workflow and Data Flow
+============================
+
+The ECS Update Cycle:
+======================
+
+┌──────────────┐
+│Create Entity │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│Add Components│
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│Entity in World
+└──────┬───────┘
+       │
+       ▼
+┌──────────────────┐
+│Systems Query     │◄────────┐
+│   Entities       │         │
+└──────┬───────────┘         │
+       │                     │
+       ▼                     │
+┌──────────────────┐         │
+│System Processes  │         │
+│    Entity        │         │
+└──────┬───────────┘         │
+       │                     │
+       ▼                     │
+┌──────────────────┐         │
+│Update Components │         │
+└──────┬───────────┘         │
+       │                     │
+       ▼                     │
+┌──────────────────┐         │
+│   Next Frame     │         │
+└──────┬───────────┘         │
+       │                     │
+       └─────────────────────┘
+
+
+ECS Relationships:
+===================
+
+          ┌──────────────────┐
+          │  World           │
+          │  (Coordinator)   │
+          └────────┬─────────┘
+                   │
+        ┌──────────┼──────────┐
+        │                     │
+        ▼                     ▼
+┌───────────────┐     ┌───────────────┐
+│   Entities    │     │    Systems    │
+│  (Containers) │     │    (Logic)    │
+└───────┬───────┘     └───────┬───────┘
+        │                     │
+        ▼                     │
+┌───────────────┐             │
+│  Components   │             │
+│    (Data)     │             │
+└───────────────┘             │
+        │                     │
+        └─────────────────────┘
+              │
+              ▼
+        Systems Query
+        World for
+        Entities with
+        Components
+
+
+Detailed Flow:
+==============
+
+[World: Central Hub]
+        │
+        ├─── Stores ───> [Entities Hash]
+        │                     │
+        │                     └─── Entity 1 ──┬─> Component A
+        │                          Entity 2 ──┼─> Component B
+        │                          Entity 3 ──┴─> Component C
+        │
+        ├─── Manages ──> [Systems Array]
+        │                     │
+        │                     ├─> MovementSystem
+        │                     ├─> CombatSystem
+        │                     └─> RenderSystem
+        │
+        └─── Coordinates ──> [Update Cycle]
+                              │
+                              ├─> 1. Systems Update
+                              ├─> 2. Process Commands
+                              └─> 3. Process Events
+
+
+System Processing Example:
+===========================
+
+MovementSystem.update():
+------------------------
+
+1. Query World
+   │
+   └─> "Give me entities with PositionComponent and MovementComponent"
+       │
+       ▼
+   ┌──────────────────────────────────┐
+   │ World searches all entities      │
+   │ Returns: [Entity1, Entity3]      │
+   └──────────────────────────────────┘
+
+2. Process Each Entity
+   │
+   ├─> Entity1
+   │   ├─> Get PositionComponent
+   │   ├─> Get MovementComponent
+   │   ├─> Calculate new position
+   │   └─> Update PositionComponent
+   │
+   └─> Entity3
+       ├─> Get PositionComponent
+       ├─> Get MovementComponent
+       ├─> Calculate new position
+       └─> Update PositionComponent
+
+3. Emit Events (optional)
+   │
+   └─> emit(:entity_moved, {entity_id: ...})
+
+
+Entity Composition Example:
+============================
+
+Player Entity:
+--------------
+┌─────────────────┐
+│ Entity          │
+│ ID: player-123  │
+└────────┬────────┘
+         │
+    ┌────┴────┬───────────┬───────────┬───────────┬────────────┐
+    │         │           │           │           │            │
+    ▼         ▼           ▼           ▼           ▼            ▼
+┌────────┐┌────────┐┌─────────┐┌─────────┐┌────────┐┌──────────┐
+│Position││ Render ││ Health  ││Movement ││ Input  ││Inventory │
+│  row:5 ││char:'@'││ max:100 ││active:T ││direction││capacity │
+│  col:3 ││color:W ││ cur:100 ││speed: 1 ││   :N   ││  :20    │
+└────────┘└────────┘└─────────┘└─────────┘└────────┘└──────────┘
+
+
+Monster Entity:
+---------------
+┌─────────────────┐
+│ Entity          │
+│ ID: monster-456 │
+└────────┬────────┘
+         │
+    ┌────┴────┬───────────┬───────────┬───────────┐
+    │         │           │           │           │
+    ▼         ▼           ▼           ▼           ▼
+┌────────┐┌────────┐┌─────────┐┌─────────┐┌────────┐
+│Position││ Render ││ Health  ││Movement ││ Combat │
+│  row:8 ││char:'M'││ max:50  ││active:T ││atk: 10 │
+│  col:7 ││color:R ││ cur:50  ││speed: 1 ││def: 5  │
+└────────┘└────────┘└─────────┘└─────────┘└────────┘
+
+
+Note the difference:
+  • Player has Input + Inventory
+  • Monster has Combat
+  • Both share Position, Render, Health, Movement
+  • Same systems can process both!
+
+
+Mental Model:
+=============
+
+Entities  = Nouns      (Player, Monster, Sword)
+Components = Adjectives (HasPosition, HasHealth, CanMove)
+Systems   = Verbs      (Move, Render, Attack)
+
+Want a flying monster?
+  → Add FlyingComponent
+  → MovementSystem checks for it
+  → No new class needed!
+
+
+
+
+

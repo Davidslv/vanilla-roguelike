@@ -1,0 +1,247 @@
+Component Composition and Sharing
+===================================
+
+Component Composition Example:
+===============================
+
+Player Entity:
+--------------
+┌──────────────────────┐
+│   Player Entity      │
+│   ID: player-001     │
+└──────────┬───────────┘
+           │
+     ┌─────┴─────┬──────────┬──────────┬──────────┬───────────┐
+     │           │          │          │          │           │
+     ▼           ▼          ▼          ▼          ▼           ▼
+┌─────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌─────────┐
+│Position │ │ Render │ │ Health │ │Movement│ │ Input  │ │Inventory│
+├─────────┤ ├────────┤ ├────────┤ ├────────┤ ├────────┤ ├─────────┤
+│row: 0   │ │char:'@'│ │max: 100│ │active:T│ │dir: N  │ │cap: 20  │
+│col: 0   │ │color:W │ │cur: 100│ │speed: 1│ │        │ │items: []│
+└─────────┘ └────────┘ └────────┘ └────────┘ └────────┘ └─────────┘
+
+
+Monster Entity:
+---------------
+┌──────────────────────┐
+│  Monster Entity      │
+│  ID: monster-042     │
+└──────────┬───────────┘
+           │
+     ┌─────┴─────┬──────────┬──────────┬──────────┐
+     │           │          │          │          │
+     ▼           ▼          ▼          ▼          ▼
+┌─────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
+│Position │ │ Render │ │ Health │ │Movement│ │ Combat │
+├─────────┤ ├────────┤ ├────────┤ ├────────┤ ├────────┤
+│row: 5   │ │char:'M'│ │max: 50 │ │active:T│ │atk: 10 │
+│col: 5   │ │color:R │ │cur: 50 │ │speed: 1│ │def: 5  │
+└─────────┘ └────────┘ └────────┘ └────────┘ └────────┘
+
+
+Shared Components:
+==================
+
+Components Used by Multiple Entities:
+--------------------------------------
+
+┌──────────────────────────────────────────────────┐
+│           Shared Components                      │
+├──────────────────────────────────────────────────┤
+│                                                  │
+│  ┌──────────────┐                                │
+│  │Position      │                                │
+│  │Component     │                                │
+│  └──────┬───────┘                                │
+│         │                                        │
+│         ├────────────┬───────────┐               │
+│         │            │           │               │
+│    ┌────▼────┐  ┌────▼────┐ ┌───▼─────┐         │
+│    │ Player  │  │ Monster │ │  Item   │         │
+│    └─────────┘  └─────────┘ └─────────┘         │
+│                                                  │
+│  ┌──────────────┐                                │
+│  │Render        │                                │
+│  │Component     │                                │
+│  └──────┬───────┘                                │
+│         │                                        │
+│         ├────────────┬───────────┐               │
+│         │            │           │               │
+│    ┌────▼────┐  ┌────▼────┐ ┌───▼─────┐         │
+│    │ Player  │  │ Monster │ │  Item   │         │
+│    └─────────┘  └─────────┘ └─────────┘         │
+│                                                  │
+│  ┌──────────────┐                                │
+│  │Health        │                                │
+│  │Component     │                                │
+│  └──────┬───────┘                                │
+│         │                                        │
+│         ├────────────┐                           │
+│         │            │                           │
+│    ┌────▼────┐  ┌────▼────┐                     │
+│    │ Player  │  │ Monster │                     │
+│    └─────────┘  └─────────┘                     │
+│                                                  │
+│  ┌──────────────┐                                │
+│  │Movement      │                                │
+│  │Component     │                                │
+│  └──────┬───────┘                                │
+│         │                                        │
+│         ├────────────┐                           │
+│         │            │                           │
+│    ┌────▼────┐  ┌────▼────┐                     │
+│    │ Player  │  │ Monster │                     │
+│    └─────────┘  └─────────┘                     │
+└──────────────────────────────────────────────────┘
+
+
+Unique Components:
+==================
+
+Components Used by Specific Entity Types:
+------------------------------------------
+
+Player Only:               Monster Only:
+────────────               ─────────────
+
+┌────────────┐            ┌────────────┐
+│   Input    │            │   Combat   │
+│ Component  │            │ Component  │
+└─────┬──────┘            └─────┬──────┘
+      │                         │
+      ▼                         ▼
+┌──────────┐             ┌──────────────┐
+│  Player  │             │   Monster    │
+└──────────┘             └──────────────┘
+
+┌────────────┐
+│ Inventory  │
+│ Component  │
+└─────┬──────┘
+      │
+      ▼
+┌──────────┐
+│  Player  │
+└──────────┘
+
+
+Component Reusability:
+======================
+
+Same Systems Process Different Entities:
+-----------------------------------------
+
+MovementSystem:
+  Processes entities with: Position + Movement
+  ↓
+  Works on: Player, Monster, any entity with these components
+
+RenderSystem:
+  Processes entities with: Position + Render
+  ↓
+  Works on: Player, Monster, Item, Stairs, any visible entity
+
+CombatSystem:
+  Processes entities with: Combat + Health
+  ↓
+  Works on: Player (if has Combat), Monster, any combatant
+
+
+Composition Flexibility:
+========================
+
+Want a new entity type? Just compose components:
+
+Flying Monster:
+---------------
+┌──────────────┐
+│   Monster    │
+└──────┬───────┘
+       │
+  ┌────┴────┬─────────┬─────────┬─────────┬─────────┐
+  │         │         │         │         │         │
+  ▼         ▼         ▼         ▼         ▼         ▼
+Position  Render   Health   Movement  Combat    Flying
+                                                    ↑
+                                              Add this!
+
+MovementSystem checks: if entity.has(Flying) → can move through walls
+
+
+Treasure Chest (Item + Inventory):
+-----------------------------------
+┌──────────────┐
+│    Chest     │
+└──────┬───────┘
+       │
+  ┌────┴────┬─────────┬─────────┬──────────┐
+  │         │         │         │          │
+  ▼         ▼         ▼         ▼          ▼
+Position  Render    Item    Inventory  Interaction
+                              ↑
+                        Can hold items!
+
+
+Component Data Structure:
+==========================
+
+Entity Structure:
+-----------------
+┌─────────────────────────────────┐
+│         Entity                  │
+├─────────────────────────────────┤
+│ • id: "player-001"              │
+│ • components: []                │
+│ • component_map: {}             │
+│ • tags: Set[]                   │
+│                                 │
+│ Methods:                        │
+│ • add_component(component)      │
+│ • get_component(type)           │
+│ • has_component?(type)          │
+│ • remove_component(type)        │
+└─────────────────────────────────┘
+
+Component Map (Fast Lookup):
+-----------------------------
+{
+  :position  → PositionComponent instance
+  :render    → RenderComponent instance
+  :health    → HealthComponent instance
+  :movement  → MovementComponent instance
+  :input     → InputComponent instance
+  :inventory → InventoryComponent instance
+}
+
+Access: entity.get_component(:position)
+        └─> O(1) hash lookup
+
+
+Benefits of Composition:
+=========================
+
+✓ Flexible
+  • Any combination of components
+  • No inheritance constraints
+
+✓ Reusable
+  • Same components for many entities
+  • Same systems process different entities
+
+✓ Easy to Extend
+  • Add new component → add new capability
+  • No need to modify existing code
+
+✓ Testable
+  • Create test entity with just needed components
+  • No complex inheritance to mock
+
+✓ Maintainable
+  • Clear separation of concerns
+  • Each component has single responsibility
+
+
+
+
+

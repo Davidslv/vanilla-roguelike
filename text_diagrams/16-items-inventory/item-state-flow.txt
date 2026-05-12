@@ -1,0 +1,429 @@
+Item Lifecycle and State Flow
+===============================
+
+Item State Diagram:
+===================
+
+                    START
+                      │
+                      ▼
+              ┌───────────────┐
+              │Item Spawned   │
+              │(on ground)    │
+              └───────┬───────┘
+                      │
+                      │ Player collides
+                      │
+                      ▼
+              ┌───────────────┐
+              │  Picked Up    │
+              └───────┬───────┘
+                      │
+                      ▼
+              ┌───────────────┐
+              │ Added to      │
+              │  Inventory    │
+              └───────┬───────┘
+                      │
+                ┌─────┴─────┐
+                │           │
+         Use Command   Drop Command
+                │           │
+                ▼           ▼
+        ┌───────────┐   ┌───────────┐
+        │   Used    │   │  Dropped  │
+        │           │   └─────┬─────┘
+        └─────┬─────┘         │
+              │               ▼
+              │        ┌───────────┐
+              │        │ Placed at │
+              │        │ Position  │
+              │        └─────┬─────┘
+              │              │
+              │              └───────> On Ground
+              │
+              ▼
+          ┌───────┐
+          │Consumed│
+          │(removed)
+          └───────┘
+
+
+Item States in Detail:
+=======================
+
+On Ground:
+──────────
+
+┌────────────────────────────┐
+│ Item Entity                │
+├────────────────────────────┤
+│ • PositionComponent        │
+│   └─> row, column          │
+│ • RenderComponent          │
+│   └─> character: '!'       │
+│ • ItemComponent            │
+│   └─> name, value          │
+│ • ConsumableComponent      │
+│   └─> effect_type, value   │
+│                            │
+│ Visible in world           │
+│ Can be picked up           │
+└────────────────────────────┘
+
+
+In Inventory:
+─────────────
+
+┌────────────────────────────┐
+│ Item Entity                │
+├────────────────────────────┤
+│ • ItemComponent            │
+│   └─> name, value          │
+│ • ConsumableComponent      │
+│   └─> effect_type, value   │
+│                            │
+│ NO PositionComponent       │
+│ NO RenderComponent         │
+│ (or ignored)               │
+│                            │
+│ Stored in:                 │
+│ Player.InventoryComponent  │
+│   @items = [item1, item2]  │
+│                            │
+│ Not visible in world       │
+└────────────────────────────┘
+
+
+Item Pickup Flow:
+==================
+
+Player moves onto item cell:
+─────────────────────────────
+
+┌──────────────────┐
+│CollisionSystem   │
+│ detects player + │
+│      item        │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ItemPickupSystem  │
+│  triggers        │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Get player       │
+│ InventoryComp    │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│Check capacity    │
+└────────┬─────────┘
+         │
+    ┌────┴────┐
+   Full      Space
+    │          │
+    ▼          ▼
+┌───────┐  ┌──────────┐
+│Reject │  │Add to    │
+│pickup │  │inventory │
+└───────┘  └────┬─────┘
+                │
+                ▼
+         ┌──────────────┐
+         │Remove item   │
+         │from world    │
+         │position      │
+         └──────┬───────┘
+                │
+                ▼
+         ┌──────────────┐
+         │Emit event:   │
+         │:item_picked_up
+         └──────────────┘
+
+
+Item Use Flow:
+===============
+
+Player uses item from inventory:
+─────────────────────────────────
+
+┌──────────────────┐
+│ Player presses   │
+│  'u' (use item)  │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Show inventory   │
+│    menu          │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Player selects   │
+│     item         │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ItemUseCommand    │
+│    created       │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│InventorySystem   │
+│  use_item()      │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│Get Consumable    │
+│   Component      │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│Apply effect:     │
+│ :heal → +health  │
+│ :damage → -health│
+│ :buff → +stats   │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│Remove from       │
+│ inventory        │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│Remove from world │
+│  (destroy)       │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│Emit event:       │
+│ :item_used       │
+└──────────────────┘
+
+
+Inventory Component Structure:
+===============================
+
+┌──────────────────────────────┐
+│  InventoryComponent          │
+├──────────────────────────────┤
+│  @items = []                 │
+│  @capacity = 20              │
+│                              │
+│  Methods:                    │
+│  • add_item(item)            │
+│  • remove_item(item)         │
+│  • items()                   │
+│  • full?()                   │
+└──────────────────────────────┘
+
+Example:
+────────
+
+player.get_component(:inventory)
+  └─> InventoryComponent
+      ├─> @capacity: 20
+      └─> @items: [
+            potion1,
+            sword,
+            scroll,
+            potion2
+          ]
+
+
+Item Components:
+================
+
+ItemComponent:
+──────────────
+
+┌──────────────────────────┐
+│  ItemComponent           │
+├──────────────────────────┤
+│  name: "Health Potion"   │
+│  description: "Restores  │
+│               health"    │
+│  value: 50 (gold)        │
+└──────────────────────────┘
+
+
+ConsumableComponent:
+────────────────────
+
+┌──────────────────────────┐
+│  ConsumableComponent     │
+├──────────────────────────┤
+│  effect_type: :heal      │
+│  effect_value: 30        │
+└──────────────────────────┘
+
+Effect Types:
+  • :heal → Restore health
+  • :damage → Deal damage
+  • :buff_attack → Increase attack
+  • :buff_defense → Increase defense
+  • :teleport → Random position
+
+
+Creating an Item:
+==================
+
+Health Potion Example:
+──────────────────────
+
+item = Entity.new
+
+item.add_component(
+  PositionComponent.new(
+    row: 5,
+    column: 8
+  )
+)
+
+item.add_component(
+  RenderComponent.new(
+    character: '!',
+    color: :red
+  )
+)
+
+item.add_component(
+  ItemComponent.new(
+    name: "Health Potion",
+    description: "Restores 30 HP",
+    value: 50
+  )
+)
+
+item.add_component(
+  ConsumableComponent.new(
+    effect_type: :heal,
+    effect_value: 30
+  )
+)
+
+world.add_entity(item)
+
+
+Loot Generation:
+================
+
+When monster dies:
+──────────────────
+
+┌──────────────────┐
+│ :combat_death    │
+│  event emitted   │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│   LootSystem     │
+│  subscribes      │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│Roll for loot:    │
+│ 30% chance       │
+└────────┬─────────┘
+         │
+    ┌────┴────┐
+  No loot    Loot!
+    │          │
+    ▼          ▼
+ ┌──────┐  ┌──────────┐
+ │ Skip │  │Generate  │
+ └──────┘  │ random   │
+           │  item    │
+           └────┬─────┘
+                │
+                ▼
+         ┌──────────────┐
+         │Place at death│
+         │   position   │
+         └──────────────┘
+
+
+Visual Representation:
+======================
+
+Game World View:
+────────────────
+
+  0   1   2   3   4   5
+┌───┬───┬───┬───┬───┬───┐
+│ # │ # │ # │ # │ # │ # │ 0
+├───┼───┼───┼───┼───┼───┤
+│ # │ @ │ . │ ! │ . │ # │ 1
+├───┼───┼───┼───┼───┼───┤
+│ # │ . │ M │ . │ ! │ # │ 2
+├───┼───┼───┼───┼───┼───┤
+│ # │ # │ # │ # │ # │ # │ 3
+└───┴───┴───┴───┴───┴───┘
+
+@ = Player
+M = Monster
+! = Item (on ground)
+
+
+Inventory View:
+───────────────
+
+┌────────────────────────────┐
+│       INVENTORY            │
+├────────────────────────────┤
+│ 1. Health Potion (+30 HP)  │
+│ 2. Sword (Attack +5)       │
+│ 3. Scroll of Fireball      │
+│ 4. Gold Coins (50)         │
+│                            │
+│ [4 / 20 items]             │
+└────────────────────────────┘
+
+
+After Picking Up Item:
+──────────────────────
+
+  0   1   2   3   4   5
+┌───┬───┬───┬───┬───┬───┐
+│ # │ # │ # │ # │ # │ # │ 0
+├───┼───┼───┼───┼───┼───┤
+│ # │ . │ . │ @ │ . │ # │ 1  ← Player moved to item
+├───┼───┼───┼───┼───┼───┤    ← Item gone from world
+│ # │ . │ M │ . │ ! │ # │ 2
+├───┼───┼───┼───┼───┼───┤
+│ # │ # │ # │ # │ # │ # │ 3
+└───┴───┴───┴───┴───┴───┘
+
+Inventory:
+┌────────────────────────────┐
+│       INVENTORY            │
+├────────────────────────────┤
+│ 1. Health Potion (+30 HP)  │
+│ 2. Sword (Attack +5)       │
+│ 3. Scroll of Fireball      │
+│ 4. Gold Coins (50)         │
+│ 5. Health Potion (+30 HP)  │ ← NEW!
+│                            │
+│ [5 / 20 items]             │
+└────────────────────────────┘
+
+
+
+
+

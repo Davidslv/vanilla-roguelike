@@ -1,0 +1,386 @@
+Monster AI Flow
+================
+
+Simple AI Decision Flow:
+=========================
+
+┌────────────────────┐
+│MonsterSystem Update│
+└─────────┬──────────┘
+          │
+          ▼
+┌────────────────────┐
+│Get Monster Position│
+└─────────┬──────────┘
+          │
+          ▼
+┌────────────────────┐
+│Get Player Position │
+└─────────┬──────────┘
+          │
+          ▼
+┌────────────────────┐
+│Calculate Direction │
+│  to Player         │
+└─────────┬──────────┘
+          │
+          ▼
+┌────────────────────┐
+│   Row Diff >       │
+│   Col Diff?        │
+└─────────┬──────────┘
+          │
+     ┌────┴────┐
+  Row Larger  Col Larger
+     │            │
+     ▼            ▼
+┌─────────┐  ┌─────────┐
+│ Player  │  │ Player  │
+│North or │  │East or  │
+│ South?  │  │ West?   │
+└────┬────┘  └────┬────┘
+     │            │
+ ┌───┴───┐    ┌───┴───┐
+North  South  East  West
+ │      │      │      │
+ ▼      ▼      ▼      ▼
+┌────┐┌────┐┌────┐┌────┐
+│Move││Move││Move││Move│
+│North│South│East││West│
+└──┬─┘└──┬─┘└──┬─┘└──┬─┘
+   │     │     │     │
+   └─────┴─────┴─────┘
+          │
+          ▼
+   ┌──────────────┐
+   │MovementSystem│
+   │   .move()    │
+   └──────┬───────┘
+          │
+     ┌────┴────┐
+   Success   Failed
+     │          │
+     ▼          ▼
+┌─────────┐ ┌─────────┐
+│ Monster │ │ Monster │
+│  Moved  │ │ Blocked │
+└─────────┘ └─────────┘
+
+
+AI Direction Choice Algorithm:
+===============================
+
+Calculate Differences:
+──────────────────────
+
+monster_pos = [5, 3]
+player_pos = [8, 7]
+
+row_diff = player.row - monster.row
+         = 8 - 5
+         = 3
+
+col_diff = player.column - monster.column
+         = 7 - 3
+         = 4
+
+
+Compare Differences:
+────────────────────
+
+row_diff.abs = 3
+col_diff.abs = 4
+
+4 > 3 → Column difference larger
+      → Move horizontally (east/west)
+
+col_diff > 0 → Player is east
+             → Move :east
+
+
+Decision Tree:
+──────────────
+
+                ┌──────────────┐
+                │Monster at    │
+                │    [5,3]     │
+                └──────┬───────┘
+                       │
+                       ▼
+                ┌──────────────┐
+                │Player at     │
+                │    [8,7]     │
+                └──────┬───────┘
+                       │
+                       ▼
+                ┌──────────────┐
+                │Calculate:    │
+                │row_diff = 3  │
+                │col_diff = 4  │
+                └──────┬───────┘
+                       │
+                       ▼
+                ┌──────────────┐
+                │4 > 3?        │
+                │Yes!          │
+                └──────┬───────┘
+                       │
+                       ▼
+                ┌──────────────┐
+                │col_diff > 0? │
+                │Yes!          │
+                └──────┬───────┘
+                       │
+                       ▼
+                ┌──────────────┐
+                │ Move EAST    │
+                └──────────────┘
+
+
+Monster Lifecycle:
+==================
+
+┌────────────────┐
+│ Monster Spawns │
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│  Added to      │
+│MonsterSystem's │
+│  @monsters []  │
+└───────┬────────┘
+        │
+        │
+        ▼
+┌────────────────────────┐
+│   Each Turn:           │
+│                        │
+│   ┌────────────────┐   │
+│   │1. Check Health │   │
+│   └────────┬───────┘   │
+│            │           │
+│       ┌────┴────┐      │
+│      Dead     Alive    │
+│       │         │      │
+│       ▼         ▼      │
+│   ┌──────┐  ┌──────┐  │
+│   │Remove│  │Move  │  │
+│   │from  │  │toward│  │
+│   │world │  │player│  │
+│   └──────┘  └──────┘  │
+└────────────────────────┘
+
+
+Monster System Update:
+=======================
+
+MonsterSystem.update():
+───────────────────────
+
+1. Remove Dead Monsters
+   │
+   ├─> @monsters.reject! do |monster|
+   │     health = monster.get_component(:health)
+   │     if health.current_health <= 0
+   │       world.remove_entity(monster.id)
+   │       true  # Remove from list
+   │     else
+   │       false # Keep in list
+   │     end
+   │   end
+
+2. Move Living Monsters
+   │
+   └─> @monsters.each do |monster|
+         move_monster(monster)
+       end
+
+
+AI Movement Example:
+====================
+
+Before:
+───────
+
+  0   1   2   3   4   5   6   7   8
+┌───┬───┬───┬───┬───┬───┬───┬───┬───┐
+│ # │ # │ # │ # │ # │ # │ # │ # │ # │ 0
+├───┼───┼───┼───┼───┼───┼───┼───┼───┤
+│ # │ . │ . │ . │ . │ . │ . │ . │ # │ 1
+├───┼───┼───┼───┼───┼───┼───┼───┼───┤
+│ # │ . │ . │ . │ . │ . │ . │ . │ # │ 2
+├───┼───┼───┼───┼───┼───┼───┼───┼───┤
+│ # │ . │ . │ M │ . │ . │ . │ . │ # │ 3
+├───┼───┼───┼───┼───┼───┼───┼───┼───┤
+│ # │ . │ . │ . │ . │ . │ . │ . │ # │ 4
+├───┼───┼───┼───┼───┼───┼───┼───┼───┤
+│ # │ . │ . │ . │ . │ . │ @ │ . │ # │ 5
+├───┼───┼───┼───┼───┼───┼───┼───┼───┤
+│ # │ # │ # │ # │ # │ # │ # │ # │ # │ 6
+└───┴───┴───┴───┴───┴───┴───┴───┴───┘
+
+M = Monster at [3, 3]
+@ = Player at [5, 6]
+
+Analysis:
+  row_diff = 5 - 3 = 2
+  col_diff = 6 - 3 = 3
+
+  3 > 2 → Move horizontally
+  col_diff > 0 → Move east
+
+
+After (Monster moves east):
+────────────────────────────
+
+  0   1   2   3   4   5   6   7   8
+┌───┬───┬───┬───┬───┬───┬───┬───┬───┐
+│ # │ # │ # │ # │ # │ # │ # │ # │ # │ 0
+├───┼───┼───┼───┼───┼───┼───┼───┼───┤
+│ # │ . │ . │ . │ . │ . │ . │ . │ # │ 1
+├───┼───┼───┼───┼───┼───┼───┼───┼───┤
+│ # │ . │ . │ . │ . │ . │ . │ . │ # │ 2
+├───┼───┼───┼───┼───┼───┼───┼───┼───┤
+│ # │ . │ . │ . │ M │ . │ . │ . │ # │ 3  ← Moved!
+├───┼───┼───┼───┼───┼───┼───┼───┼───┤
+│ # │ . │ . │ . │ . │ . │ . │ . │ # │ 4
+├───┼───┼───┼───┼───┼───┼───┼───┼───┤
+│ # │ . │ . │ . │ . │ . │ @ │ . │ # │ 5
+├───┼───┼───┼───┼───┼───┼───┼───┼───┤
+│ # │ # │ # │ # │ # │ # │ # │ # │ # │ 6
+└───┴───┴───┴───┴───┴───┴───┴───┴───┘
+
+M = Monster now at [3, 4]
+
+
+Multiple Monsters:
+==================
+
+Each monster makes independent decisions:
+
+Monster 1 at [2, 2]  →  Moves toward player
+Monster 2 at [7, 8]  →  Moves toward player
+Monster 3 at [4, 5]  →  Moves toward player
+
+All using same AI logic, but from different positions.
+
+
+AI Improvements (Possible):
+============================
+
+Current: Simple Chase
+─────────────────────
+
+Monster always moves toward player.
+Simple but predictable.
+
+
+Advanced Options:
+─────────────────
+
+1. Pathfinding (A*, Dijkstra)
+   └─> Find optimal path around obstacles
+
+2. State Machine
+   ├─> Patrol state
+   ├─> Chase state
+   ├─> Flee state (low health)
+   └─> Attack state
+
+3. Group Behavior
+   ├─> Monsters coordinate
+   ├─> Surround player
+   └─> Call for help
+
+4. Different AI Types
+   ├─> Aggressive: Always chase
+   ├─> Defensive: Guard area
+   ├─> Cowardly: Flee when hurt
+   └─> Smart: Use items, tactics
+
+
+Monster Components in Action:
+==============================
+
+Monster Entity:
+───────────────
+
+┌──────────────────────┐
+│   Monster            │
+├──────────────────────┤
+│ PositionComponent    │
+│ RenderComponent      │
+│ HealthComponent      │
+│ MovementComponent    │
+│ CombatComponent      │
+└──────────────────────┘
+
+Systems Process It:
+───────────────────
+
+MonsterSystem
+  └─> Decides direction, calls MovementSystem
+
+MovementSystem (same as player!)
+  └─> Validates move, updates position
+
+RenderSystem (same as player!)
+  └─> Draws monster at position
+
+CombatSystem (same as player!)
+  └─> Handles combat when collision occurs
+
+
+Turn Sequence:
+==============
+
+One Complete Turn:
+──────────────────
+
+1. Player Input
+   └─> InputSystem reads key
+
+2. Player Moves
+   └─> MovementSystem processes
+
+3. Monsters Act
+   └─> MonsterSystem updates all monsters
+       ├─> Monster 1 moves
+       ├─> Monster 2 moves
+       └─> Monster 3 moves
+
+4. Render
+   └─> RenderSystem draws everything
+
+Result: One turn complete, all entities acted
+
+
+AI is Just Another System:
+===========================
+
+No special treatment needed!
+
+┌──────────────────────┐
+│  MonsterSystem       │
+│  (Another System)    │
+└──────────┬───────────┘
+           │
+           │ Processes entities
+           │ with components
+           │
+           ▼
+┌──────────────────────┐
+│  Entities with:      │
+│  • Position          │
+│  • Movement          │
+│  • Health            │
+└──────────────────────┘
+
+Same components as player!
+Same systems process them!
+
+
+
+
+

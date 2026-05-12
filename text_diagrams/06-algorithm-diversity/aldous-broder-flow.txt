@@ -1,0 +1,73 @@
+Aldous-Broder Algorithm Flow
+==============================
+
+┌─────────────────┐
+│Start: Random    │
+│     Cell        │
+└────────┬────────┘
+         │
+         ▼
+┌────────────────────┐
+│Pick Random Neighbor│
+└────────┬───────────┘
+         │
+         ▼
+┌────────────────────┐
+│ Neighbor Visited?  │
+└────────┬───────────┘
+         │
+    ┌────┴────┐
+   No        Yes
+    │          │
+    ▼          │
+┌─────────┐    │
+│  Link   │    │
+│  Cells  │    │
+└────┬────┘    │
+     │         │
+     ▼         │
+┌──────────┐   │
+│Decrement │   │
+│Unvisited │   │
+│  Count   │   │
+└────┬─────┘   │
+     │         │
+     └─────┬───┘
+           │
+           ▼
+   ┌───────────────┐
+   │Move to Neighbor│
+   └───────┬────────┘
+           │
+           ▼
+   ┌───────────────┐
+   │All Visited?   │
+   └───────┬───────┘
+           │
+      ┌────┴────┐
+     No        Yes
+      │          │
+      └──>LOOP   ▼
+            ┌─────────┐
+            │Set Walls│
+            └────┬────┘
+                 │
+                 ▼
+            ┌─────────┐
+            │Complete │
+            └─────────┘
+
+
+Characteristics:
+================
+- Random walk through grid
+- Visits each cell at least once
+- Can revisit cells multiple times
+- Links only when visiting unvisited cell
+- Completely unbiased (no directional preference)
+- Slower than other algorithms (O(n²) worst case)
+
+
+
+
+

@@ -364,7 +364,7 @@ Use Recursive Division when:
 Here's a quick comparison:
 
 ```mermaid
-graph LR
+graph TB
     subgraph "Algorithm Comparison"
         A[Binary Tree<br/>Fast, Biased, Many Dead Ends]
         B[Aldous-Broder<br/>Slow, Unbiased, Medium Dead Ends]

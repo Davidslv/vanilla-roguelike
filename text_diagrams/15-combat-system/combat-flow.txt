@@ -1,0 +1,378 @@
+Combat System Flow
+===================
+
+Turn-Based Combat Flow:
+========================
+
+┌─────────────────┐
+│Combat Initiated │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│Both have Combat │
+│   Component?    │
+└────────┬────────┘
+         │
+    ┌────┴────┐
+   No        Yes
+    │         │
+    ▼         ▼
+┌────────┐  ┌────────────┐
+│Combat  │  │Roll for    │
+│ Fails  │  │ Accuracy   │
+└────────┘  └──────┬─────┘
+                   │
+                   ▼
+            ┌──────────────┐
+            │    Hit?      │
+            └──────┬───────┘
+                   │
+              ┌────┴────┐
+             No        Yes
+              │         │
+              ▼         ▼
+         ┌────────┐  ┌──────────────┐
+         │ Miss   │  │Calculate     │
+         └────────┘  │  Damage      │
+                     └──────┬───────┘
+                            │
+                            ▼
+                     ┌──────────────┐
+                     │Attack Power  │
+                     │    minus     │
+                     │  Defense     │
+                     └──────┬───────┘
+                            │
+                            ▼
+                     ┌──────────────┐
+                     │  Minimum     │
+                     │  1 Damage    │
+                     └──────┬───────┘
+                            │
+                            ▼
+                     ┌──────────────┐
+                     │Apply Damage  │
+                     │  to Health   │
+                     └──────┬───────┘
+                            │
+                            ▼
+                     ┌──────────────┐
+                     │Health <= 0?  │
+                     └──────┬───────┘
+                            │
+                       ┌────┴────┐
+                      Yes       No
+                       │         │
+                       ▼         ▼
+                 ┌──────────┐ ┌──────────┐
+                 │Entity    │ │ Combat   │
+                 │  Dies    │ │Complete  │
+                 └────┬─────┘ └────┬─────┘
+                      │            │
+                      ▼            ▼
+                 ┌──────────┐ ┌──────────┐
+                 │Emit Death│ │Emit Damage
+                 │  Event   │ │  Event   │
+                 └────┬─────┘ └──────────┘
+                      │
+                      ▼
+                 ┌──────────┐
+                 │ Remove   │
+                 │ Entity   │
+                 └──────────┘
+
+
+Damage Calculation:
+===================
+
+┌──────────────────────────────────┐
+│  Attacker Stats                  │
+│  ├─> Attack Power: 10            │
+│  └─> Accuracy: 0.8 (80%)         │
+└──────────────────────────────────┘
+              │
+              ▼
+┌──────────────────────────────────┐
+│  Roll for Hit                    │
+│  rand < accuracy?                │
+│  └─> 0.65 < 0.8 → HIT!           │
+└──────────────────────────────────┘
+              │
+              ▼
+┌──────────────────────────────────┐
+│  Defender Stats                  │
+│  └─> Defense: 5                  │
+└──────────────────────────────────┘
+              │
+              ▼
+┌──────────────────────────────────┐
+│  Calculate Damage                │
+│  damage = attack - defense       │
+│  damage = 10 - 5                 │
+│  damage = 5                      │
+└──────────────────────────────────┘
+              │
+              ▼
+┌──────────────────────────────────┐
+│  Minimum Damage Check            │
+│  damage = max(damage, 1)         │
+│  └─> Ensures at least 1 damage   │
+└──────────────────────────────────┘
+              │
+              ▼
+┌──────────────────────────────────┐
+│  Apply to Health                 │
+│  current_health -= damage        │
+│  50 - 5 = 45                     │
+└──────────────────────────────────┘
+
+
+Combat Components:
+==================
+
+CombatComponent:
+────────────────
+
+┌──────────────────────┐
+│  CombatComponent     │
+├──────────────────────┤
+│  attack_power: 10    │
+│  defense: 5          │
+│  accuracy: 0.8       │
+└──────────────────────┘
+
+
+HealthComponent:
+────────────────
+
+┌──────────────────────┐
+│  HealthComponent     │
+├──────────────────────┤
+│  max_health: 100     │
+│  current_health: 75  │
+└──────────────────────┘
+
+
+Complete Combat Sequence:
+==========================
+
+Player      CombatSystem    Monster      World
+  │              │             │           │
+  │  [Moves onto │             │           │
+  │   Monster]   │             │           │
+  │              │             │           │
+  │       [1]    │             │           │
+  ├─────────────>│             │           │
+  │ process_     │             │           │
+  │  attack()    │             │           │
+  │              │             │           │
+  │              │      [2]    │           │
+  │              ├────────────>│           │
+  │              │  Get Combat │           │
+  │              │  Components │           │
+  │              │             │           │
+  │              │      [3]    │           │
+  │              ├────────────>│           │
+  │              │  Roll Hit   │           │
+  │              │             │           │
+  │              │      [4]    │           │
+  │              ├────────────>│           │
+  │              │  Calculate  │           │
+  │              │   Damage    │           │
+  │              │             │           │
+  │              │      [5]    │           │
+  │              ├────────────>│           │
+  │              │Apply Damage │           │
+  │              │ to Health   │           │
+  │              │             │           │
+  │              │           [6]           │
+  │              ├────────────────────────>│
+  │              │    Emit Event           │
+  │              │  :combat_damage         │
+  │              │             │           │
+  │              │      [7]    │           │
+  │              ├────────────>│           │
+  │              │Check Death  │           │
+  │              │             │           │
+  │              │      [8]    │           │
+  │              ├────────────────────────>│
+  │              │ Remove Entity           │
+  │              │  (if dead)              │
+
+
+Death Handling:
+===============
+
+┌──────────────────────────┐
+│  check_death(entity)     │
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│  Get HealthComponent     │
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│  current_health <= 0?    │
+└──────────┬───────────────┘
+           │
+      ┌────┴────┐
+     No        Yes
+      │         │
+      ▼         ▼
+┌────────┐  ┌──────────────┐
+│Return  │  │Emit Event:   │
+│ false  │  │:combat_death │
+└────────┘  └──────┬───────┘
+                   │
+                   ▼
+            ┌──────────────┐
+            │world.remove_ │
+            │entity(id)    │
+            └──────┬───────┘
+                   │
+                   ▼
+            ┌──────────────┐
+            │ Return true  │
+            └──────────────┘
+
+
+Event Emission:
+===============
+
+Combat Events:
+──────────────
+
+:combat_damage
+  ├─> target_id
+  ├─> damage
+  └─> source_id
+
+:combat_death
+  ├─> entity_id
+  └─> killer_id
+
+
+Subscribers can react:
+──────────────────────
+
+LootSystem
+  └─> Subscribes to :combat_death
+      └─> Generates loot when monster dies
+
+StatisticsSystem
+  └─> Subscribes to :combat_damage
+      └─> Tracks damage dealt
+
+MessageSystem
+  └─> Subscribes to both events
+      └─> Displays combat messages
+
+
+Example Combat Scenario:
+=========================
+
+Initial State:
+──────────────
+
+Player                    Monster
+├─ Position: [5, 3]       ├─ Position: [5, 4]
+├─ Health: 100/100        ├─ Health: 50/50
+├─ Combat:                ├─ Combat:
+│  ├─ Attack: 15          │  ├─ Attack: 10
+│  ├─ Defense: 8          │  ├─ Defense: 5
+│  └─ Accuracy: 0.9       │  └─ Accuracy: 0.7
+└─                        └─
+
+
+Player Attacks:
+───────────────
+
+1. Roll: 0.85 < 0.9 → HIT!
+2. Damage: 15 - 5 = 10
+3. Apply: 50 - 10 = 40 HP
+
+Monster Health: 40/50
+
+
+Monster Counter-Attacks:
+─────────────────────────
+
+1. Roll: 0.75 < 0.7 → MISS!
+2. No damage
+
+Player Health: 100/100 (unchanged)
+
+
+Second Player Attack:
+──────────────────────
+
+1. Roll: 0.65 < 0.9 → HIT!
+2. Damage: 15 - 5 = 10
+3. Apply: 40 - 10 = 30 HP
+
+Monster Health: 30/50
+
+
+Eventually:
+───────────
+
+Player Attack:
+1. Roll: 0.45 < 0.9 → HIT!
+2. Damage: 15 - 5 = 10
+3. Apply: 10 - 10 = 0 HP
+
+Monster Health: 0/50 → DEAD!
+
+Events:
+  ├─> :combat_death emitted
+  └─> Monster removed from world
+
+
+Minimum Damage Rule:
+=====================
+
+Why?
+────
+Ensures combat always progresses.
+Even heavily armored enemies take damage.
+
+Example:
+────────
+
+Weak Attack vs Strong Defense:
+  attack: 3
+  defense: 10
+  damage: 3 - 10 = -7
+
+  Apply minimum: max(-7, 1) = 1
+
+  Result: 1 damage (not 0!)
+
+
+Components Make Combat Flexible:
+=================================
+
+Want different combat types?
+Just modify components!
+
+Strong Attacker:
+  CombatComponent(attack: 20, defense: 5)
+
+Tank (High Defense):
+  CombatComponent(attack: 8, defense: 15)
+
+Glass Cannon:
+  CombatComponent(attack: 25, defense: 2)
+  HealthComponent(max_health: 30)
+
+Boss:
+  CombatComponent(attack: 30, defense: 20)
+  HealthComponent(max_health: 500)
+
+
+
+
+

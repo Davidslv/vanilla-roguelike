@@ -305,3 +305,9 @@ Components are the foundation of ECS architecture. They're pure data containersâ
 This separation has made it easier to add new features and modify existing ones. The structure has held up well as the game has grown.
 
 
+
+
+
+
+
+

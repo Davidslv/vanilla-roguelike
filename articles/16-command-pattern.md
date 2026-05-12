@@ -306,3 +306,9 @@ The Command pattern has been valuable for representing user actions. Commands en
 By encapsulating actions as objects, we've made the code more flexible and easier to extend. The structure has served us well as we've added new features.
 
 
+
+
+
+
+
+

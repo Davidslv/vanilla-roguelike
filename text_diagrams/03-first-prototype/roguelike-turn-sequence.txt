@@ -1,0 +1,47 @@
+Turn-Based Roguelike Game Loop Sequence
+==========================================
+
+Player    Input     Game     State    Render
+  │        │         │         │         │
+  │        │         │         │         │
+  ├───────────────────────────────────────────────┐
+  │        │         │         │         │        │
+  │  [1]   │         │         │         │        │
+  ├───────>│         │         │         │        │ Until
+  │        │         │         │         │        │ Game
+  │        │  [2]    │         │         │        │ Over
+  │        ├────────>│         │         │        │
+  │        │         │         │         │        │
+  │        │         │  [3]    │         │        │
+  │        │         ├────────>│         │        │
+  │        │         │         │         │        │
+  │        │         │         │  [4]    │        │
+  │        │         │         ├────────>│        │
+  │        │         │         │         │        │
+  │        │         │         │  [5]    │        │
+  │        │         │         ├────────>│        │
+  │        │         │         │         │        │
+  │        │         │         │         │  [6]   │
+  │        │         │         │         ├───────>│
+  │        │         │         │         │        │
+  │        │         │         │         │  [7]   │
+  │  <─────┴─────────┴─────────┴─────────┴────────┤
+  │        │         │         │         │        │
+  └───────────────────────────────────────────────┘
+
+Legend:
+[1] Player presses key
+[2] Input handler processes key
+[3] Game processes input
+[4] State: Move Player
+[5] State: Move Monsters
+[6] Render frame
+[7] Display to player
+
+Note: The loop waits for player input before continuing
+      (blocking, turn-based behavior)
+
+
+
+
+

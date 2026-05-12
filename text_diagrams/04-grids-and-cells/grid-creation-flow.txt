@@ -1,0 +1,78 @@
+Grid Creation and Usage Flow
+==============================
+
+┌────────────────┐
+│  Create Grid   │
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│Initialize Cells│
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│ Set Neighbor   │
+│  References    │
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│  Grid Ready    │
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│Apply Algorithm │
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│ Cells Linked   │
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│  Walls Set     │
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│ Playable Maze  │
+└────────────────┘
+
+
+Step-by-Step Details:
+======================
+
+1. Create Grid
+   └─> Allocate cells in 2D array
+
+2. Initialize Cells
+   └─> Set row, column for each cell
+
+3. Set Neighbor References
+   ├─> cell.north = grid[row-1, col]
+   ├─> cell.south = grid[row+1, col]
+   ├─> cell.east  = grid[row, col+1]
+   └─> cell.west  = grid[row, col-1]
+
+4. Grid Ready
+   └─> All cells know their neighbors
+
+5. Apply Algorithm
+   └─> Maze generation algorithm links cells
+
+6. Cells Linked
+   └─> Connected cells form passages
+
+7. Walls Set
+   └─> Unlinked cells become walls
+
+8. Playable Maze
+   └─> Ready for rendering and gameplay
+
+
+
+
+

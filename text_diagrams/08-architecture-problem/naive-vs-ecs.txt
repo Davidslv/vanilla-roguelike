@@ -1,0 +1,163 @@
+Naive Approach vs ECS Architecture
+====================================
+
+NAIVE APPROACH: Everything Mixed Together
+===========================================
+
+┌─────────────────────────────────────────┐
+│          Single Game Class              │
+│                                         │
+│  ┌───────────────────────────────────┐  │
+│  │  Data + Behavior All Mixed        │  │
+│  │  ────────────────────────────────  │  │
+│  │  • @player, @monsters, @grid      │  │
+│  │  • handle_input()                 │  │
+│  │  • move_player()                  │  │
+│  │  • move_monsters()                │  │
+│  │  • check_collisions()             │  │
+│  │  • check_combat()                 │  │
+│  │  • render()                       │  │
+│  └───────────────────────────────────┘  │
+│                                         │
+│  Problems:                              │
+│  ✗ Tight Coupling                       │
+│  ✗ Hard to Test                         │
+│  ✗ Hard to Extend                       │
+│  ✗ Changes break multiple things        │
+└─────────────────────────────────────────┘
+
+
+ECS ARCHITECTURE: Separated Concerns
+======================================
+
+┌─────────────────────────────────────────┐
+│         ECS Architecture                │
+│                                         │
+│  ┌──────────────────────────────────┐   │
+│  │     Data: Components             │   │
+│  │     ──────────────────           │   │
+│  │     • PositionComponent          │   │
+│  │     • HealthComponent            │   │
+│  │     • RenderComponent            │   │
+│  └──────────────────────────────────┘   │
+│                                         │
+│  ┌──────────────────────────────────┐   │
+│  │     Logic: Systems               │   │
+│  │     ──────────────────           │   │
+│  │     • MovementSystem             │   │
+│  │     • RenderSystem               │   │
+│  │     • CombatSystem               │   │
+│  └──────────────────────────────────┘   │
+│                                         │
+│  ┌──────────────────────────────────┐   │
+│  │     Containers: Entities         │   │
+│  │     ────────────────────         │   │
+│  │     • Just IDs + Components      │   │
+│  │     • No behavior                │   │
+│  └──────────────────────────────────┘   │
+│                                         │
+│  Benefits:                              │
+│  ✓ Testable                             │
+│  ✓ Scalable                             │
+│  ✓ Maintainable                         │
+│  ✓ Independent systems                  │
+└─────────────────────────────────────────┘
+
+
+Visual Comparison:
+==================
+
+NAIVE                          ECS
+──────                         ────
+
+┌──────────┐                  ┌─────────┐
+│   Game   │                  │ Entity  │
+│          │                  │  (ID)   │
+│ • Data   │                  └────┬────┘
+│ • Logic  │                       │
+│ • All    │                  ┌────┴─────┐
+│   Mixed  │                  │          │
+└──────────┘                  ▼          ▼
+                         ┌─────────┐ ┌────────┐
+Everything in            │Component│ │ System │
+one place                │  (Data) │ │ (Logic)│
+                         └─────────┘ └────────┘
+
+                         Everything
+                         separated
+
+
+Architecture Evolution:
+========================
+
+Start               →         Problem          →         Solution
+─────                         ─────────                  ────────
+
+┌──────────┐                ┌──────────┐              ┌──────────┐
+│ Simple   │                │ Complex  │              │   ECS    │
+│  Code    │                │  Mixed   │              │Separated │
+└────┬─────┘                │  Code    │              │ Concerns │
+     │                      └────┬─────┘              └────┬─────┘
+     ▼                           │                         │
+Add Features                     ▼                         ▼
+     │                      Tight Coupling            ┌─────────┐
+     ▼                      Unpredictable             │Testable │
+More Features                Hard to Test             │Scalable │
+     │                           │                    │Flexible │
+     ▼                           ▼                    └─────────┘
+┌──────────┐                Breaking Point
+│Complexity│                     │
+│ Grows    │                     ▼
+└──────────┘                Refactor Needed!
+
+
+Breaking Point Signs:
+=====================
+
+┌─────────────────────────────────────────┐
+│         Warning Signs                   │
+│                                         │
+│  1. Tight Coupling                      │
+│     └─> Classes know too much about    │
+│         each other                      │
+│                                         │
+│  2. Unpredictable Behavior              │
+│     └─> Small changes break unrelated  │
+│         things                          │
+│                                         │
+│  3. Hard to Test                        │
+│     └─> Can't test one thing in        │
+│         isolation                       │
+│                                         │
+│  4. Logic in Wrong Places               │
+│     └─> Code drifts to inappropriate   │
+│         locations                       │
+└─────────────────────────────────────────┘
+
+
+The Solution Path:
+===================
+
+Recognize Problems
+        │
+        ▼
+Choose to Refactor
+        │
+        ▼
+Adopt ECS Pattern
+        │
+        ├──> Separate Data (Components)
+        ├──> Separate Logic (Systems)
+        └──> Use Entities as Containers
+        │
+        ▼
+Better Architecture
+        │
+        ├──> Testable
+        ├──> Maintainable
+        └──> Scalable
+
+
+
+
+

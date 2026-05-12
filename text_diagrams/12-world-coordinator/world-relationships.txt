@@ -1,0 +1,369 @@
+World Relationships and Components
+====================================
+
+World as Central Hub:
+=====================
+
+                    ┌──────────────────┐
+                    │      World       │
+                    │  (Coordinator)   │
+                    └────────┬─────────┘
+                             │
+          ┌──────────────────┼──────────────────┐
+          │                  │                  │
+          │                  │                  │
+          ▼                  ▼                  ▼
+   ┌──────────┐       ┌──────────┐      ┌──────────┐
+   │ Entities │       │ Systems  │      │ Commands │
+   │(Containers)      │ (Logic)  │      │ & Events │
+   └────┬─────┘       └────┬─────┘      └──────────┘
+        │                  │
+        ▼                  │
+   ┌──────────┐            │
+   │Components│            │
+   │  (Data)  │            │
+   └──────────┘            │
+        │                  │
+        └──────────────────┘
+              │
+              ▼
+      Systems process
+      Components via
+      Entity queries
+
+
+Detailed Relationships:
+========================
+
+┌─────────────────────────────────────────────────────────┐
+│                        World                            │
+│                                                         │
+│  ┌──────────────┐      ┌──────────────┐               │
+│  │   Entities   │      │   Systems    │               │
+│  │   (Hash)     │      │   (Array)    │               │
+│  │              │      │              │               │
+│  │ "id1" =>     │      │ [System, P]  │               │
+│  │   Entity     │      │              │               │
+│  │              │      │ Sorted by    │               │
+│  │ "id2" =>     │      │  priority    │               │
+│  │   Entity     │      │              │               │
+│  └──────┬───────┘      └───────┬──────┘               │
+│         │                      │                       │
+│         │                      │                       │
+│         └──────────┬───────────┘                       │
+│                    │                                   │
+│                    ▼                                   │
+│            ┌───────────────┐                           │
+│            │    Query      │                           │
+│            │  Mechanism    │                           │
+│            └───────────────┘                           │
+│                                                        │
+│  Systems ask: "Give me entities with Component X"     │
+│  World returns: Matching entities                     │
+└─────────────────────────────────────────────────────────┘
+
+
+Entity Storage in World:
+=========================
+
+@entities Hash:
+───────────────
+
+┌────────────────────────────────────┐
+│  "player-001" => Entity            │
+│    │                                │
+│    ├─> PositionComponent           │
+│    ├─> RenderComponent             │
+│    ├─> HealthComponent             │
+│    └─> ...                         │
+│                                    │
+│  "monster-042" => Entity           │
+│    │                                │
+│    ├─> PositionComponent           │
+│    ├─> RenderComponent             │
+│    ├─> HealthComponent             │
+│    └─> CombatComponent             │
+│                                    │
+│  "stairs-001" => Entity            │
+│    │                                │
+│    ├─> PositionComponent           │
+│    ├─> RenderComponent             │
+│    └─> StairsComponent             │
+└────────────────────────────────────┘
+
+
+System Storage in World:
+=========================
+
+@systems Array (sorted by priority):
+─────────────────────────────────────
+
+┌──────────────────────────────┐
+│ [MazeSystem, 0]              │
+│ [InputSystem, 1]             │
+│ [MovementSystem, 2]          │
+│ [CombatSystem, 3]            │
+│ [CollisionSystem, 3]         │
+│ [MonsterSystem, 4]           │
+│ [RenderSystem, 10]           │
+└──────────────────────────────┘
+
+Update order: Top to bottom
+
+
+Query Mechanism:
+================
+
+System Perspective:
+-------------------
+
+┌────────────────────────────────────┐
+│  MovementSystem                    │
+│                                    │
+│  def update(delta)                 │
+│    # Ask world for entities        │
+│    movable = entities_with(        │
+│      :position,                    │
+│      :movement                     │
+│    )                               │
+│                                    │
+│    # Process them                  │
+│    movable.each do |entity|        │
+│      process_movement(entity)      │
+│    end                             │
+│  end                               │
+└────────────────────────────────────┘
+          │
+          ▼
+┌────────────────────────────────────┐
+│  World                             │
+│                                    │
+│  def query_entities(types)         │
+│    @entities.values.select do |e|  │
+│      types.all? { |t|              │
+│        e.has_component?(t)         │
+│      }                             │
+│    end                             │
+│  end                               │
+└────────────────────────────────────┘
+
+
+Event Flow Through World:
+==========================
+
+1. System Emits Event:
+   ────────────────────
+
+   MovementSystem:
+     emit_event(:entity_moved, {
+       entity_id: "player-001",
+       position: {row: 5, col: 3}
+     })
+          │
+          ▼
+   World Queue: [@event_queue << [:entity_moved, data]]
+
+
+2. World Processes Events:
+   ────────────────────────
+
+   World.process_events:
+     until @event_queue.empty?
+       event_type, data = @event_queue.shift
+
+       # Store in EventManager
+       event_manager.publish(event_type, data)
+
+       # Notify subscribers
+       @event_subscribers[event_type].each do |subscriber|
+         subscriber.handle_event(event_type, data)
+       end
+     end
+
+
+3. Subscribers React:
+   ───────────────────
+
+   CollisionSystem (subscribed to :entity_moved):
+     def handle_event(type, data)
+       if type == :entity_moved
+         check_collision(data[:entity_id])
+       end
+     end
+
+
+Command Flow Through World:
+============================
+
+1. System Queues Command:
+   ───────────────────────
+
+   InputSystem:
+     command = MoveCommand.new(player, :north)
+     world.queue_command(command)
+          │
+          ▼
+   World Queue: [@command_queue << command]
+
+
+2. World Processes Commands:
+   ──────────────────────────
+
+   World.process_commands:
+     until @command_queue.empty?
+       command = @command_queue.shift
+       command.execute(self)
+     end
+
+
+3. Command Executes:
+   ─────────────────
+
+   MoveCommand.execute(world):
+     movement_system = world.find_system(MovementSystem)
+     movement_system.move(@entity, @direction)
+
+
+Complete Interaction Example:
+==============================
+
+Player Presses Key → Move Entity
+─────────────────────────────────
+
+┌─────────────┐
+│ 1. Input    │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────────────┐
+│ InputSystem                 │
+│ • Reads key: 'k'            │
+│ • Creates: MoveCommand      │
+│ • Queues to World           │
+└──────┬──────────────────────┘
+       │
+       ▼
+┌─────────────────────────────┐
+│ World                       │
+│ • Stores in @command_queue  │
+└──────┬──────────────────────┘
+       │
+       ▼
+┌─────────────────────────────┐
+│ 2. All Systems Update       │
+│ (MovementSystem waits)      │
+└──────┬──────────────────────┘
+       │
+       ▼
+┌─────────────────────────────┐
+│ 3. Process Commands         │
+│ World.process_commands      │
+└──────┬──────────────────────┘
+       │
+       ▼
+┌─────────────────────────────┐
+│ MoveCommand.execute(world)  │
+│ • Finds MovementSystem      │
+│ • Calls move(entity, dir)   │
+└──────┬──────────────────────┘
+       │
+       ▼
+┌─────────────────────────────┐
+│ MovementSystem.move         │
+│ • Queries world for entity  │
+│ • Gets components           │
+│ • Updates position          │
+│ • Emits :entity_moved       │
+└──────┬──────────────────────┘
+       │
+       ▼
+┌─────────────────────────────┐
+│ World                       │
+│ • Stores in @event_queue    │
+└──────┬──────────────────────┘
+       │
+       ▼
+┌─────────────────────────────┐
+│ 4. Process Events           │
+│ World.process_events        │
+└──────┬──────────────────────┘
+       │
+       ▼
+┌─────────────────────────────┐
+│ CollisionSystem             │
+│ • Handles :entity_moved     │
+│ • Checks for collisions     │
+└─────────────────────────────┘
+
+
+World Responsibilities:
+========================
+
+✓ Entity Management
+  ├─> add_entity(entity)
+  ├─> remove_entity(id)
+  ├─> get_entity(id)
+  └─> query_entities(types)
+
+✓ System Management
+  ├─> add_system(system, priority)
+  ├─> remove_system(system)
+  └─> update() - runs all systems
+
+✓ Command Coordination
+  ├─> queue_command(command)
+  └─> process_commands()
+
+✓ Event Coordination
+  ├─> emit_event(type, data)
+  ├─> subscribe(type, subscriber)
+  └─> process_events()
+
+✓ Level Management
+  ├─> set_level(level)
+  ├─> current_level
+  └─> level_changed?
+
+✓ Game State
+  ├─> quit? flag
+  ├─> display handler
+  └─> current difficulty
+
+
+Why World is Central:
+======================
+
+┌─────────────────────────────────────┐
+│  Without World (Direct references)  │
+├─────────────────────────────────────┤
+│                                     │
+│  MovementSystem ──> CombatSystem    │
+│       ↕                    ↕        │
+│  RenderSystem  ─────> InputSystem   │
+│                                     │
+│  • Tight coupling                   │
+│  • Hard to test                     │
+│  • Brittle dependencies             │
+└─────────────────────────────────────┘
+
+┌─────────────────────────────────────┐
+│      With World (Hub pattern)       │
+├─────────────────────────────────────┤
+│                                     │
+│      MovementSystem                 │
+│           │                         │
+│           ↓                         │
+│        World  ←── CombatSystem      │
+│           ↑                         │
+│           │                         │
+│      RenderSystem                   │
+│                                     │
+│  • Loose coupling                   │
+│  • Easy to test                     │
+│  • Flexible architecture            │
+└─────────────────────────────────────┘
+
+
+
+
+

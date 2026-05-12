@@ -103,7 +103,7 @@ module Vanilla
             cell = grid[row, col]
             x = col * @cell_size
             y = row * @cell_size
-            
+
             # Create sprite for cell
             sprite = Square.new(
               x: x,
@@ -119,7 +119,7 @@ module Vanilla
       def draw_character(row, column, character, color = nil)
         x = column * @cell_size
         y = row * @cell_size
-        
+
         # Create or update sprite for entity
         sprite = Text.new(
           character,
@@ -234,17 +234,17 @@ show  # Blocks and runs event loop
 def start
   # Initialize Ruby2D window but don't call show yet
   @renderer.initialize_window
-  
+
   loop do
     # Process Ruby2D events manually
     @renderer.poll_events
-    
+
     # Run game update
     @world.update(delta_time)
-    
+
     # Render
     @renderer.present
-    
+
     break if @world.quit?
     sleep(0.016)  # ~60 FPS
   end
@@ -357,7 +357,7 @@ end
 **Terminal**: Very fast, minimal overhead
 **Ruby2D**: More overhead, but still fast for 2D graphics
 
-**Optimization**: 
+**Optimization**:
 - Cache sprites instead of recreating
 - Use sprite batching
 - Limit redraws to changed cells
@@ -482,4 +482,10 @@ This preserves:
 ## Conclusion
 
 Ruby2D integration is **technically feasible** due to the existing renderer abstraction. The main challenge is integrating Ruby2D's event-driven model with the current turn-based game loop. With proper architecture modifications, this could provide a modern graphical interface while maintaining the terminal renderer for development and testing.
+
+
+
+
+
+
 

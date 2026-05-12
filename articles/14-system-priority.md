@@ -249,3 +249,9 @@ System priority is crucial for ECS architecture. Getting the order right prevent
 By using a priority-based system with meaningful gaps, we've found it easier to add new systems and maintain correct execution order. The structure has helped us avoid many ordering-related bugs.
 
 
+
+
+
+
+
+

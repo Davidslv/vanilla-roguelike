@@ -1,0 +1,70 @@
+Cell and Its Neighbors
+========================
+
+Simple View:
+------------
+
+        [North]
+           │
+           │
+    [West]─[Cell]─[East]
+           │
+           │
+        [South]
+
+
+Detailed View with Links:
+--------------------------
+
+        ┌─────────┐
+        │ North   │
+        │  (N)    │
+        └────┬────┘
+             │
+        ┌────▼────┐ Linked
+        │  Cell   ├─────────┐
+        │   (C)   │         │
+        └─┬───┬─┬─┘         │
+          │   │ │           │
+    ┌─────▼─┐ │ └───────┐   │
+    │ West  │ │         │   │
+    │  (W)  │ │    ┌────▼───▼┐
+    └───────┘ │    │  East   │
+              │    │   (E)   │
+         ┌────▼─┐  └─────────┘
+         │South │
+         │ (S)  │
+         └──────┘
+
+Link Status:
+  C ──> N (Linked)
+  C ──> E (Linked)
+  C ╳─> W (Not Linked)
+  C ╳─> S (Not Linked)
+
+When cells are linked, there's a passage between them.
+When not linked, there's a wall.
+
+
+Grid Coordinate System:
+------------------------
+
+    0     1     2     3     (columns)
+  ┌─────┬─────┬─────┬─────┐
+0 │ 0,0 │ 0,1 │ 0,2 │ 0,3 │
+  ├─────┼─────┼─────┼─────┤
+1 │ 1,0 │ 1,1 │ 1,2 │ 1,3 │
+  ├─────┼─────┼─────┼─────┤
+2 │ 2,0 │ 2,1 │ 2,2 │ 2,3 │
+  ├─────┼─────┼─────┼─────┤
+3 │ 3,0 │ 3,1 │ 3,2 │ 3,3 │
+  └─────┴─────┴─────┴─────┘
+(rows)
+
+Each cell: [row, column]
+Example: Cell at row 1, column 2 is [1,2]
+
+
+
+
+

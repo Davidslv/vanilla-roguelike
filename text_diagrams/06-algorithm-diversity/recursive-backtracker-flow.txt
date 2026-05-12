@@ -1,0 +1,92 @@
+Recursive Backtracker Algorithm Flow
+======================================
+
+┌────────────────────┐
+│Start: Random Cell  │
+│    on Stack        │
+└─────────┬──────────┘
+          │
+          ▼
+┌─────────────────────┐
+│Get Current from     │◄────────┐
+│      Stack          │         │
+└─────────┬───────────┘         │
+          │                     │
+          ▼                     │
+┌─────────────────────┐         │
+│ Find Unvisited      │         │
+│    Neighbors        │         │
+└─────────┬───────────┘         │
+          │                     │
+          ▼                     │
+┌─────────────────────┐         │
+│   Any Found?        │         │
+└─────────┬───────────┘         │
+          │                     │
+     ┌────┴────┐                │
+    Yes       No                │
+     │         │                │
+     ▼         ▼                │
+┌─────────┐ ┌──────────┐       │
+│  Pick   │ │Backtrack:│       │
+│ Random  │ │Pop Stack │       │
+│Neighbor │ └────┬─────┘       │
+└────┬────┘      │             │
+     │           ▼             │
+     ▼      ┌──────────┐       │
+┌─────────┐ │  Stack   │       │
+│  Link   │ │  Empty?  │       │
+│ Current │ └────┬─────┘       │
+│   to    │      │             │
+│Neighbor │ ┌────┴────┐        │
+└────┬────┘ │        │         │
+     │     No       Yes        │
+     ▼      │         │        │
+┌─────────┐ │         ▼        │
+│  Push   │ └────> LOOP   ┌────────┐
+│Neighbor │                │Set Walls│
+│to Stack │                └────┬───┘
+└────┬────┘                     │
+     │                          ▼
+     └──────────────────────> ┌────────┐
+                              │Complete│
+                              └────────┘
+
+
+Stack Visualization:
+=====================
+
+Step 1: Start       Step 2: Visit      Step 3: Dead End
+┌─────┐            ┌─────┐            ┌─────┐
+│  A  │            │  C  │            │  D  │
+└─────┘            ├─────┤            ├─────┤
+                   │  B  │            │  C  │
+                   ├─────┤            ├─────┤
+                   │  A  │            │  B  │
+                   └─────┘            ├─────┤
+                                      │  A  │
+                                      └─────┘
+
+Step 4: Backtrack
+┌─────┐            (Pop D, try from C)
+│  C  │            (No unvisited from C)
+├─────┤            (Pop C, try from B)
+│  B  │            ...continues
+├─────┤
+│  A  │
+└─────┘
+
+
+Characteristics:
+=================
+- Depth-first search approach
+- Creates long, winding corridors
+- Fewer dead ends than Binary Tree
+- Fast and predictable (O(n))
+- Uses stack for backtracking
+- Good for dungeon-like mazes
+
+
+
+
+

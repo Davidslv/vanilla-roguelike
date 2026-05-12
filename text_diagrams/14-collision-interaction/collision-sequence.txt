@@ -1,0 +1,357 @@
+Collision Detection and Handling
+==================================
+
+Collision Detection Sequence:
+==============================
+
+MovementSystem  CollisionSystem  Entity1  Entity2  World
+     │                │            │        │        │
+     │  [1]           │            │        │        │
+     ├───────────────>│            │        │        │
+     │     Move       │            │        │        │
+     │    Entity      │            │        │        │
+     │                │            │        │        │
+     │           [2]  │            │        │        │
+     ├────────────────┼────────────┼────────┼───────>│
+     │    Emit        │            │        │        │
+     │ :entity_moved  │            │        │        │
+     │                │            │        │        │
+     │                │      [3]   │        │        │
+     │                │<───────────┼────────┼────────┤
+     │                │  Notify    │        │        │
+     │                │:entity_moved        │        │
+     │                │            │        │        │
+     │                │      [4]   │        │        │
+     │                ├────────────┼────────┼───────>│
+     │                │   Query    │        │        │
+     │                │ entities   │        │        │
+     │                │  at pos    │        │        │
+     │                │            │        │        │
+     │                │      [5]   │        │        │
+     │                │<───────────┼────────┼────────┤
+     │                │  Return    │        │        │
+     │                │Entity1,    │        │        │
+     │                │Entity2     │        │        │
+     │                │            │        │        │
+     │                │      [6]   │        │        │
+     │                ├────────────>        │        │
+     │                │  Check     │        │        │
+     │                │ collision  │        │        │
+     │                │            │        │        │
+     │                │           [7]       │        │
+     │                ├────────────┼────────┼───────>│
+     │                │    Emit    │        │        │
+     │                │:entities_  │        │        │
+     │                │ collided   │        │        │
+     │                │            │        │        │
+     │                │      [8]   │        │        │
+     │                ├────────────>        │        │
+     │                │   Handle   │        │        │
+     │                │  specific  │        │        │
+     │                │ collision  │        │        │
+
+
+Collision Detection Flow:
+==========================
+
+┌────────────────────────────┐
+│  Entity Moves              │
+└──────────┬─────────────────┘
+           │
+           ▼
+┌────────────────────────────┐
+│  MovementSystem emits      │
+│  :entity_moved event       │
+└──────────┬─────────────────┘
+           │
+           ▼
+┌────────────────────────────┐
+│  CollisionSystem           │
+│  subscribes to event       │
+└──────────┬─────────────────┘
+           │
+           ▼
+┌────────────────────────────┐
+│  Get entity from event     │
+└──────────┬─────────────────┘
+           │
+           ▼
+┌────────────────────────────┐
+│  Query all entities at     │
+│  same position             │
+└──────────┬─────────────────┘
+           │
+           ▼
+┌────────────────────────────┐
+│  For each other entity:    │
+│  • Check collision type    │
+│  • Handle interaction      │
+└────────────────────────────┘
+
+
+Position-Based Detection:
+==========================
+
+Simple Grid Collision:
+──────────────────────
+
+Grid at position [5, 3]:
+┌──────────────────────┐
+│   Row 5, Column 3    │
+├──────────────────────┤
+│                      │
+│  Entity 1: Player    │
+│    position: [5, 3]  │
+│                      │
+│  Entity 2: Monster   │
+│    position: [5, 3]  │
+│                      │
+│  → COLLISION!        │
+└──────────────────────┘
+
+
+Query Implementation:
+─────────────────────
+
+find_entities_at_position(row, column)
+  │
+  ├─> Query world for all entities with PositionComponent
+  │
+  ├─> Filter by position:
+  │     entities.select do |entity|
+  │       pos = entity.get_component(:position)
+  │       pos.row == row && pos.column == column
+  │     end
+  │
+  └─> Returns: [Entity1, Entity2, ...]
+
+
+Collision Type Handling:
+=========================
+
+┌────────────────────────────────────────┐
+│  handle_specific_collisions()          │
+│                                        │
+│  Check entity tags/components:         │
+│                                        │
+│  ┌────────────────────────────┐       │
+│  │ Player + Monster           │       │
+│  │ → handle_combat()          │       │
+│  └────────────────────────────┘       │
+│                                        │
+│  ┌────────────────────────────┐       │
+│  │ Player + Item              │       │
+│  │ → handle_pickup()          │       │
+│  └────────────────────────────┘       │
+│                                        │
+│  ┌────────────────────────────┐       │
+│  │ Player + Stairs            │       │
+│  │ → handle_level_transition()│       │
+│  └────────────────────────────┘       │
+│                                        │
+│  ┌────────────────────────────┐       │
+│  │ Monster + Monster          │       │
+│  │ → ignore (pass through)    │       │
+│  └────────────────────────────┘       │
+└────────────────────────────────────────┘
+
+
+Specific Collision Handlers:
+=============================
+
+Player + Monster Collision:
+────────────────────────────
+
+┌──────────────────────────┐
+│ Player collides with     │
+│      Monster             │
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│ Get CombatSystem         │
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│ Process attack:          │
+│ • Roll for hit           │
+│ • Calculate damage       │
+│ • Apply to health        │
+│ • Check for death        │
+└──────────────────────────┘
+
+
+Player + Item Collision:
+─────────────────────────
+
+┌──────────────────────────┐
+│ Player collides with     │
+│       Item               │
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│ Get InventorySystem      │
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│ Add item to inventory:   │
+│ • Check capacity         │
+│ • Add item               │
+│ • Remove from world      │
+│ • Emit :item_picked_up   │
+└──────────────────────────┘
+
+
+Player + Stairs Collision:
+───────────────────────────
+
+┌──────────────────────────┐
+│ Player collides with     │
+│      Stairs              │
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│ Create ChangeLevelCommand│
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│ Queue command to world   │
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│ Command executes:        │
+│ • Increment difficulty   │
+│ • Emit level transition  │
+│ • MazeSystem regenerates │
+└──────────────────────────┘
+
+
+Event-Driven Communication:
+============================
+
+Movement → Collision via Events:
+─────────────────────────────────
+
+MovementSystem               CollisionSystem
+      │                            │
+      ├─> Move entity              │
+      │                            │
+      ├─> Emit event               │
+      │   :entity_moved            │
+      │        │                   │
+      │        └──────────────────>│
+      │                            │
+      │                            ├─> Handle event
+      │                            │
+      │                            ├─> Check collision
+      │                            │
+      │                            └─> Handle collision
+
+No direct dependency!
+MovementSystem doesn't know CollisionSystem exists.
+
+
+Collision → Combat via Events:
+───────────────────────────────
+
+CollisionSystem              CombatSystem
+      │                            │
+      ├─> Detect collision         │
+      │                            │
+      ├─> Emit event               │
+      │   :entities_collided       │
+      │        │                   │
+      │        └──────────────────>│
+      │                            │
+      │                            ├─> Handle event
+      │                            │
+      │                            ├─> Check if combat
+      │                            │
+      │                            └─> Process attack
+
+
+Complete Interaction Example:
+==============================
+
+Player moves north onto Monster's cell:
+────────────────────────────────────────
+
+1. InputSystem
+   └─> Queues MoveCommand
+
+2. MovementSystem
+   ├─> Executes move
+   ├─> Updates player position to [5, 3]
+   └─> Emits :entity_moved
+
+3. CollisionSystem (subscribed to :entity_moved)
+   ├─> Gets player entity from event
+   ├─> Queries entities at [5, 3]
+   ├─> Finds: [Player, Monster]
+   ├─> Emits :entities_collided
+   └─> Calls handle_player_monster_collision()
+
+4. handle_player_monster_collision()
+   ├─> Gets CombatSystem
+   ├─> Calls process_attack(player, monster)
+   └─> Combat resolves
+
+5. CombatSystem
+   ├─> Rolls for hit
+   ├─> Calculates damage
+   ├─> Applies to monster health
+   ├─> Emits :combat_damage
+   ├─> Checks if monster dies
+   └─> If dead: emits :combat_death, removes entity
+
+
+Visual Representation:
+======================
+
+Before Move:
+────────────
+
+  0   1   2   3   4   5
+┌───┬───┬───┬───┬───┬───┐
+│ # │ # │ # │ # │ # │ # │ 0
+├───┼───┼───┼───┼───┼───┤
+│ # │ @ │ . │ . │ . │ # │ 1
+├───┼───┼───┼───┼───┼───┤
+│ # │ . │ M │ . │ . │ # │ 2
+├───┼───┼───┼───┼───┼───┤
+│ # │ # │ # │ # │ # │ # │ 3
+└───┴───┴───┴───┴───┴───┘
+
+@ = Player at [1, 1]
+M = Monster at [2, 2]
+
+
+After Move (collision!):
+─────────────────────────
+
+  0   1   2   3   4   5
+┌───┬───┬───┬───┬───┬───┐
+│ # │ # │ # │ # │ # │ # │ 0
+├───┼───┼───┼───┼───┼───┤
+│ # │ . │ @ │ . │ . │ # │ 1
+├───┼───┼───┼───┼───┼───┤
+│ # │ . │ M │ . │ . │ # │ 2
+├───┼───┼───┼───┼───┼───┤
+│ # │ # │ # │ # │ # │ # │ 3
+└───┴───┴───┴───┴───┴───┘
+
+@ = Player at [2, 2]  ← Same position!
+M = Monster at [2, 2] ← Collision!
+
+→ Combat triggered!
+
+
+
+
+

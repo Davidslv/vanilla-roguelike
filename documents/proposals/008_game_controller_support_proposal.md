@@ -132,7 +132,7 @@ until Ray.window_should_close?
     if Ray.gamepad_button_pressed?(0, :dpad_up)
       move_north
     end
-    
+
     # Analog stick
     left_x = Ray.gamepad_axis_movement(0, :left_x)
     left_y = Ray.gamepad_axis_movement(0, :left_y)
@@ -140,7 +140,7 @@ until Ray.window_should_close?
       move_direction(left_x, left_y)
     end
   end
-  
+
   Ray.end_drawing
 end
 ```
@@ -272,7 +272,7 @@ module Vanilla
     def handle_axis_motion(axis, value)
       # Dead zone filtering
       return if value.abs < 8000  # ~25% of max
-      
+
       case axis
       when :left_x
         @input_queue << (value > 0 ? :east : :west) if value.abs > 16000
@@ -411,7 +411,7 @@ controller:
 
 **Problem**: Controllers provide continuous input (analog sticks), but game is turn-based.
 
-**Solution**: 
+**Solution**:
 - Use dead zones to filter small movements
 - Only trigger movement on significant stick deflection
 - D-Pad is discrete and works better for turn-based
@@ -449,7 +449,7 @@ controller:
 
 **Problem**: Some systems support multiple controllers.
 
-**Solution**: 
+**Solution**:
 - Support first connected controller (for single-player)
 - Future: Multiplayer support with multiple controllers
 
@@ -593,7 +593,7 @@ gem 'ruby2d', '~> 0.11'
 
 ## Alternative: Simplified Approach
 
-**Minimal Implementation**: 
+**Minimal Implementation**:
 - D-Pad only (no analog sticks)
 - Basic button mapping
 - No menu navigation (keyboard required for menus)
@@ -622,4 +622,10 @@ Game controller support is **technically feasible** and would enhance the user e
 3. Handling platform differences gracefully
 
 With proper abstraction and SDL2 (or Ruby2D), this feature can be implemented while maintaining keyboard support as the primary input method.
+
+
+
+
+
+
 

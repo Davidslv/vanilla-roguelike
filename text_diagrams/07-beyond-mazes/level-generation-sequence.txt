@@ -1,0 +1,118 @@
+Level Generation Sequence
+===========================
+
+Game      MazeSystem   Algorithm    Grid    EntityFactory
+ │            │            │          │           │
+ │            │            │          │           │
+ │ [1]        │            │          │           │
+ ├───────────>│            │          │           │
+ │            │            │          │           │
+ │            │ [2]        │          │           │
+ │            ├───────────>│          │           │
+ │            │            │          │           │
+ │            │      [3]   │          │           │
+ │            ├───────────>│          │           │
+ │            │            │          │           │
+ │            │            │ [4]      │           │
+ │            │            ├─────────>│           │
+ │            │            │          │           │
+ │            │                [5]    │           │
+ │            ├───────────────────────┼──────────>│
+ │            │            │          │           │
+ │            │                [6]    │           │
+ │            ├───────────────────────┼──────────>│
+ │            │            │          │           │
+ │            │      [7]              │           │
+ │            ├──────────────────────>│           │
+ │            │            │          │           │
+ │            │                       │    [8]    │
+ │            ├───────────────────────┼──────────>│
+ │            │            │          │           │
+ │            │                       │    [9]    │
+ │            ├──────────────────────>│           │
+ │            │            │          │           │
+ │            │                [10]   │           │
+ │            ├──────────────────────>│           │
+ │            │            │          │           │
+ │            │                [11]              │
+ │            ├───────────────────────┼──────────>│
+ │            │            │          │           │
+ │      [12]  │            │          │           │
+ │<───────────┤            │          │           │
+ │            │            │          │           │
+
+
+Legend:
+=======
+
+[1]  Game requests level generation (difficulty, seed)
+[2]  MazeSystem creates Grid
+[3]  MazeSystem calls Algorithm to generate maze
+[4]  Algorithm links cells in Grid
+[5]  MazeSystem asks EntityFactory to create Player
+[6]  MazeSystem places Player in Grid
+[7]  MazeSystem finds stairs position in Grid
+[8]  MazeSystem asks EntityFactory to create Stairs
+[9]  MazeSystem places Stairs in Grid
+[10] MazeSystem ensures path exists in Grid
+[11] MazeSystem asks EntityFactory to spawn Monsters
+[12] MazeSystem returns: Level Ready
+
+
+Components Involved:
+====================
+
+Game
+  └─> Initiates level generation
+      Provides: difficulty, seed
+
+MazeSystem
+  └─> Orchestrates level creation
+      Coordinates all steps
+
+Algorithm (Binary Tree, Recursive Backtracker, etc.)
+  └─> Generates maze structure
+      Links cells to create passages
+
+Grid
+  └─> Stores maze structure
+      Contains cells and their connections
+
+EntityFactory
+  └─> Creates game entities
+      Produces: Player, Stairs, Monsters
+
+
+Post-Generation State:
+=======================
+
+┌─────────────────────────────────┐
+│          Grid (Maze)            │
+│                                 │
+│  #######################        │
+│  #@................M...#        │
+│  #.###.#######.###.###.#        │
+│  #.#.......#.......#...#        │
+│  #.#.#####.#.#####.#.###        │
+│  #...#.....#.#.....#...#        │
+│  #####.#####.#.#######.#        │
+│  #.....#.M...#.........#        │
+│  #.#####.#####.#######.#        │
+│  #.M...............M...%        │
+│  #######################        │
+│                                 │
+│  @ = Player (at 0,0)            │
+│  M = Monsters (random positions)│
+│  % = Stairs (farthest from @)  │
+│  # = Walls                      │
+│  . = Floors                     │
+│                                 │
+│  ✓ All reachable from player   │
+│  ✓ Path to stairs guaranteed   │
+│  ✓ Monsters on floor cells     │
+└─────────────────────────────────┘
+
+
+
+
+

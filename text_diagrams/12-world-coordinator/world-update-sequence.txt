@@ -1,0 +1,319 @@
+World Update Sequence and Coordination
+========================================
+
+World Update Flow:
+==================
+
+Game        World      Systems     Commands    Events
+ │           │            │            │          │
+ │  [1]      │            │            │          │
+ ├──────────>│            │            │          │
+ │           │            │            │          │
+ │           │ [2]        │            │          │
+ │           ├───────────>│            │          │
+ │           │            │            │          │
+ │           │            │ [3]        │          │
+ │           │            ├───────────>│          │
+ │           │            │            │          │
+ │           │            │ [4]        │          │
+ │           │            ├────────────┼─────────>│
+ │           │            │            │          │
+ │           │      [5]   │            │          │
+ │           ├───────────>│            │          │
+ │           │            │            │          │
+ │           │                  [6]    │          │
+ │           ├────────────────────────>│          │
+ │           │            │            │          │
+ │           │            │      [7]   │          │
+ │           │            │<───────────┤          │
+ │           │            │            │          │
+ │           │                              [8]   │
+ │           ├────────────────────────────────────>│
+ │           │            │            │          │
+ │           │            │            │    [9]   │
+ │           │            │<─────────────────────┤
+ │           │            │            │          │
+ │     [10]  │            │            │          │
+ │<──────────┤            │            │          │
+ │           │            │            │          │
+
+
+Legend:
+=======
+
+[1]  Game calls world.update()
+[2]  World updates systems in priority order
+[3]  Systems emit events
+[4]  Systems queue commands
+[5]  All systems complete
+[6]  World processes commands
+[7]  Commands execute (may call back to systems)
+[8]  World processes events
+[9]  Events delivered to subscribers
+[10] World returns to game (frame complete)
+
+
+Detailed World Structure:
+==========================
+
+┌────────────────────────────────────────┐
+│              World                     │
+├────────────────────────────────────────┤
+│                                        │
+│  @entities = {}                        │
+│    ├─> entity_id_1 => Entity          │
+│    ├─> entity_id_2 => Entity          │
+│    └─> entity_id_3 => Entity          │
+│                                        │
+│  @systems = []                         │
+│    ├─> [MazeSystem, 0]                │
+│    ├─> [InputSystem, 1]               │
+│    ├─> [MovementSystem, 2]            │
+│    └─> [RenderSystem, 10]             │
+│                                        │
+│  @command_queue = Queue                │
+│    ├─> MoveCommand                    │
+│    └─> AttackCommand                  │
+│                                        │
+│  @event_queue = Queue                 │
+│    ├─> [:entity_moved, data]          │
+│    └─> [:combat_damage, data]         │
+│                                        │
+│  @event_subscribers = {}               │
+│    ├─> :entity_moved => [subscribers] │
+│    └─> :combat_death => [subscribers] │
+│                                        │
+│  @current_level = Level                │
+│    └─> grid, entities, difficulty     │
+│                                        │
+│  @display = DisplayHandler             │
+│    └─> keyboard, renderer             │
+└────────────────────────────────────────┘
+
+
+World Coordination Flow:
+=========================
+
+┌───────────────────────────────────────────────────┐
+│                Game Loop                          │
+│                                                   │
+│  loop do                                          │
+│    ┌─────────────────────────────────────────┐   │
+│    │ world.update(delta_time)                │   │
+│    │                                         │   │
+│    │ ┌─────────────────────────────────────┐ │   │
+│    │ │ 1. Update Systems (priority order)  │ │   │
+│    │ │                                     │ │   │
+│    │ │    @systems.each do |system, _|     │ │   │
+│    │ │      system.update(delta_time)      │ │   │
+│    │ │    end                              │ │   │
+│    │ └─────────────────────────────────────┘ │   │
+│    │                                         │   │
+│    │ ┌─────────────────────────────────────┐ │   │
+│    │ │ 2. Process Commands                 │ │   │
+│    │ │                                     │ │   │
+│    │ │    until @command_queue.empty?      │ │   │
+│    │ │      command = @command_queue.shift │ │   │
+│    │ │      command.execute(self)          │ │   │
+│    │ │    end                              │ │   │
+│    │ └─────────────────────────────────────┘ │   │
+│    │                                         │   │
+│    │ ┌─────────────────────────────────────┐ │   │
+│    │ │ 3. Process Events                   │ │   │
+│    │ │                                     │ │   │
+│    │ │    until @event_queue.empty?        │ │   │
+│    │ │      type, data = @event_queue.shift│ │   │
+│    │ │      notify_subscribers(type, data) │ │   │
+│    │ │    end                              │ │   │
+│    │ └─────────────────────────────────────┘ │   │
+│    └─────────────────────────────────────────┘   │
+│                                                   │
+│    break if world.quit?                           │
+│  end                                              │
+└───────────────────────────────────────────────────┘
+
+
+System Interactions via World:
+===============================
+
+MovementSystem Example:
+-----------------------
+
+┌──────────────────┐
+│ MovementSystem   │
+└────────┬─────────┘
+         │
+         ├─ 1. Query entities
+         │     entities_with(:position, :movement)
+         │          │
+         │          ▼
+         │     ┌────────┐
+         │     │ World  │
+         │     └────────┘
+         │          │
+         │          └─> Returns matching entities
+         │
+         ├─ 2. Process entities
+         │     (update positions)
+         │
+         ├─ 3. Emit event
+         │     emit_event(:entity_moved, {...})
+         │          │
+         │          ▼
+         │     ┌────────┐
+         │     │ World  │
+         │     └────────┘
+         │          │
+         │          └─> Queues event
+         │
+         └─ 4. Queue command (optional)
+               queue_command(MoveCommand.new)
+                    │
+                    ▼
+               ┌────────┐
+               │ World  │
+               └────────┘
+                    │
+                    └─> Queues command
+
+
+Event Delivery:
+===============
+
+System A emits event
+        │
+        ▼
+┌───────────────┐
+│  World Queue  │
+│  Event        │
+└───────┬───────┘
+        │
+        │ (Later in update cycle)
+        ▼
+┌───────────────┐
+│ World Process │
+│   Events      │
+└───────┬───────┘
+        │
+        ├──> System B (subscribed)
+        ├──> System C (subscribed)
+        └──> System D (subscribed)
+
+
+Command Execution:
+==================
+
+InputSystem queues command
+        │
+        ▼
+┌───────────────┐
+│  World Queue  │
+│  Command      │
+└───────┬───────┘
+        │
+        │ (After all systems update)
+        ▼
+┌───────────────┐
+│ World Process │
+│  Commands     │
+└───────┬───────┘
+        │
+        ▼
+┌───────────────┐
+│ Command.      │
+│ execute(world)│
+└───────┬───────┘
+        │
+        └──> May call back to systems
+             (e.g., MovementSystem.move)
+
+
+Entity Queries:
+===============
+
+System needs entities:
+----------------------
+
+System calls:
+  entities = world.query_entities([:position, :render])
+
+World process:
+  1. Get all entities
+  2. Filter by components
+  3. Return matching entities
+
+┌─────────────────────────────────────┐
+│ world.query_entities([:position,    │
+│                       :render])     │
+│                                     │
+│ @entities.values.select do |entity| │
+│   [:position, :render].all? do |type│
+│     entity.has_component?(type)     │
+│   end                               │
+│ end                                 │
+└─────────────────────────────────────┘
+
+Returns: [entity1, entity3, entity7, ...]
+
+
+World as Coordinator Benefits:
+===============================
+
+✓ Single source of truth
+  • All entities in one place
+  • All systems registered
+  • All events coordinated
+
+✓ No system dependencies
+  • Systems don't reference each other
+  • Systems only know about World
+  • Loose coupling
+
+✓ Predictable flow
+  • Systems → Commands → Events
+  • Same order every frame
+  • Easy to debug
+
+✓ Easy to extend
+  • Add new system to world
+  • Subscribe to events
+  • No existing code changes needed
+
+
+Example: Complete Frame
+========================
+
+Frame Start
+│
+├─ [Priority 0] MazeSystem.update()
+│   └─> (no level change, does nothing)
+│
+├─ [Priority 1] InputSystem.update()
+│   ├─> Reads key: 'k' (north)
+│   ├─> Creates: MoveCommand(player, :north)
+│   └─> Queues: world.queue_command(command)
+│
+├─ [Priority 2] MovementSystem.update()
+│   └─> (waits for command to process)
+│
+├─ [Priority 10] RenderSystem.update()
+│   └─> Draws current state
+│
+├─ Process Commands
+│   ├─> Dequeue: MoveCommand
+│   ├─> Execute: command.execute(world)
+│   ├─> MovementSystem.move(player, :north)
+│   ├─> Updates player position
+│   └─> Emits: :entity_moved event
+│
+└─ Process Events
+    ├─> Dequeue: :entity_moved
+    ├─> Notify: CollisionSystem (subscribed)
+    └─> CollisionSystem checks for collisions
+
+Frame Complete
+
+
+
+
+

@@ -1,0 +1,109 @@
+Maze Generation Algorithm Comparison
+======================================
+
+Algorithm Categories:
+=====================
+
+┌────────────────┐    ┌────────────────┐    ┌────────────────┐    ┌────────────────┐
+│ Binary Tree    │    │ Aldous-Broder  │    │   Recursive    │    │   Recursive    │
+│                │    │                │    │  Backtracker   │    │   Division     │
+├────────────────┤    ├────────────────┤    ├────────────────┤    ├────────────────┤
+│ Fast, Biased   │    │ Slow, Unbiased │    │Fast, Unbiased  │    │Medium, Unbiased│
+│ Many Dead Ends │    │Medium Dead Ends│    │Few Dead Ends   │    │    Boxy        │
+└────────────────┘    └────────────────┘    └────────────────┘    └────────────────┘
+   (Fastest)           (Slowest)              (Recommended)         (Structured)
+
+
+Detailed Comparison Table:
+===========================
+
+╔═══════════════════╦══════════╦═════════════╦═════════════╦═════════════╦════════════════╗
+║   Algorithm       ║   Bias   ║    Time     ║    Space    ║  Dead Ends  ║     Feel       ║
+╠═══════════════════╬══════════╬═════════════╬═════════════╬═════════════╬════════════════╣
+║ Binary Tree       ║Northeast ║    O(n)     ║    O(1)     ║    Many     ║ Simple, biased ║
+╠═══════════════════╬══════════╬═════════════╬═════════════╬═════════════╬════════════════╣
+║ Aldous-Broder     ║   None   ║ O(n²) worst ║    O(1)     ║   Medium    ║  Completely    ║
+║                   ║          ║O(n log n)avg║             ║             ║    random      ║
+╠═══════════════════╬══════════╬═════════════╬═════════════╬═════════════╬════════════════╣
+║ Recursive         ║   None   ║    O(n)     ║O(n) worst   ║     Few     ║  Dungeon-like  ║
+║ Backtracker       ║          ║             ║O(log n)     ║             ║                ║
+║                   ║          ║             ║  typical    ║             ║                ║
+╠═══════════════════╬══════════╬═════════════╬═════════════╬═════════════╬════════════════╣
+║ Recursive         ║   None   ║  O(n log n) ║  O(log n)   ║   Medium    ║     Boxy,      ║
+║ Division          ║          ║             ║             ║             ║   structured   ║
+╚═══════════════════╩══════════╩═════════════╩═════════════╩═════════════╩════════════════╝
+
+
+Performance by Grid Size:
+==========================
+
+Small Grids (< 50x50):
+  ✓ All algorithms work well
+  ✓ Choose based on desired feel
+
+Medium Grids (50x50 to 100x100):
+  ✓ Binary Tree (fastest)
+  ✓ Recursive Backtracker (recommended)
+  ○ Recursive Division (acceptable)
+  ✗ Aldous-Broder (avoid if speed matters)
+
+Large Grids (100x100 to 500x500):
+  ✓ Binary Tree (best choice)
+  ✓ Recursive Backtracker (good)
+  ○ Recursive Division (slower)
+  ✗ Aldous-Broder (too slow)
+
+Very Large Grids (> 500x500):
+  ✓ Binary Tree (only practical option)
+  ○ Recursive Backtracker (acceptable)
+  ✗ Others (too slow)
+
+
+Complexity Explained:
+======================
+
+O(n)       = Linear time - visits each cell once
+             Fast and predictable for all grid sizes
+
+O(n log n) = Slightly slower than linear
+             Performance degrades gradually
+
+O(n²)      = Quadratic time - can be slow for large grids
+             Avoid for real-time generation
+
+O(1)       = Constant memory - no extra data structures
+O(log n)   = Logarithmic memory - grows slowly
+O(n)       = Linear memory - grows with grid size
+
+
+When to Use Each:
+=================
+
+Binary Tree:
+  • Need maximum speed
+  • Generating very large grids
+  • Memory constrained
+  • Bias acceptable
+
+Aldous-Broder:
+  • Small grids only
+  • Need complete unbiased mazes
+  • Speed not critical
+  • Want maximum variety
+
+Recursive Backtracker: ⭐ DEFAULT CHOICE
+  • Best balance of speed and quality
+  • Need dungeon-like corridors
+  • Want predictable performance
+  • Fewer dead ends important
+
+Recursive Division:
+  • Want structured, room-like layouts
+  • Different aesthetic needed
+  • Medium-sized grids
+  • Predictable structure desired
+
+
+
+
+

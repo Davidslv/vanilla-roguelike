@@ -1,0 +1,276 @@
+System Priority and Execution Order
+=====================================
+
+System Priority Order:
+=======================
+
+Priority: 0                          Priority: 1
+┌───────────────┐                   ┌───────────────┐
+│  MazeSystem   │                   │ InputSystem   │
+│               │                   │               │
+│ • Generate    │ ──────────────>   │ • Process     │
+│   maze first  │                   │   player      │
+└───────────────┘                   │   input       │
+                                    └───────┬───────┘
+                                            │
+                                            ▼
+Priority: 2                          Priority: 3
+┌───────────────┐                   ┌───────────────┐
+│MovementSystem │                   │ CombatSystem  │
+│               │                   │               │
+│ • Move        │ ──────────────>   │ • Process     │
+│   entities    │                   │   attacks     │
+└───────────────┘                   └───────────────┘
+        │
+        └──────────────────────────> ┌───────────────┐
+                                     │CollisionSystem│
+Priority: 3                          │               │
+                                     │ • Check       │
+                                     │   collisions  │
+                                     └───────┬───────┘
+                                             │
+                                             ▼
+Priority: 4                          Priority: 10
+┌───────────────┐                   ┌───────────────┐
+│MonsterSystem  │                   │ RenderSystem  │
+│               │                   │               │
+│ • Update      │ ──────────────>   │ • Draw        │
+│   monster AI  │                   │   everything  │
+└───────────────┘                   └───────────────┘
+
+
+Execution Flow (One Frame):
+=============================
+
+START
+  │
+  ▼
+┌─────────────────────────────────────────┐
+│  World.update()                         │
+│                                         │
+│  [Priority 0] MazeSystem                │
+│  └─> Generate level if needed           │
+│                                         │
+│  [Priority 1] InputSystem               │
+│  └─> Read keyboard, queue commands      │
+│                                         │
+│  [Priority 2] MovementSystem            │
+│  └─> Process movement, update positions │
+│                                         │
+│  [Priority 3] CombatSystem              │
+│  └─> Handle attacks, apply damage       │
+│                                         │
+│  [Priority 3] CollisionSystem           │
+│  └─> Detect entity collisions           │
+│                                         │
+│  [Priority 4] MonsterSystem             │
+│  └─> Update monster AI, plan moves      │
+│                                         │
+│  [Priority 10] RenderSystem             │
+│  └─> Draw grid, entities, UI            │
+│                                         │
+│  process_commands()                     │
+│  └─> Execute queued commands            │
+│                                         │
+│  process_events()                       │
+│  └─> Deliver events to subscribers      │
+└─────────────────────────────────────────┘
+  │
+  ▼
+END (Wait for next frame)
+
+
+Why Order Matters:
+==================
+
+CORRECT ORDER:                    WRONG ORDER:
+──────────────                    ────────────
+
+1. Input                          1. Render  ✗
+   └─> Read keys                     └─> Draws old state
+
+2. Movement                       2. Input
+   └─> Update positions              └─> Too late!
+
+3. Combat                         3. Movement
+   └─> Process collisions            └─> Already rendered
+
+4. Render                         4. Combat
+   └─> Draw final state              └─> Not visible yet
+
+Result: ✓ Player sees correct     Result: ✗ Flickering,
+           state                            delayed updates
+
+
+Detailed Priority Explanation:
+===============================
+
+Priority 0: MazeSystem
+----------------------
+  • Must run FIRST
+  • Generates/regenerates level
+  • Sets up grid for other systems
+  • Only runs when level_changed flag is set
+
+Priority 1: InputSystem
+-----------------------
+  • Runs early in frame
+  • Reads keyboard input
+  • Queues commands for processing
+  • Must run BEFORE movement
+
+Priority 2: MovementSystem
+--------------------------
+  • Processes movement after input
+  • Updates entity positions
+  • Must run BEFORE collision/combat
+  • Emits movement events
+
+Priority 3: CombatSystem + CollisionSystem
+-------------------------------------------
+  • Same priority (order doesn't matter between them)
+  • Both run AFTER movement
+  • CombatSystem: Handles attacks
+  • CollisionSystem: Detects when entities meet
+  • Must run BEFORE monster AI
+
+Priority 4: MonsterSystem
+-------------------------
+  • Runs AFTER player actions
+  • Updates monster AI
+  • Plans monster moves for next turn
+  • Must run BEFORE rendering
+
+Priority 10: RenderSystem
+-------------------------
+  • Must run LAST
+  • Draws the FINAL state of the frame
+  • Shows all updates from other systems
+  • Presents to player
+
+
+System Dependencies:
+====================
+
+┌─────────────┐
+│ MazeSystem  │
+└──────┬──────┘
+       │ requires
+       ▼
+┌─────────────┐     ┌──────────────┐
+│ InputSystem │────>│MovementSystem│
+└─────────────┘     └──────┬───────┘
+                           │ triggers
+                           ▼
+              ┌────────────┴────────────┐
+              │                         │
+              ▼                         ▼
+    ┌─────────────────┐      ┌─────────────────┐
+    │  CombatSystem   │      │CollisionSystem  │
+    └─────────────────┘      └─────────────────┘
+              │                         │
+              └────────────┬────────────┘
+                           │ affects
+                           ▼
+                  ┌─────────────────┐
+                  │ MonsterSystem   │
+                  └────────┬────────┘
+                           │ prepares for
+                           ▼
+                  ┌─────────────────┐
+                  │  RenderSystem   │
+                  └─────────────────┘
+
+
+System Update Pattern:
+=======================
+
+Every system follows this pattern:
+
+┌─────────────────────────────────────┐
+│  System.update(delta_time)          │
+│                                     │
+│  1. Query for entities              │
+│     entities = entities_with(       │
+│       :component1,                  │
+│       :component2                   │
+│     )                               │
+│                                     │
+│  2. Process each entity             │
+│     entities.each do |entity|       │
+│       process_entity(entity)        │
+│     end                             │
+│                                     │
+│  3. Emit events if needed           │
+│     emit_event(:system_completed)   │
+└─────────────────────────────────────┘
+
+
+Adding a New System:
+=====================
+
+Steps:
+------
+1. Create system class
+2. Choose priority
+3. Add to world
+
+Example: Adding LootSystem
+---------------------------
+
+Priority: 3.5 (after combat, before monsters)
+
+world.add_system(LootSystem.new(world), 3.5)
+
+Execution order becomes:
+  ...
+  [3] CombatSystem
+  [3] CollisionSystem
+  [3.5] LootSystem  ← NEW
+  [4] MonsterSystem
+  ...
+
+
+System Independence:
+====================
+
+Systems don't know about each other!
+
+┌──────────────┐     ┌──────────────┐
+│MovementSystem│     │ RenderSystem │
+└──────────────┘     └──────────────┘
+       │                    │
+       ▼                    ▼
+     World ←──── Events ────┘
+       │
+       └──> Coordinates everything
+
+Systems communicate through:
+  • Events (emit/subscribe)
+  • Components (read/write)
+  • World queries (find entities)
+
+
+Benefits:
+=========
+
+✓ Predictable execution
+  • Same order every frame
+  • No race conditions
+
+✓ Clear dependencies
+  • Priority numbers show order
+  • Easy to understand flow
+
+✓ Easy to modify
+  • Change priority to change order
+  • Add new systems anywhere
+
+✓ Testable
+  • Test systems in isolation
+  • Mock only what's needed
+
+
+
+
+

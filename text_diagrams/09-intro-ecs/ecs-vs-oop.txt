@@ -1,0 +1,216 @@
+ECS vs Traditional OOP Comparison
+====================================
+
+TRADITIONAL OOP: Data + Behavior Together
+===========================================
+
+Player Class:
+-------------
+┌─────────────────────────────┐
+│      Player                 │
+├─────────────────────────────┤
+│ Data:                       │
+│  • x, y                     │
+│  • health                   │
+│  • inventory                │
+│                             │
+│ Behavior:                   │
+│  • move()                   │
+│  • render()                 │
+│  • attack()                 │
+│  • pickup_item()            │
+└─────────────────────────────┘
+
+Monster Class:
+--------------
+┌─────────────────────────────┐
+│      Monster                │
+├─────────────────────────────┤
+│ Data:                       │
+│  • x, y                     │
+│  • health                   │
+│  • attack_power             │
+│                             │
+│ Behavior:                   │
+│  • move()                   │
+│  • render()                 │
+│  • attack()                 │
+└─────────────────────────────┘
+
+Problem: Duplication!
+  • Both have x, y
+  • Both have health
+  • Both have move(), render()
+  • Can't share code easily
+
+
+ECS: Data and Behavior Separated
+==================================
+
+Entity (Just a Container):
+---------------------------
+┌─────────────────┐
+│   Entity        │
+│   ID: 123       │
+└─────────────────┘
+    │
+    └──> References Components
+
+
+Components (Pure Data):
+------------------------
+┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│ PositionComponent│  │ HealthComponent  │  │ RenderComponent  │
+├──────────────────┤  ├──────────────────┤  ├──────────────────┤
+│ row: 5           │  │ max_health: 100  │  │ character: '@'   │
+│ column: 3        │  │ current: 100     │  │ color: :white    │
+└──────────────────┘  └──────────────────┘  └──────────────────┘
+
+┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│ MovementComponent│  │ InputComponent   │  │ CombatComponent  │
+├──────────────────┤  ├──────────────────┤  ├──────────────────┤
+│ active: true     │  │ direction: :N    │  │ attack: 10       │
+│ speed: 1         │  │                  │  │ defense: 5       │
+└──────────────────┘  └──────────────────┘  └──────────────────┘
+
+
+Systems (Pure Logic):
+----------------------
+┌──────────────────────────────────────┐
+│        MovementSystem                │
+├──────────────────────────────────────┤
+│ Processes entities with:             │
+│  • PositionComponent                 │
+│  • MovementComponent                 │
+│                                      │
+│ Logic:                               │
+│  • Calculate new position            │
+│  • Update PositionComponent          │
+└──────────────────────────────────────┘
+
+┌──────────────────────────────────────┐
+│        RenderSystem                  │
+├──────────────────────────────────────┤
+│ Processes entities with:             │
+│  • PositionComponent                 │
+│  • RenderComponent                   │
+│                                      │
+│ Logic:                               │
+│  • Draw character at position        │
+└──────────────────────────────────────┘
+
+
+Side-by-Side Comparison:
+=========================
+
+TRADITIONAL OOP                      ECS
+───────────────                      ───
+
+Creating a Player:                   Creating a Player:
+──────────────────                   ──────────────────
+
+player = Player.new                  player = Entity.new
+                                     player.add_component(
+                                       PositionComponent.new(0, 0)
+                                     )
+                                     player.add_component(
+                                       HealthComponent.new(100)
+                                     )
+                                     player.add_component(
+                                       RenderComponent.new('@')
+                                     )
+
+
+Moving a Player:                     Moving a Player:
+────────────────                     ────────────────
+
+player.move(:north)                  MovementSystem.process(player)
+  ↑                                    ↑
+  │                                    │
+Logic in                             Logic in
+Player class                         System
+
+
+Creating a Monster:                  Creating a Monster:
+───────────────────                  ───────────────────
+
+monster = Monster.new                monster = Entity.new
+                                     monster.add_component(
+                                       PositionComponent.new(5, 5)
+                                     )
+                                     monster.add_component(
+                                       HealthComponent.new(50)
+                                     )
+                                     monster.add_component(
+                                       RenderComponent.new('M')
+                                     )
+
+
+The Key Difference:
+===================
+
+OOP:
+  Class = Data + Behavior
+  └─> Inheritance for code reuse
+      └─> Can only inherit from one class
+          └─> Rigid hierarchy
+
+ECS:
+  Entity = Just a container
+  Component = Data only
+  System = Behavior only
+  └─> Composition for code reuse
+      └─> Can have any combination of components
+          └─> Flexible composition
+
+
+Example: Flying Monster
+========================
+
+OOP Approach:
+-------------
+  Monster
+    ├─> FlyingMonster
+    │     └─> Can fly
+    └─> GroundMonster
+          └─> Can't fly
+
+  What if you want a monster that:
+    • Can fly
+    • Has magic
+    • Drops special loot?
+
+  FlyingMagicLootMonster extends ???
+  (Multiple inheritance problems!)
+
+
+ECS Approach:
+-------------
+  monster = Entity.new
+  monster.add_component(PositionComponent)
+  monster.add_component(HealthComponent)
+  monster.add_component(FlyingComponent)    ← Can fly
+  monster.add_component(MagicComponent)      ← Has magic
+  monster.add_component(LootComponent)       ← Drops loot
+
+  Just add the components you need!
+  No inheritance hierarchy!
+
+
+Benefits Summary:
+=================
+
+Traditional OOP          →  ECS
+───────────────             ───
+
+Rigid inheritance        →  Flexible composition
+Code duplication         →  Reusable systems
+Tight coupling           →  Loose coupling
+Hard to test             →  Easy to test
+Hard to extend           →  Easy to extend
+Classes know too much    →  Separation of concerns
+
+
+
+
+

@@ -14,7 +14,13 @@ class BookPDFBuilder
   OUTPUT_DIR = File.join(__dir__, '..', 'book_output')
   DIAGRAMS_DIR = File.join(OUTPUT_DIR, 'diagrams')
   COMBINED_MD = File.join(OUTPUT_DIR, 'combined.md')
-  FINAL_PDF = File.join(OUTPUT_DIR, 'Building_Your_Own_Roguelike.pdf')
+  FINAL_PDF_COLOR = File.join(OUTPUT_DIR, 'Building_Your_Own_Roguelike_2E.pdf')
+  FINAL_PDF_BW = File.join(OUTPUT_DIR, 'Building_Your_Own_Roguelike_2E_BW.pdf')
+
+  ISBN_PAPERBACK = '978-1-0666494-1-9'
+  EDITION_LABEL = 'Second Edition'
+  EDITION_YEAR = 2026
+  FIRST_EDITION_DATE = 'November 2025'
 
   # Chapter files in order
   CHAPTERS = [
@@ -40,16 +46,24 @@ class BookPDFBuilder
     '19-testing.md',
     '20-performance.md',
     '21-extending.md',
-    '22-journey.md'
+    '22-journey.md',
+    '23-about-the-author.md'
   ].freeze
 
-  def initialize
+  def initialize(bw: false, strict: false)
     @diagram_counter = 0
     @diagram_map = {}
+    @bw = bw
+    @strict = strict
+  end
+
+  def final_pdf
+    @bw ? FINAL_PDF_BW : FINAL_PDF_COLOR
   end
 
   def build
-    puts "Building PDF for Amazon KDP..."
+    mode = @bw ? "B&W" : "Colour"
+    puts "Building #{mode} PDF for Amazon KDP..."
     puts "=" * 60
 
     check_dependencies
@@ -59,13 +73,13 @@ class BookPDFBuilder
     convert_to_pdf
 
     puts "\n" + "=" * 60
-    puts "✓ PDF generated successfully!"
-    puts "  Location: #{FINAL_PDF}"
-    puts "\nNext steps for Amazon KDP:"
+    puts "✓ #{mode} PDF generated successfully!"
+    puts "  Location: #{final_pdf}"
+    puts "\nNext steps for IngramSpark / KDP (Second Edition, 7\" x 10\"):"
     puts "  1. Review the PDF for formatting"
     puts "  2. Ensure all diagrams are visible"
-    puts "  3. Check page margins (0.5\" minimum)"
-    puts "  4. Verify page size (6\" x 9\" trade paperback)"
+    puts "  3. Verify page size (7\" x 10\" trade paperback)"
+    puts "  4. Note the final page count and use it to compute Ingram cover spine width"
   end
 
   private
@@ -191,7 +205,17 @@ class BookPDFBuilder
     # Use PNG if rsvg-convert is not available (Pandoc can't handle SVG without it)
     # PNG at high resolution (1200x800) is still good for print
     extension = 'png'# @use_svg ? 'svg' : 'png'
-    output_file = File.join(DIAGRAMS_DIR, "#{diagram_id}.#{extension}")
+    # Separate output paths so colour and B&W builds don't overwrite each other
+    mode_dir = @bw ? 'bw' : 'color'
+    FileUtils.mkdir_p(File.join(DIAGRAMS_DIR, mode_dir))
+    output_file = File.join(DIAGRAMS_DIR, mode_dir, "#{diagram_id}.#{extension}")
+
+    # For B&W: strip colour styles and use neutral theme
+    if @bw
+      diagram_code = diagram_code.gsub(/^.*style\s+\S+\s+fill:.*$/, '')
+      diagram_code = diagram_code.gsub(/^.*classDef\s+\S+\s+fill:.*$/, '')
+      diagram_code = diagram_code.gsub(/:::\S+/, '')
+    end
 
     # Create temporary mermaid file
     temp_mmd = Tempfile.new(['diagram', '.mmd'])
@@ -199,11 +223,8 @@ class BookPDFBuilder
     temp_mmd.close
 
     # Render with mermaid-cli
-    # For PNG: high resolution (1200x800) for print quality
-    # For SVG: vector format for best print quality (requires rsvg-convert)
-    # Note: If text doesn't appear in PDF, it may be a font embedding issue with rsvg-convert
-    # Try using PNG format instead, or ensure fonts are available to rsvg-convert
-    cmd = "mmdc -i #{temp_mmd.path} -o #{output_file} -w 1200 -H 800 -b transparent"
+    theme_flag = @bw ? "-t neutral" : ""
+    cmd = "mmdc -i #{temp_mmd.path} -o #{output_file} -w 1500 -H 1000 -s 2 -b transparent #{theme_flag}"
     success = system(cmd)
 
     unless success
@@ -223,15 +244,22 @@ class BookPDFBuilder
     puts "\n[4/5] Combining markdown files..."
 
     combined = String.new
-    combined << "\\newpage"
-    combined << "# Building Your Own Roguelike: A Practical Guide\n\n"
-    # combined << "*Generated for Amazon KDP*\n\n"
-    combined << "\\newpage"
+    # Title page + copyright page are emitted by frontmatter.tex via
+    # pandoc's --include-before-body, which puts them ahead of the TOC.
 
     CHAPTERS.each do |chapter_file|
       processed_file = File.join(OUTPUT_DIR, "#{chapter_file}.processed")
       if File.exist?(processed_file)
         content = File.read(processed_file)
+        # Strip redundant "Chapter N: " prefix from the file's H1 so book-class
+        # numbering ("Chapter 22.") doesn't collide with the source heading
+        # ("Chapter 22: Title") and produce "Chapter 22. Chapter 22: Title".
+        content = content.sub(/\A(#\s+)Chapter\s+\d+:\s*/, '\1')
+        # Insert a blank line before any bullet/numbered list item that
+        # immediately follows a non-list, non-blank line. Without this,
+        # pandoc treats "**Heading:**\n- item" as a single paragraph and
+        # the list flattens into prose with literal " - " separators.
+        content = ensure_blank_line_before_lists(content)
         # Convert image paths to relative paths from OUTPUT_DIR
         # Also add LaTeX float placement to prevent images from floating into text
         content = content.gsub(/!\[([^\]]*)\]\(([^)]+)\)(?:\{([^}]*)\})?/) do |match|
@@ -241,7 +269,8 @@ class BookPDFBuilder
 
           # If it's an absolute path to a diagram, make it relative
           if img_path.include?('diagrams/') && File.exist?(img_path)
-            relative_path = File.join('diagrams', File.basename(img_path))
+            mode_dir = @bw ? 'bw' : 'color'
+            relative_path = File.join('diagrams', mode_dir, File.basename(img_path))
             # Add LaTeX placement to force image here (not floating)
             # Use width attribute and FloatBarrier to prevent floating
             attrs = existing_attrs ? "#{existing_attrs}" : "width=100%"
@@ -268,6 +297,63 @@ class BookPDFBuilder
 
     File.write(COMBINED_MD, combined)
     puts "  ✓ Combined #{CHAPTERS.size} chapters"
+
+    guard_against_placeholders(combined)
+  end
+
+  # Insert blank line before list items that follow a non-blank, non-list line.
+  # Skips content inside fenced code blocks so we don't reflow code.
+  def ensure_blank_line_before_lists(content)
+    out = []
+    in_code = false
+    prev_line = ''
+    list_re = /\A\s{0,3}([-*+]|\d+\.)\s+\S/
+
+    content.each_line do |line|
+      if line.start_with?('```')
+        in_code = !in_code
+        out << line
+        prev_line = line
+        next
+      end
+
+      if !in_code &&
+         line.match?(list_re) &&
+         prev_line.strip.length.positive? &&
+         !prev_line.match?(list_re) &&
+         !prev_line.start_with?('#')
+        out << "\n"
+      end
+
+      out << line
+      prev_line = line
+    end
+    out.join
+  end
+
+  # Warn (and in --strict mode, abort) if the manuscript still contains
+  # "[FILL IN: ..." or "## TODO" markers. Prevents the book from accidentally
+  # shipping with scaffold prose visible to readers.
+  def guard_against_placeholders(combined)
+    placeholders = []
+    combined.each_line.with_index(1) do |line, lineno|
+      if line.include?('[FILL IN:') || line.match?(/^\s*##?\s+TODO\b/i)
+        placeholders << "  line #{lineno}: #{line.strip[0, 100]}"
+      end
+    end
+
+    return if placeholders.empty?
+
+    warn ""
+    warn "  ⚠ Manuscript still contains #{placeholders.size} placeholder(s):"
+    warn placeholders.first(5).join("\n")
+    warn "  ...and #{placeholders.size - 5} more" if placeholders.size > 5
+
+    return unless @strict
+
+    warn ""
+    warn "✗ Build aborted (--strict): resolve placeholders before submitting to print."
+    exit 1
   end
 
   def convert_to_pdf
@@ -288,49 +374,57 @@ class BookPDFBuilder
       latex_header = <<~LATEX
         % Font configuration (XeLaTeX supports system fonts)
         \\usepackage{fontspec}
-        % Note: If font not found, XeLaTeX will use default font
-        % Check available fonts with: fc-list | grep -i "fontname"
-        \\setmainfont{Helvetica}     % Body text font (Calibri not on macOS by default)
-        \\setsansfont{Helvetica}   % Sans-serif font for headings
-        \\setmonofont{Menlo}       % Monospace font for code
-        %
-        % Popular font choices:
-        % Serif: Times New Roman, Georgia, Palatino, Minion Pro, Garamond
-        % Sans-serif: Arial, Helvetica, Calibri, Verdana, Open Sans
-        % Monospace: Courier New, Consolas, Monaco, Menlo, Source Code Pro
-        %
-        % For Amazon KDP, Times New Roman or similar serif fonts are common
+        % Body font: Helvetica. The macOS system Helvetica's ligature tables
+        % intermittently drop the i in fi/ffi (producing "Diﬀculty"/"Deﬁne").
+        % Disable common ligatures (fi/fl/ffi/ffl) so f and i render as
+        % separate glyphs and the bug never triggers.
+        \\setmainfont{Helvetica}[Ligatures=NoCommon]
+        \\setsansfont{Helvetica}[Ligatures=NoCommon]
+        \\setmonofont{Menlo}
+
+        % Map common Unicode glyphs that Helvetica lacks (or renders as tofu)
+        % to their math-mode equivalents, which always have a fallback font.
+        \\usepackage{newunicodechar}
+        \\newunicodechar{→}{\\ensuremath{\\rightarrow}}
+        \\newunicodechar{←}{\\ensuremath{\\leftarrow}}
+        \\newunicodechar{↑}{\\ensuremath{\\uparrow}}
+        \\newunicodechar{↓}{\\ensuremath{\\downarrow}}
+        \\newunicodechar{⇒}{\\ensuremath{\\Rightarrow}}
+        \\newunicodechar{⇐}{\\ensuremath{\\Leftarrow}}
+        \\newunicodechar{≤}{\\ensuremath{\\leq}}
+        \\newunicodechar{≥}{\\ensuremath{\\geq}}
+        \\newunicodechar{≠}{\\ensuremath{\\neq}}
 
         \\usepackage{placeins}
         \\usepackage{float}
         \\floatplacement{figure}{H}
         \\usepackage{graphicx}
-        % Table configuration - make tables fit page width
+
+        % Typography polish — discourage widows/orphans and prevent section
+        % headings from being hyphenated mid-word (e.g. "Player De-tection").
+        \\widowpenalty=10000
+        \\clubpenalty=10000
+        \\usepackage{titlesec}
+        \\titleformat*{\\section}{\\Large\\bfseries\\raggedright}
+        \\titleformat*{\\subsection}{\\large\\bfseries\\raggedright}
+        \\titleformat*{\\subsubsection}{\\normalsize\\bfseries\\raggedright}
+        % Table configuration - tabularx + longtable + booktabs handles wrapping
+        % naturally without redefining the float environment.
         \\usepackage{tabularx}
         \\usepackage{longtable}
         \\usepackage{booktabs}
-        % Make all tables fit within page margins
-        \\usepackage{adjustbox}
-        % Configure tables to auto-resize
+        \\usepackage{etoolbox}
+        \\setlength{\\tabcolsep}{4pt}
+        \\renewcommand{\\arraystretch}{1.2}
         \\renewcommand{\\tabularxcolumn}[1]{m{#1}}
-        % Set default table width to text width
-        \\setlength{\\tabcolsep}{4pt}  % Reduce column separation
-        \\renewcommand{\\arraystretch}{1.2}  % Slightly increase row height for readability
-        % Auto-resize tables to fit page width using adjustbox
-        % This wraps all tables to fit within text width
-        \\usepackage{environ}
-        \\NewEnviron{resizetable}{%
-          \\begin{adjustbox}{width=\\textwidth,center}
-            \\BODY
-          \\end{adjustbox}
-        }
-        % Make all tables use resizetable environment
-        \\let\\oldtable\\table
-        \\let\\oldendtable\\endtable
-        \\renewenvironment{table}{\\begin{resizetable}\\begin{oldtable}}{\\end{oldtable}\\end{resizetable}}
+        % Tables in 6-column technical comparison form get squished at 7" trim.
+        % Use footnotesize inside any longtable/tabular so column content fits.
+        \\AtBeginEnvironment{longtable}{\\footnotesize}
+        \\AtBeginEnvironment{tabular}{\\footnotesize}
+        \\AtBeginEnvironment{tabularx}{\\footnotesize}
         % Code wrapping and formatting
         \\usepackage{listings}
-        \\usepackage{xcolor}
+        \\usepackage[dvipsnames]{xcolor}  % dvipsnames gives access to NavyBlue, etc.
         \\usepackage{fancyvrb}
         \\usepackage{upquote}
         % Configure code blocks to wrap and fit page width
@@ -420,24 +514,92 @@ class BookPDFBuilder
       header_file = File.join(OUTPUT_DIR, 'latex_header.tex')
       File.write(header_file, latex_header)
 
+      # YAML metadata for keywords / non-title-page data only.
+      # We deliberately do NOT set `title:` here, because that would trigger
+      # pandoc's auto-\maketitle and we want full control via frontmatter.tex.
+      # PDF /Title and /Author metadata is set by PDFX_def.ps in the gs step.
+      metadata_yaml = <<~YAML
+        ---
+        keywords: [roguelike, ruby, game development, ECS, procedural generation]
+        ---
+      YAML
+      File.write(File.join(OUTPUT_DIR, 'book_metadata.yaml'), metadata_yaml)
+
+      # Frontmatter LaTeX — title page + copyright page, included via
+      # --include-before-body so they appear before the auto-generated TOC.
+      frontmatter_tex = <<~TEX
+        \\begin{titlepage}
+        \\thispagestyle{empty}
+        \\begin{center}
+        \\vspace*{2in}
+
+        {\\Huge\\bfseries Building Your Own Roguelike}\\\\[0.5em]
+        {\\LARGE A Practical Guide}\\\\[2em]
+        {\\Large #{EDITION_LABEL}}\\\\[6em]
+        {\\Large David Silva}
+
+        \\vspace*{\\fill}
+        \\end{center}
+        \\end{titlepage}
+
+        \\thispagestyle{empty}
+        \\vspace*{\\fill}
+
+        \\noindent Building Your Own Roguelike: A Practical Guide\\\\
+        #{EDITION_LABEL}
+
+        \\bigskip
+        \\noindent Copyright \\textcopyright{} #{EDITION_YEAR} David Silva. All rights reserved.
+
+        \\bigskip
+        \\noindent No part of this book may be reproduced or transmitted in any form or by any means, electronic or mechanical, including photocopying, recording, or by any information storage and retrieval system, without permission in writing from the author.
+
+        \\bigskip
+        \\noindent ISBN: #{ISBN_PAPERBACK} (paperback)
+
+        \\noindent First Edition: #{FIRST_EDITION_DATE}\\\\
+        #{EDITION_LABEL}: #{EDITION_YEAR}
+
+        \\vspace*{2cm}
+        \\newpage
+      TEX
+      File.write(File.join(OUTPUT_DIR, 'frontmatter.tex'), frontmatter_tex)
+
       # Build command array for better handling
       cmd_parts = [
         'pandoc',
         'combined.md',
-        '-o', File.basename(FINAL_PDF),
+        '-o', File.basename(final_pdf),
         '--pdf-engine=xelatex', # Better Unicode support
         '--include-in-header', header_file,
-        '--variable=geometry:margin=0.5in',
-        '--variable=geometry:paperwidth=6in',
-        '--variable=geometry:paperheight=9in',
+        '--include-before-body', 'frontmatter.tex',
+        # 7" x 10" trade paperback, Second Edition
+        # Asymmetric margins (inner gutter wider for perfect-bound spine)
+        '--variable=documentclass:book',
+        '--variable=classoption:twoside,openany',
+        '--variable=geometry:paperwidth=7in',
+        '--variable=geometry:paperheight=10in',
+        '--variable=geometry:inner=0.875in',
+        '--variable=geometry:outer=0.625in',
+        '--variable=geometry:top=0.75in',
+        '--variable=geometry:bottom=0.75in',
         '--variable=fontsize:11pt',
         '--variable=linestretch:1.2',
         '--variable=colorlinks:true',
-        '--variable=linkcolor:blue',
+        # Hyperlinks: black for B&W (avoids colour-page surcharges), and a
+        # desaturated near-black for the colour print edition (bright blue
+        # links scream "self-published PDF" on physical paper).
+        "--variable=linkcolor:#{@bw ? 'black' : 'NavyBlue'}",
+        "--variable=urlcolor:#{@bw ? 'black' : 'NavyBlue'}",
+        "--variable=toccolor:black",
+        # PDF metadata via YAML file (avoids shell-quoting issues with colons in title)
+        '--metadata-file=book_metadata.yaml',
+        # Treat # as \chapter (book class), not \section
+        '--top-level-division=chapter',
         '--toc', # Table of contents
         '--toc-depth=2',
         '--number-sections',
-        '--syntax-highlighting=tango', # Updated from deprecated --highlight-style
+        '--syntax-highlighting=tango', # New flag (--highlight-style is deprecated)
         '--wrap=preserve' # Preserve line breaks but allow wrapping
       ]
 
@@ -480,18 +642,270 @@ class BookPDFBuilder
 
     puts "  ✓ PDF generated"
 
-    # Note: Some diagrams may be too large for the page (LaTeX warnings)
-    # This is normal and LaTeX will adjust them automatically
-    if File.exist?(FINAL_PDF)
-      file_size = File.size(FINAL_PDF) / 1024.0 / 1024.0
+    # IngramSpark and most trade printers require even page counts.
+    # Append a blank trailing page if the count is odd.
+    ensure_even_page_count
+
+    # B&W books need DeviceGray (K-only) so KDP/Ingram don't bill colour-page
+    # surcharges. Colour books get full PDF/X-1a:2001 CMYK.
+    if @bw
+      convert_to_grayscale
+    else
+      convert_to_pdfx
+    end
+
+    if File.exist?(final_pdf)
+      file_size = File.size(final_pdf) / 1024.0 / 1024.0
       puts "  ✓ PDF size: #{file_size.round(2)} MB"
     end
+  end
+
+  # Locate a CMYK ICC profile to use as the PDF/X-1a OutputIntent.
+  # Falls back through the most-common system locations.
+  def cmyk_icc_profile
+    candidates = [
+      '/usr/local/share/ghostscript/10.04.0/iccprofiles/default_cmyk.icc',
+      '/opt/homebrew/share/ghostscript/10.04.0/iccprofiles/default_cmyk.icc',
+      '/System/Library/ColorSync/Profiles/Generic CMYK Profile.icc'
+    ]
+    candidates.find { |path| File.exist?(path) }
+  end
+
+  # Generate a PDFX_def.ps that declares the metadata Ghostscript needs to
+  # emit valid PDF/X-1a:2001. Returns the path to the generated file.
+  def generate_pdfx_def(icc_profile_path)
+    pdfx_def = <<~POSTSCRIPT
+      %!
+      % PDF/X-1a:2001 definition file generated by build_pdf.rb
+      % Required metadata + OutputIntent for IngramSpark / trade print compliance.
+
+      [ /Title (Building Your Own Roguelike: A Practical Guide)
+        /Author (David Silva)
+        /Subject (#{EDITION_LABEL})
+        /Creator (build_pdf.rb / pandoc / xelatex / Ghostscript)
+        /DOCINFO pdfmark
+
+      [ /_objdef {OutputIntent_PDFX} /type /dict /OBJ pdfmark
+      [ {OutputIntent_PDFX}
+        <<
+          /Type /OutputIntent
+          /S /GTS_PDFX
+          /OutputCondition (Commercial Offset Print, Coated Stock)
+          /OutputConditionIdentifier (CGATS TR 001)
+          /RegistryName (http://www.color.org)
+          /Info (U.S. Web Coated SWOP-equivalent)
+          /DestOutputProfile {icc_PDFX}
+        >> /PUT pdfmark
+
+      [ /_objdef {icc_PDFX} /type /stream /OBJ pdfmark
+      [ {icc_PDFX} <</N 4>> /PUT pdfmark
+      [ {icc_PDFX} (#{icc_profile_path}) (r) file /PUT pdfmark
+      [ {Catalog} <</OutputIntents [ {OutputIntent_PDFX} ]>> /PUT pdfmark
+
+      [ /GTS_PDFXVersion (PDF/X-1:2001)
+        /GTS_PDFXConformance (PDF/X-1a:2001)
+        /DOCINFO pdfmark
+    POSTSCRIPT
+
+    path = File.join(OUTPUT_DIR, 'PDFX_def.ps')
+    File.write(path, pdfx_def)
+    path
+  end
+
+  def convert_to_pdfx
+    puts "\n[6/6] Converting to PDF/X-1a:2001 (CMYK)..."
+
+    icc = cmyk_icc_profile
+    if icc.nil?
+      warn "  ⚠ No CMYK ICC profile found; falling back to plain CMYK conversion"
+      return convert_to_cmyk_only
+    end
+    puts "  Using ICC profile: #{icc}"
+
+    pdfx_def = generate_pdfx_def(icc)
+    rgb_pdf = final_pdf.sub('.pdf', '_rgb.pdf')
+    FileUtils.mv(final_pdf, rgb_pdf)
+
+    cmd = [
+      'gs',
+      '-dPDFX',
+      '-dBATCH',
+      '-dNOPAUSE',
+      '-dNOOUTERSAVE',
+      '-dCompatibilityLevel=1.3',
+      '-dPDFSETTINGS=/prepress',
+      '-sColorConversionStrategy=CMYK',
+      '-dProcessColorModel=/DeviceCMYK',
+      '-dRenderIntent=3',
+      "-sOutputICCProfile=#{shell_escape(icc)}",
+      '-dAutoFilterColorImages=false',
+      '-dColorImageFilter=/FlateEncode',
+      '-dDownsampleColorImages=true',
+      '-dColorImageResolution=300',
+      '-dAutoFilterGrayImages=false',
+      '-dGrayImageFilter=/FlateEncode',
+      '-dDownsampleGrayImages=true',
+      '-dGrayImageResolution=300',
+      '-sDEVICE=pdfwrite',
+      "-sOutputFile=#{shell_escape(final_pdf)}",
+      shell_escape(pdfx_def),
+      shell_escape(rgb_pdf)
+    ].join(' ')
+
+    success = system(cmd)
+
+    if success && File.exist?(final_pdf) && File.size(final_pdf) > 1024
+      FileUtils.rm(rgb_pdf)
+      puts "  ✓ Converted to PDF/X-1a:2001 (CMYK)"
+    else
+      warn "  ⚠ PDF/X-1a conversion failed; falling back to plain CMYK"
+      FileUtils.mv(rgb_pdf, final_pdf) if File.exist?(rgb_pdf)
+      convert_to_cmyk_only
+    end
+  end
+
+  # Plain-CMYK fallback (no PDF/X metadata, but still printable).
+  def convert_to_cmyk_only
+    rgb_pdf = final_pdf.sub('.pdf', '_rgb.pdf')
+    FileUtils.mv(final_pdf, rgb_pdf) unless File.exist?(rgb_pdf)
+
+    cmd = [
+      'gs',
+      '-dBATCH',
+      '-dNOPAUSE',
+      '-dNOOUTERSAVE',
+      '-dCompatibilityLevel=1.4',
+      '-dPDFSETTINGS=/prepress',
+      '-sColorConversionStrategy=CMYK',
+      '-dProcessColorModel=/DeviceCMYK',
+      '-dAutoFilterColorImages=false',
+      '-dColorImageFilter=/FlateEncode',
+      '-dDownsampleColorImages=true',
+      '-dColorImageResolution=300',
+      '-dAutoFilterGrayImages=false',
+      '-dGrayImageFilter=/FlateEncode',
+      '-dDownsampleGrayImages=true',
+      '-dGrayImageResolution=300',
+      '-sDEVICE=pdfwrite',
+      "-sOutputFile=#{shell_escape(final_pdf)}",
+      shell_escape(rgb_pdf)
+    ].join(' ')
+
+    success = system(cmd)
+
+    if success && File.exist?(final_pdf) && File.size(final_pdf) > 1024
+      FileUtils.rm(rgb_pdf) if File.exist?(rgb_pdf)
+      puts "  ✓ Converted to CMYK (no PDF/X metadata)"
+    else
+      warn "  ✗ CMYK conversion failed; keeping RGB version (NOT print-ready)"
+      FileUtils.mv(rgb_pdf, final_pdf) if File.exist?(rgb_pdf)
+    end
+  end
+
+  # Convert to true grayscale (K-only) for B&W print. KDP and IngramSpark
+  # bill any C/M/Y ink as colour pages, so neutral-themed RGB diagrams or
+  # rich-black text would silently inflate per-copy print cost.
+  def convert_to_grayscale
+    puts "\n[6/6] Converting to grayscale (DeviceGray, K-only)..."
+
+    rgb_pdf = final_pdf.sub('.pdf', '_rgb.pdf')
+    FileUtils.mv(final_pdf, rgb_pdf)
+
+    cmd = [
+      'gs',
+      '-dBATCH',
+      '-dNOPAUSE',
+      '-dNOOUTERSAVE',
+      '-dCompatibilityLevel=1.4',
+      '-dPDFSETTINGS=/prepress',
+      '-sColorConversionStrategy=Gray',
+      '-dProcessColorModel=/DeviceGray',
+      '-dOverrideICC=true',
+      '-dAutoFilterGrayImages=false',
+      '-dGrayImageFilter=/FlateEncode',
+      '-dDownsampleGrayImages=true',
+      '-dGrayImageResolution=300',
+      '-dAutoFilterMonoImages=false',
+      '-dMonoImageFilter=/CCITTFaxEncode',
+      '-sDEVICE=pdfwrite',
+      "-sOutputFile=#{shell_escape(final_pdf)}",
+      shell_escape(rgb_pdf)
+    ].join(' ')
+
+    success = system(cmd)
+
+    if success && File.exist?(final_pdf) && File.size(final_pdf) > 1024
+      FileUtils.rm(rgb_pdf) if File.exist?(rgb_pdf)
+      puts "  ✓ Converted to grayscale (DeviceGray, K-only)"
+    else
+      warn "  ✗ Grayscale conversion failed; keeping previous version"
+      FileUtils.mv(rgb_pdf, final_pdf) if File.exist?(rgb_pdf)
+    end
+  end
+
+  # IngramSpark requires even page counts. If the generated PDF is odd, append
+  # a single blank page at the same trim size (7×10 = 504×720 pts).
+  def ensure_even_page_count
+    count = pdf_page_count(final_pdf)
+    return if count.zero?
+
+    if count.even?
+      puts "  ✓ Page count #{count} is already even"
+      return
+    end
+
+    puts "\n[5b/6] Appending blank page (#{count} → #{count + 1}) for printer even-count requirement..."
+
+    blank_pdf = File.join(OUTPUT_DIR, 'blank_page.pdf')
+    # Use PostScript directly to set the page size in points and emit a blank
+    # page. This is more reliable than -g (which interacts with default DPI).
+    blank_cmd = [
+      'gs', '-sDEVICE=pdfwrite', '-dBATCH', '-dNOPAUSE',
+      "-sOutputFile=#{shell_escape(blank_pdf)}",
+      '-c', '"<< /PageSize [504 720] >> setpagedevice showpage"'
+    ].join(' ')
+
+    unless system(blank_cmd) && File.exist?(blank_pdf)
+      warn "  ⚠ Could not generate blank page; final count remains #{count} (ODD)"
+      return
+    end
+
+    merged = final_pdf.sub('.pdf', '_with_blank.pdf')
+    merge_cmd = [
+      'gs', '-sDEVICE=pdfwrite', '-dBATCH', '-dNOPAUSE',
+      "-sOutputFile=#{shell_escape(merged)}",
+      shell_escape(final_pdf), shell_escape(blank_pdf)
+    ].join(' ')
+
+    if system(merge_cmd) && File.exist?(merged) && File.size(merged) > 1024
+      FileUtils.mv(merged, final_pdf)
+      FileUtils.rm(blank_pdf, force: true)
+      new_count = pdf_page_count(final_pdf)
+      puts "  ✓ Final page count: #{new_count}"
+    else
+      warn "  ⚠ Blank-page merge failed; final count remains #{count} (ODD)"
+      FileUtils.rm(blank_pdf, force: true)
+    end
+  end
+
+  def pdf_page_count(path)
+    return 0 unless File.exist?(path)
+    line = `pdfinfo #{shell_escape(path)} 2>/dev/null | grep '^Pages:'`
+    line.split.last.to_i
+  end
+
+  def shell_escape(path)
+    "'#{path.gsub("'", "'\\\\''")}'"
   end
 end
 
 # Run the builder
+# Usage: ruby scripts/build_pdf.rb         (colour)
+#        ruby scripts/build_pdf.rb --bw    (black & white)
 if __FILE__ == $PROGRAM_NAME
-  builder = BookPDFBuilder.new
+  bw = ARGV.include?('--bw')
+  strict = ARGV.include?('--strict')
+  builder = BookPDFBuilder.new(bw: bw, strict: strict)
   builder.build
 end
 

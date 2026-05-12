@@ -1,0 +1,124 @@
+Seed-Based Level Generation Flow
+==================================
+
+┌─────────────┐
+│ Game Starts │
+└──────┬──────┘
+       │
+       ▼
+┌──────────────┐
+│  Set Seed    │
+│(e.g., 12345) │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────────┐
+│Generate Maze with│
+│      Seed        │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│Place Entities    │
+│   with Seed      │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Consistent Level │
+│  (always same    │
+│  with same seed) │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│Player Advances?  │
+└────────┬─────────┘
+         │
+    ┌────┴────┐
+   Yes       No
+    │         │
+    ▼         ▼
+┌─────────┐ ┌─────────┐
+│Increment│ │  Game   │
+│Difficulty│ │Continues│
+└────┬────┘ └─────────┘
+     │
+     └──> (Loop back to Set Seed)
+
+
+Seed Reproducibility:
+======================
+
+Same Seed = Same Level
+-----------------------
+
+Seed: 12345          Seed: 12345          Seed: 12345
+     │                    │                    │
+     ▼                    ▼                    ▼
+┌─────────┐          ┌─────────┐          ┌─────────┐
+│ #####.# │          │ #####.# │          │ #####.# │
+│ #.....# │          │ #.....# │          │ #.....# │
+│ #.###.# │   ==     │ #.###.# │   ==     │ #.###.# │
+│ @...M.% │          │ @...M.% │          │ @...M.% │
+│ ####### │          │ ####### │          │ ####### │
+└─────────┘          └─────────┘          └─────────┘
+  Run 1                Run 2                Run 3
+
+@ = Player, M = Monster, % = Stairs
+
+
+Different Seed = Different Level
+----------------------------------
+
+Seed: 12345          Seed: 67890          Seed: 99999
+     │                    │                    │
+     ▼                    ▼                    ▼
+┌─────────┐          ┌─────────┐          ┌─────────┐
+│ #####.# │          │ ####.## │          │ #.##### │
+│ #.....# │          │ #.....# │          │ #@....# │
+│ #.###.# │   ≠      │ ###...# │   ≠      │ #.#.#.# │
+│ @...M.% │          │ @.M...% │          │ #.....% │
+│ ####### │          │ ####### │          │ ##.M### │
+└─────────┘          └─────────┘          └─────────┘
+
+
+Why Seeding Matters:
+=====================
+
+1. Debugging
+   └─> Reproduce bugs by using same seed
+       Example: "Bug occurs with seed 12345"
+
+2. Testing
+   └─> Test specific scenarios consistently
+       Example: "Test combat with seed 99999"
+
+3. Sharing
+   └─> Players can share interesting seeds
+       Example: "Try seed 54321 for great loot!"
+
+4. Replayability
+   └─> Revisit favorite levels
+       Example: "I want to play seed 12345 again"
+
+
+Implementation:
+===============
+
+At game start:
+  seed = user_input OR Random.new_seed
+  srand(seed)  # Set random number generator
+
+All random operations use this seed:
+  - Maze generation: neighbors.sample
+  - Entity placement: grid.random_cell
+  - Monster spawning: rand(10..50)
+  - Item drops: items.sample
+
+Same seed → Same random sequence → Same level
+
+
+
+
+

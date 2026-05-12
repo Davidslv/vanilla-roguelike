@@ -272,3 +272,9 @@ The World class is the coordinator of ECS architecture. It doesn't contain game 
 By keeping World simple and focused on coordination, we've found it easier to add new systems and features. The structure has held up well as the game has grown.
 
 
+
+
+
+
+
+
