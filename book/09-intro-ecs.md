@@ -156,15 +156,24 @@ As your game grows, you add new components and systems. You don't need to modify
 
 Here's how ECS works in practice:
 
-```mermaid
-graph TD
-    A[Create Entity] --> B[Add Components]
-    B --> C[Entity in World]
-    C --> D[Systems Query Entities]
-    D --> E[System Processes Entity]
-    E --> F[Update Components]
-    F --> G[Next Frame]
-    G --> D
+```d2
+direction: down
+
+create: "Create Entity"
+add: "Add Components"
+entity: "Entity exists in the World"
+
+per_frame: "Each frame (loop until game ends):" {
+  query: "Systems query the World for matching entities"
+  process: "Each System processes the entities it cares about"
+  update: "Components are updated"
+  query -> process
+  process -> update
+}
+
+create -> add
+add -> entity
+entity -> per_frame
 ```
 
 1. **Create Entity**: Make a new entity (just an ID)
@@ -179,19 +188,18 @@ graph TD
 
 Understanding how Entities, Components, Systems, and World relate to each other is crucial:
 
-```mermaid
-graph TD
-    W[World: Coordinator] --> E[Entities: Containers]
-    W --> S[Systems: Logic]
-    E --> C[Components: Data]
-    S -->|Query| W
-    S -->|Update| C
-    W -->|Manages| S
+```d2
+direction: down
 
-    style W fill:#e1f5ff
-    style E fill:#e1ffe1
-    style C fill:#fff4e1
-    style S fill:#ffe1e1
+world: "World (coordinator)"
+entities: "Entities (containers)"
+components: "Components (data)"
+systems: "Systems (logic)"
+
+world -> entities: "owns"
+entities -> components: "hold"
+world -> systems: "runs"
+systems -> components: "read & update"
 ```
 
 **The relationship:**
@@ -213,32 +221,24 @@ We'll see how the World coordinates everything in detail in Chapter 12. For now,
 
 ## ECS vs. Traditional OOP
 
-```mermaid
-graph LR
-    subgraph "Traditional OOP"
-        A[Player Class] --> B[Data + Behavior]
-        B --> C[x, y, health]
-        B --> D[move, render methods]
-        E[Monster Class] --> F[Data + Behavior]
-        F --> G[x, y, health]
-        F --> H[move, render methods]
-    end
+```d2
+direction: down
 
-    subgraph "ECS Architecture"
-        I[Entity] --> J[Components: Data]
-        I --> K[Systems: Behavior]
-        J --> L[PositionComponent]
-        J --> M[HealthComponent]
-        J --> N[RenderComponent]
-        K --> O[MovementSystem]
-        K --> P[RenderSystem]
-    end
+oop: "Traditional OOP — each class bundles state + methods" {
+  player: "Player Class\n(x, y, health, move, render)"
+  monster: "Monster Class\n(x, y, health, move, render)"
+  player -> monster: {style.opacity: 0}
+}
 
-    style A fill:#ffe1e1
-    style E fill:#ffe1e1
-    style I fill:#e1ffe1
-    style J fill:#e1f5ff
-    style K fill:#fff4e1
+ecs: "ECS Architecture — data and behaviour separated" {
+  entity: "Entity (id only)"
+  components: "Components (data):\nPositionComponent, HealthComponent, RenderComponent"
+  systems: "Systems (behaviour):\nMovementSystem, RenderSystem"
+  entity -> components: "holds"
+  systems -> components: "operate on"
+}
+
+oop -> ecs: {style.opacity: 0}
 ```
 
 **Traditional OOP:**

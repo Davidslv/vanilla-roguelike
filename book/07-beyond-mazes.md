@@ -120,16 +120,27 @@ random_cell = grid.random_cell  # Uses the seed
 
 ### Seed-Based Generation Flow
 
-```mermaid
-flowchart TD
-    A[Game Starts] --> B[Set Seed]
-    B --> C[Generate Maze with Seed]
-    C --> D[Place Entities with Seed]
-    D --> E[Consistent Level]
-    E --> F{Player Advances?}
-    F -->|Yes| G[Increment Difficulty]
-    G --> B
-    F -->|No| H[Game Continues]
+```d2
+direction: down
+
+start: "Game Starts"
+per_level: "For each level (with current difficulty):" {
+  seed: "Set Seed"
+  maze: "Generate Maze with Seed"
+  entities: "Place Entities with Seed"
+  level: "Consistent Level Ready"
+  seed -> maze
+  maze -> entities
+  entities -> level
+}
+advances: "Player advances to next level?" {shape: diamond}
+next: "Increment Difficulty\n(and run the level cycle again)"
+continues: "Game Continues on the same level"
+
+start -> per_level
+per_level -> advances
+advances -> next: Yes
+advances -> continues: No
 ```
 
 Same seed + same algorithm = same level. This predictability is crucial for debugging and testing.
@@ -225,26 +236,18 @@ end
 
 Level generation in Vanilla follows this flow:
 
-```mermaid
-sequenceDiagram
-    participant Game
-    participant MazeSystem
-    participant Algorithm
-    participant Grid
-    participant EntityFactory
+```d2
+direction: down
 
-    Game->>MazeSystem: Generate Level (difficulty, seed)
-    MazeSystem->>Grid: Create Grid
-    MazeSystem->>Algorithm: Generate Maze
-    Algorithm->>Grid: Link Cells
-    MazeSystem->>EntityFactory: Create Player
-    MazeSystem->>Grid: Place Player
-    MazeSystem->>Grid: Find Stairs Position
-    MazeSystem->>EntityFactory: Create Stairs
-    MazeSystem->>Grid: Place Stairs
-    MazeSystem->>Grid: Ensure Path
-    MazeSystem->>EntityFactory: Spawn Monsters
-    MazeSystem->>Game: Level Ready
+s1: "1. Game requests Generate Level (difficulty, seed)"
+s2: "2. MazeSystem creates the Grid and asks Algorithm to link cells"
+s3: "3. MazeSystem creates the Player via EntityFactory and places it on the Grid"
+s4: "4. MazeSystem finds the stairs position, creates the Stairs, and places them on the Grid"
+s5: "5. MazeSystem ensures a path exists between Player and Stairs"
+s6: "6. MazeSystem spawns Monsters via EntityFactory"
+s7: "7. MazeSystem signals Level Ready to Game"
+
+s1 -> s2 -> s3 -> s4 -> s5 -> s6 -> s7
 ```
 
 Each step uses the seed for reproducibility, and difficulty affects entity placement.

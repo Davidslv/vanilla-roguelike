@@ -88,31 +88,35 @@ Add the system to the world, and it works. No modifications to existing systems.
 
 ## Extension Patterns
 
-```mermaid
-graph TD
-    subgraph "Pattern 1: Component + System"
-        A1[Create Component] --> A2[Create System]
-        A2 --> A3[Add to World]
-        A3 --> A4[Attach to Entities]
-    end
+```d2
+direction: down
 
-    subgraph "Pattern 2: Event-Driven"
-        B1[Subscribe to Events] --> B2[React in System]
-        B2 --> B3[Emit New Events]
-    end
+p1: "Pattern 1: Component + System" {
+  create: "Create Component"
+  system: "Create System"
+  add: "Add to World"
+  attach: "Attach to Entities"
+  create -> system
+  system -> add
+  add -> attach
+}
 
-    subgraph "Pattern 3: Composition"
-        C1[FlyingComponent] --> C4[Flying Warrior]
-        C2[CombatComponent] --> C4
-        C3[ItemComponent] --> C5[Usable Item]
-        C6[ConsumableComponent] --> C5
-    end
+p2: "Pattern 2: Event-Driven" {
+  subscribe: "Subscribe to Events"
+  react: "React in System"
+  emit: "Emit New Events"
+  subscribe -> react
+  react -> emit
+}
 
-    style A1 fill:#e1f5ff
-    style A2 fill:#e1ffe1
-    style B1 fill:#fff4e1
-    style C4 fill:#ffe1e1
-    style C5 fill:#f0e1ff
+p3: "Pattern 3: Composition" {
+  example1: "Flying + Combat → Flying Warrior"
+  example2: "Item + Consumable → Usable Item"
+  example1 -> example2: {style.opacity: 0}
+}
+
+p1 -> p2: {style.opacity: 0}
+p2 -> p3: {style.opacity: 0}
 ```
 
 ### Pattern 1: Component + System

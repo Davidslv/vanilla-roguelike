@@ -44,27 +44,36 @@ The biggest mistake beginners make is trying to build everything at once. A rogu
 
 Start with the simplest possible version that works, then add one feature at a time.
 
-```mermaid
-graph LR
-    A[Phase 1: Foundation] --> B[Phase 2: World Generation]
-    B --> C[Phase 3: Gameplay]
-    C --> D[Phase 4: Polish]
+```d2
+direction: down
 
-    A --> A1[Grid Display]
-    A --> A2[Player Movement]
-    A --> A3[Basic Input]
+p1: "Phase 1: Foundation" {
+  "Grid Display"
+  "Player Movement"
+  "Basic Input"
+}
 
-    B --> B1[Maze Algorithm]
-    B --> B2[Level Generation]
-    B --> B3[Player & Stairs]
+p2: "Phase 2: World Generation" {
+  "Maze Algorithm"
+  "Level Generation"
+  "Player & Stairs"
+}
 
-    C --> C1[Monsters]
-    C --> C2[Combat]
-    C --> C3[Items & Inventory]
+p3: "Phase 3: Gameplay" {
+  "Monsters"
+  "Combat"
+  "Items & Inventory"
+}
 
-    D --> D1[Better AI]
-    D --> D2[More Content]
-    D --> D3[Balance]
+p4: "Phase 4: Polish" {
+  "Better AI"
+  "More Content"
+  "Balance"
+}
+
+p1 -> p2
+p2 -> p3
+p3 -> p4
 ```
 
 **Phase 1: Foundation**
@@ -136,26 +145,36 @@ There comes a moment in every project's development when you realize the archite
 
 This is the "breaking point"—the moment when you must choose: continue with a broken architecture, or refactor.
 
-```mermaid
-graph TD
-    A[Start: Simple Code] --> B[Add Features]
-    B --> C{Architecture<br/>Healthy?}
-    C -->|Yes| B
-    C -->|No| D[Warning Signs]
-    D --> E[Tight Coupling]
-    D --> F[Unpredictable Behavior]
-    D --> G[Hard to Test]
-    D --> H[Logic in Wrong Places]
-    E --> I{Breaking<br/>Point?}
-    F --> I
-    G --> I
-    H --> I
-    I -->|Not Yet| B
-    I -->|Yes| J[Decision Point]
-    J --> K[Continue with<br/>Broken Code]
-    J --> L[Refactor to<br/>Better Architecture]
-    L --> M[Better Codebase]
-    K --> N[Technical Debt]
+```d2
+direction: down
+
+start: "Start: Simple Code"
+add: "Add Features\n(repeated)"
+warnings: "Warning Signs Appear"
+
+symptoms: "Symptoms" {
+  coupling: "Tight Coupling"
+  unpredictable: "Unpredictable Behavior"
+  testing: "Hard to Test"
+  wrong_places: "Logic in Wrong Places"
+}
+
+breaking: "Breaking Point Reached"
+decision: "Decision Point" {shape: diamond}
+continue_anyway: "Continue with Broken Code"
+refactor: "Refactor to Better Architecture"
+debt: "Technical Debt"
+better: "Better Codebase"
+
+start -> add
+add -> warnings
+warnings -> symptoms
+symptoms -> breaking
+breaking -> decision
+decision -> continue_anyway
+decision -> refactor
+continue_anyway -> debt
+refactor -> better
 ```
 
 ### Recognizing the Breaking Point

@@ -4,30 +4,26 @@
 
 Monster AI in Vanilla is simple but effective. Monsters either move randomly or toward the player.
 
-```mermaid
-flowchart TD
-    A[MonsterSystem Update] --> B[Get Monster Position]
-    B --> C[Get Player Position]
-    C --> D[Calculate Direction]
-    D --> E{Row Diff ><br/>Col Diff?}
-    E -->|Row Diff Larger| F{Player<br/>North or South?}
-    E -->|Col Diff Larger| G{Player<br/>East or West?}
-    F -->|North| H[Move North]
-    F -->|South| I[Move South]
-    G -->|East| J[Move East]
-    G -->|West| K[Move West]
-    H --> L[MovementSystem.move]
-    I --> L
-    J --> L
-    K --> L
-    L --> M{Movement<br/>Success?}
-    M -->|Yes| N[Monster Moved]
-    M -->|No| O[Monster Blocked]
+```d2
+direction: down
 
-    style A fill:#e1f5ff
-    style L fill:#e1ffe1
-    style N fill:#e1ffe1
-    style O fill:#ffe1e1
+setup: "MonsterSystem update:\nGet Monster and Player positions,\ncalculate direction to player"
+which: "Bigger axis?" {shape: diamond}
+ns: "Move North or South\n(toward player's row)"
+ew: "Move East or West\n(toward player's column)"
+do_move: "MovementSystem.move(monster, direction)"
+result: "Movement allowed?" {shape: diamond}
+moved: "Monster Moved"
+blocked: "Monster Blocked"
+
+setup -> which
+which -> ns: row
+which -> ew: column
+ns -> do_move
+ew -> do_move
+do_move -> result
+result -> moved: Yes
+result -> blocked: No
 ```
 
 ### MonsterSystem: Managing Monsters

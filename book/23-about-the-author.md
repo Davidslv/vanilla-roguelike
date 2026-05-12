@@ -1,10 +1,5 @@
 # About the Author {.unnumbered}
 
-```{=latex}
-\markboth{ABOUT THE AUTHOR}{ABOUT THE AUTHOR}
-```
-
-
 David Silva is a software engineer with over fifteen years building production
 systems. His work has spanned public-sector services at GOV.UK and the UK
 Ministry of Justice, fintech platforms at Creditspring and Tembo Money, and
@@ -33,8 +28,9 @@ large one.
 - **[Modular Rails: Architecture for the Long Game](https://www.amazon.co.uk/dp/1066649405)**
   (ISBN: 978-1-0666494-0-2) — for engineers working on Rails monoliths where
   the next refactor is a strategic decision, not a weekend project.
-- **Vanilla Roguelike** — the open-source codebase this book is built on.
-  Every architectural decision is in the commit history.
+- **[Vanilla Roguelike](https://github.com/Davidslv/vanilla-roguelike)** —
+  the open-source codebase this book is built on. Every architectural
+  decision is in the commit history.
 - **[davidslv.uk](https://davidslv.uk)** — articles on Ruby, Rails
   architecture, software design, and what shipping in production teaches you
   that no book can.
@@ -45,5 +41,15 @@ large one.
 - GitHub: [github.com/Davidslv](https://github.com/Davidslv)
 - LinkedIn: [linkedin.com/in/davidslv](https://www.linkedin.com/in/davidslv/)
 
-If this book helped you, the best thank-you is to build something with it and
-tell me about it. Reach out — I want to see what you make.
+If this book helped you, three things help me back — in order of value:
+
+1. **Build something with it and tell me about it.** Send me a screenshot, a
+   GitHub link, the maze your algorithm generated last night. I want to see
+   what you make.
+2. **Leave a review** wherever you bought the book. Honest reviews help other
+   readers decide whether the book is the right fit for them, and they help
+   me understand what landed.
+3. **Share it** with someone who would learn from it. A book like this lives
+   or dies on word of mouth from engineers who got value from it.
+
+Reach out either way.

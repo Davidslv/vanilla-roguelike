@@ -49,18 +49,17 @@ end
 
 The algorithm performs a random walk through the grid:
 
-```mermaid
-flowchart TD
-    A[Start: Random Cell] --> B[Pick Random Neighbor]
-    B --> C{Neighbor Visited?}
-    C -->|No| D[Link Cells]
-    C -->|Yes| E[Move to Neighbor]
-    D --> F[Decrement Unvisited Count]
-    F --> E
-    E --> G{All Visited?}
-    G -->|No| B
-    G -->|Yes| H[Set Walls]
-    H --> I[Complete]
+```d2
+direction: down
+
+start: "Start: Random Cell"
+loop: "Loop (until every cell visited):\n  Pick random neighbour\n  If unvisited, link to it (and mark visited)\n  Move to that neighbour"
+walls: "Set Walls for unlinked cells"
+done: "Complete"
+
+start -> loop
+loop -> walls
+walls -> done
 ```
 
 ### Characteristics
@@ -165,20 +164,24 @@ end
 
 The algorithm uses a stack to track the current path:
 
-```mermaid
-flowchart TD
-    A[Start: Random Cell on Stack] --> B[Get Current from Stack]
-    B --> C[Find Unvisited Neighbors]
-    C --> D{Any Found?}
-    D -->|Yes| E[Pick Random Neighbor]
-    D -->|No| F[Backtrack: Pop Stack]
-    E --> G[Link Current to Neighbor]
-    G --> H[Push Neighbor to Stack]
-    H --> B
-    F --> I{Stack Empty?}
-    I -->|No| B
-    I -->|Yes| J[Set Walls]
-    J --> K[Complete]
+```d2
+direction: down
+
+start: "Start: Random Cell on Stack"
+loop: "Loop (until stack empty):\n  Get current from stack\n  Find unvisited neighbours"
+any: "Any unvisited neighbour?" {shape: diamond}
+forward: "Pick a neighbour, link it,\npush it onto the stack"
+backtrack: "Backtrack: pop stack"
+walls: "Set walls for unlinked cells"
+done: "Complete"
+
+start -> loop
+loop -> any
+any -> forward: Yes
+any -> backtrack: No
+forward -> walls
+backtrack -> walls
+walls -> done
 ```
 
 ### Characteristics
@@ -363,19 +366,18 @@ Use Recursive Division when:
 
 Here's a quick comparison:
 
-```mermaid
-graph TB
-    subgraph "Algorithm Comparison"
-        A[Binary Tree<br/>Fast, Biased, Many Dead Ends]
-        B[Aldous-Broder<br/>Slow, Unbiased, Medium Dead Ends]
-        C[Recursive Backtracker<br/>Fast, Unbiased, Few Dead Ends]
-        D[Recursive Division<br/>Medium, Unbiased, Boxy]
-    end
+```d2
+direction: down
 
-    style A fill:#ffe1e1
-    style B fill:#fff4e1
-    style C fill:#e1ffe1
-    style D fill:#e1f5ff
+comparison: "Algorithm Comparison" {
+  binary: "Binary Tree\nFast, Biased, Many Dead Ends"
+  aldous: "Aldous-Broder\nSlow, Unbiased, Medium Dead Ends"
+  backtracker: "Recursive Backtracker\nFast, Unbiased, Few Dead Ends"
+  division: "Recursive Division\nMedium, Unbiased, Boxy"
+  binary -> aldous: {style.opacity: 0}
+  aldous -> backtracker: {style.opacity: 0}
+  backtracker -> division: {style.opacity: 0}
+}
 ```
 
 | Algorithm | Bias | Time Complexity | Space Complexity | Dead Ends | Feel |

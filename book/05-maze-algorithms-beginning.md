@@ -10,45 +10,16 @@ For each cell in the grid, randomly choose to link it either north or east (if b
 
 Here's how it works in Vanilla:
 
-```ruby
-module Vanilla
-  module Algorithms
-    class BinaryTree < AbstractAlgorithm
-      def self.on(grid)
-        grid.each_cell do |cell|
-          has_north = !cell.north.nil?
-          has_east = !cell.east.nil?
-          if has_north && has_east
-            cell.link(cell: rand(2) == 0 ? cell.north : cell.
-                  east, bidirectional: true)
-          elsif has_north
-            cell.link(cell: cell.north, bidirectional: true)
-          elsif has_east
-            cell.link(cell: cell.east, bidirectional: true)
-          end
-        end
-
-        grid.each_cell do |cell|
-          if cell.links.empty?
-            cell.tile = Vanilla::Support::TileType::WALL
-          end
-        end
-
-        grid
-      end
-    end
-  end
-end
-```
+^code binary-tree
 
 ### Step-by-Step Walkthrough
 
 Let's trace through what happens:
 
 1. **Iterate over every cell**: The algorithm visits each cell exactly once
-2. **Check available neighbors**: For each cell, see if it has a north and/or east neighbor
+2. **Check available neighbours**: For each cell, see if it has a north and/or east neighbour
 3. **Randomly choose**: If both exist, randomly pick one. If only one exists, use that one
-4. **Create the link**: Link the cell to the chosen neighbor
+4. **Create the link**: Link the cell to the chosen neighbour
 5. **Set walls**: After linking, any cell with no links becomes a wall
 
 ### Visual Example
@@ -68,8 +39,8 @@ After processing (example):
 ```
 
 Arrows show which direction each cell linked. Notice:
-- Top row: All link east (can't link north, no neighbor)
-- Right column: All link north (can't link east, no neighbor)
+- Top row: All link east (can't link north, no neighbour)
+- Right column: All link north (can't link east, no neighbour)
 - Other cells: Randomly choose north or east
 
 ### Characteristics of Binary Tree Mazes
@@ -78,12 +49,16 @@ Binary Tree creates mazes with distinct properties:
 
 **Bias toward northeast:**
 - Cells always link north or east, never south or west
-- This creates a diagonal bias—paths tend to flow northeast
+- This creates a diagonal bias, paths tend to flow northeast
 - The northeast corner is always reachable from anywhere
+
+^aside binary-bias
+The diagonal bias is a fingerprint. Show a maze experienced reader a Binary Tree output and they will name the algorithm at a glance, just from the north-east drift of the corridors. Every algorithm leaves traces like this; learning to recognise them is half of understanding them.
+^endaside
 
 **Many dead ends:**
 - Because cells only link in two directions, many paths end abruptly
-- This creates challenging navigation—you'll hit many dead ends
+- This creates challenging navigation, you'll hit many dead ends
 
 **Fast generation:**
 - Visits each cell once
@@ -92,23 +67,9 @@ Binary Tree creates mazes with distinct properties:
 
 ### Performance Characteristics
 
-**Time Complexity**: O(n) where n = number of cells
-- Visits each cell exactly once
-- Constant work per cell (check neighbors, create link)
-- Linear time complexity—fast and predictable
+**Time Complexity**: O(n) where n = number of cells. Visits each cell exactly once, with constant work per cell. Fast and predictable.
 
-**Space Complexity**: O(1) additional space
-- No extra data structures needed
-- Works in-place on the grid
-- Only uses a constant amount of extra memory
-
-**Performance for different grid sizes**:
-- Small grids (10x10 = 100 cells): Instant (< 1ms)
-- Medium grids (50x50 = 2,500 cells): Very fast (< 10ms)
-- Large grids (100x100 = 10,000 cells): Still fast (< 50ms)
-- Very large grids (500x500 = 250,000 cells): Acceptable (< 500ms)
-
-**When to use**: Perfect for real-time generation, large grids, or when speed is critical. The fastest algorithm with the least memory overhead.
+**Space Complexity**: O(1) additional space. No extra data structures, works in-place on the grid.
 
 ### Why Start Here?
 
@@ -121,47 +82,55 @@ Binary Tree is perfect for learning because:
 
 ### The Algorithm Flow
 
-```mermaid
-flowchart TD
-    A[Start: Create Grid] --> B[For Each Cell]
-    B --> C{Has North AND East?}
-    C -->|Yes| D[Random: North or East]
-    C -->|Only North| E[Link North]
-    C -->|Only East| F[Link East]
-    C -->|Neither| G[Skip]
-    D --> H[Create Link]
-    E --> H
-    F --> H
-    G --> I{More Cells?}
-    H --> I
-    I -->|Yes| B
-    I -->|No| J[Set Walls for Unlinked Cells]
-    J --> K[Complete Maze]
+```d2
+direction: down
+
+start: "Start: Create Grid"
+each: "For Each Cell\n(repeat for all cells)"
+has_ne: "Has North AND East?" {shape: diamond}
+random: "Random: North or East"
+link_n: "Link North"
+link_e: "Link East"
+skip: "Skip"
+create: "Create Link"
+walls: "Set Walls for Unlinked Cells"
+done: "Complete Maze"
+
+start -> each
+each -> has_ne
+has_ne -> random: Yes
+has_ne -> link_n: Only North
+has_ne -> link_e: Only East
+has_ne -> skip: Neither
+random -> create
+link_n -> create
+link_e -> create
+skip -> walls
+create -> walls
+walls -> done
 ```
 
 ### Understanding the Randomness
 
-The `rand(2) == 0` check randomly chooses between north and east. This randomness is what makes each maze unique. But notice: the randomness is constrained. You can only link north or east, never south or west. This constraint is what creates the algorithm's characteristic bias.
+The `rand(2).zero?` check randomly chooses between north and east. This randomness is what makes each maze unique. But notice: the randomness is constrained. You can only link north or east, never south or west. This constraint is what creates the algorithm's characteristic bias.
 
 ### From Algorithm to Playable Maze
 
-Once the algorithm runs, you have a grid with linked cells. But that's not enough for a game—you need to render it. Here's how Vanilla converts links to visual representation:
+Once the algorithm runs, you have a grid with linked cells. But that's not enough for a game, you need to render it. The algorithm sweeps the grid one more time to convert the link structure into tiles:
 
 ```ruby
 grid.each_cell do |cell|
   if cell.links.empty?
     cell.tile = Vanilla::Support::TileType::WALL  # '#'
-  else
-    cell.tile = Vanilla::Support::TileType::EMPTY  # '.'
   end
 end
 ```
 
-Cells with links become floors (`.`). Cells without links become walls (`#`).
+Cells with links keep their default floor tile. Cells without links become walls (`#`).
 
 ### The Journey Begins
 
-This simple algorithm was Vanilla's starting point in April 2020. It wasn't perfect—the bias was obvious, dead ends were frustrating—but it worked. It created playable mazes. And that was enough to begin the journey.
+This simple algorithm was Vanilla's starting point in April 2020. It wasn't perfect, the bias was obvious, dead ends were frustrating, but it worked. It created playable mazes. And that was enough to begin the journey.
 
 From here, you can:
 - Experiment with different random choices
@@ -171,7 +140,7 @@ From here, you can:
 
 ## Key Takeaway
 
-The Binary Tree algorithm demonstrates the core concept of maze generation: visit cells, create links, render the result. It's simple, biased, and imperfect—but it works. Understanding this algorithm gives you the foundation to appreciate more sophisticated approaches.
+The Binary Tree algorithm demonstrates the core concept of maze generation: visit cells, create links, render the result. It's simple, biased, and imperfect, but it works. Understanding this algorithm gives you the foundation to appreciate more sophisticated approaches.
 
 ## Exercises
 
@@ -182,4 +151,3 @@ The Binary Tree algorithm demonstrates the core concept of maze generation: visi
 3. **Count dead ends**: Generate a Binary Tree maze and count how many dead ends it has. Compare this to mazes from other algorithms (once you learn them).
 
 4. **Implement it**: Try implementing Binary Tree in your own code. Start with a simple grid structure, then add the linking logic.
-

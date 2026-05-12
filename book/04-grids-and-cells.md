@@ -2,154 +2,57 @@
 
 ## Grid Data Structures: Representing 2D Space
 
-At the heart of every roguelike is a grid—a two-dimensional structure that represents the game world. Each position in the grid is a cell, and each cell can contain walls, floors, entities, or other game elements.
+At the heart of every roguelike is a grid, a two-dimensional structure that represents the game world. Each position in the grid is a cell, and each cell can contain walls, floors, entities, or other game elements.
 
 Think of it like a chessboard, but instead of squares for pieces, you have cells for game content. The grid is the foundation upon which everything else is built.
+
+^aside terminal-roots
+Early roguelikes ran inside ASCII terminals where every character cell was already a fixed-size square. The grid was not a design choice so much as the medium itself, and the genre's aesthetic grew up around it.
+^endaside
 
 ### Why Grids?
 
 Grids provide several advantages for roguelikes:
 
-- **Precision**: Exact positioning—no floating-point coordinates or pixel-perfect placement
+- **Precision**: Exact positioning, no floating-point coordinates or pixel-perfect placement
 - **Simplicity**: Easy to reason about movement, collisions, and spatial relationships
-- **Efficiency**: Fast lookups and neighbor queries
+- **Efficiency**: Fast lookups and neighbour queries
 - **Classic feel**: Maintains the traditional roguelike aesthetic
 
 ### Representing a Grid
 
 In Vanilla, a grid is represented as a collection of cells:
 
-```ruby
-module Vanilla
-  module MapUtils
-    class Grid
-      attr_reader :rows, :columns
-
-      def initialize(rows,
-                     columns,
-                     type_factory: CellTypeFactory.new)
-
-        @rows = rows
-        @columns = columns
-        @type_factory = type_factory
-        @grid = Array.new(rows * columns) do |i|
-          Cell.
-                new(row: i / columns, column: i % columns,
-                      type_factory: @type_factory)
-        end
-        # Set neighbors for each cell
-        each_cell do |cell|
-          row, col = cell.row, cell.column
-          cell.north = self[row - 1, col] if row > 0
-          cell.south = self[row + 1, col] if row < @rows - 1
-          cell.east  = self[row, col + 1] if col < @columns - 1
-          cell.west  = self[row, col - 1] if col > 0
-        end
-      end
-
-      def [](row, col)
-        return nil unless row.between?(0, @rows - 1) && col.
-              between?(0, @columns - 1)
-        @grid[row * @columns + col]
-      end
-    end
-  end
-end
-```
+^code grid
 
 Notice how the grid:
 - Stores cells in a flat array (efficient memory layout)
 - Provides array-like access with `[row, col]`
-- Automatically sets up neighbor relationships when created
+- Automatically sets up neighbour relationships when created
 - Validates bounds to prevent out-of-range access
-
-### CellTypeFactory: Managing Cell Types
-
-You may have noticed the `type_factory: CellTypeFactory.new` parameter in the Grid initialization. This is an optional parameter that uses the Flyweight pattern to manage cell types efficiently.
-
-**What it does:**
-- Creates and reuses cell type objects (like `:wall`, `:floor`, `:empty`)
-- Ensures identical types are shared rather than duplicated
-- Provides a registry of cell types with their properties (walkable, renderable, etc.)
-
-**Example usage:**
-```ruby
-factory = CellTypeFactory.new
-wall_type = factory.get_cell_type(:wall)  # Returns a CellType object
-floor_type = factory.get_cell_type(:floor)
-```
-
-**Why it's optional:**
-The Grid constructor provides a default `CellTypeFactory`, so you can ignore this parameter for now. It's an implementation detail that helps with memory efficiency and type management, but you don't need to understand it to use grids effectively. The grid works fine with the default factory.
-
-For the purposes of learning about grids and cells, you can treat `CellTypeFactory` as an internal detail. When you create a grid, it automatically sets up the necessary cell types.
 
 ## Cell Concepts: Walls, Floors, Connections
 
-Each cell in the grid represents a position in the game world. But cells are more than just positions—they have properties and relationships.
+Each cell in the grid represents a position in the game world. But cells are more than just positions, they have properties and relationships.
 
 ### Cell Properties
 
 A cell can be:
 - **A wall** (`#`): Impassable, blocks movement and line of sight
 - **A floor** (`.`): Passable, entities can move through it
-- **Empty**: No connections to neighbors (becomes a wall when rendered)
+- **Empty**: No connections to neighbours (becomes a wall when rendered)
 
 ### Cell Connections
 
-The key insight for maze generation is that cells can be **linked** to their neighbors. A link represents a passage between two cells—if two cells are linked, you can move between them.
+The key insight for maze generation is that cells can be **linked** to their neighbours. A link represents a passage between two cells. If two cells are linked, you can move between them.
 
-```ruby
-class Cell
-  attr_reader :row, :column
-  attr_accessor :north, :south, :east, :west
-
-  def initialize(row:, column:)
-    @row, @column = row, column
-    @links = {}  # Hash of connected cells
-  end
-
-  def link(cell:, bidirectional: true)
-    @links[cell] = true
-    cell.link(cell: self, bidirectional: false) if bidirectional
-    self
-  end
-
-  def links
-    @links.keys
-  end
-
-  def linked?(cell)
-    @links.key?(cell)
-  end
-end
-```
+^code cell
 
 When two cells are linked, there's a passage between them. When they're not linked, there's a wall. This simple concept is the foundation of all maze generation algorithms.
 
-### Visualizing Links
+### Visualising Links
 
-Think of a cell and its four neighbors (north, south, east, west):
-
-```mermaid
-graph TD
-    N[North]
-    S[South]
-    E[East]
-    W[West]
-    C[Cell C]
-
-    C -.->|Linked| N
-    C -.->|Linked| E
-    C -.->|Not Linked| W
-    C -.->|Not Linked| S
-
-    style C fill:#e1f5ff
-    style N fill:#e1ffe1
-    style E fill:#e1ffe1
-    style W fill:#ffe1e1
-    style S fill:#ffe1e1
-```
+Think of a cell and its four neighbours (north, south, east, west):
 
 ```
     [N]
@@ -174,7 +77,7 @@ Think of the grid as a graph:
 
 ### Spanning Trees
 
-Most maze generation algorithms create a **spanning tree**—a graph where:
+Most maze generation algorithms create a **spanning tree**, a graph where:
 - Every cell is reachable from every other cell (connected)
 - There's exactly one path between any two cells (no cycles)
 - It's a tree, not a general graph
@@ -183,6 +86,10 @@ Why a spanning tree? Because it guarantees:
 - **Solvability**: You can always reach any cell from any starting point
 - **No cycles**: There's only one way to get anywhere (makes mazes more interesting)
 - **Efficiency**: Minimal number of connections needed
+
+^aside named-algorithms
+Many of the maze-generation algorithms you will meet later, including Binary Tree, Sidewinder, Aldous-Broder, Wilson's, and Recursive Backtracker, are different ways of producing exactly this same structure. They differ in how the tree feels, not in what it is.
+^endaside
 
 ### Pathfinding Implications
 
@@ -193,21 +100,10 @@ Because mazes are spanning trees, pathfinding is straightforward:
 
 ## The Grid in Action
 
-When you create a grid in Vanilla, here's what happens:
-
-```mermaid
-graph TD
-    A[Create Grid] --> B[Initialize Cells]
-    B --> C[Set Neighbor References]
-    C --> D[Grid Ready]
-    D --> E[Apply Algorithm]
-    E --> F[Cells Linked]
-    F --> G[Walls Set]
-    G --> H[Playable Maze]
-```
+When you create a grid in Vanilla:
 
 1. **Grid Creation**: Allocate cells in a 2D array
-2. **Neighbor Setup**: Each cell gets references to its four neighbors
+2. **Neighbour Setup**: Each cell gets references to its four neighbours
 3. **Algorithm Application**: Maze generation algorithm links cells
 4. **Wall Assignment**: Cells with no links become walls
 5. **Rendering**: Grid is displayed with walls (`#`) and floors (`.`)
@@ -217,10 +113,10 @@ graph TD
 You access cells using row and column indices:
 
 ```ruby
-grid = Grid.new(10, 10)
+grid = Vanilla::MapUtils::Grid.new(10, 10)
 cell = grid[5, 3]  # Get cell at row 5, column 3
-cell.north         # Get northern neighbor
-cell.neighbors     # Get all neighbors (north, south, east, west)
+cell.north         # Get northern neighbour
+cell.neighbors     # Get all neighbours (north, south, east, west)
 ```
 
 ### Iterating Over Cells
@@ -230,20 +126,19 @@ Most algorithms need to process every cell:
 ```ruby
 grid.each_cell do |cell|
   # Process each cell
-  # Maybe link it to a neighbor
+  # Maybe link it to a neighbour
   # Maybe check its properties
 end
 ```
 
 ## Key Takeaway
 
-Grids and cells are the foundation of roguelike worlds. Cells represent positions, links represent passages, and the grid organizes everything. Understanding this structure is essential before diving into maze generation algorithms. The grid is your canvas, and algorithms are your brushes.
+Grids and cells are the foundation of roguelike worlds. Cells represent positions, links represent passages, and the grid organises everything. Understanding this structure is essential before diving into maze generation algorithms. The grid is your canvas, and algorithms are your brushes.
 
 ## Exercises
 
-1. **Visualize a grid**: Draw a 5x5 grid on paper. Label each cell with its row and column. Draw arrows showing which cells are neighbors.
+1. **Visualise a grid**: Draw a 5x5 grid on paper. Label each cell with its row and column. Draw arrows showing which cells are neighbours.
 
-2. **Think about links**: In your 5x5 grid, pick two cells. How many different paths could exist between them? What if the grid was a spanning tree—how many paths then?
+2. **Think about links**: In your 5x5 grid, pick two cells. How many different paths could exist between them? What if the grid was a spanning tree, how many paths then?
 
-3. **Explore the code**: Look at Vanilla's `Grid` and `Cell` classes. Can you trace how neighbors are set up? How are links stored?
-
+3. **Explore the code**: Look at Vanilla's `Grid` and `Cell` classes. Can you trace how neighbours are set up? How are links stored?

@@ -21,17 +21,20 @@ This minimal version serves several purposes:
 
 Every game, from Pong to modern AAA titles, follows the same fundamental pattern:
 
-```mermaid
-flowchart LR
-    A[Process Input] --> B[Update Game State]
-    B --> C[Render to Screen]
-    C --> D{Game Over?}
-    D -->|No| A
-    D -->|Yes| E[Exit]
+```d2
+direction: down
 
-    style A fill:#e1f5ff
-    style B fill:#fff4e1
-    style C fill:#e1ffe1
+loop: "Each game tick (repeat until game over)" {
+  input: "Process Input"
+  update: "Update Game State"
+  render: "Render to Screen"
+  input -> update
+  update -> render
+}
+
+exit: "Game Over → Exit"
+
+loop -> exit
 ```
 
 ```
@@ -74,23 +77,19 @@ Let's break down what happens in each step:
 
 In a roguelike, the loop is slightly different because it's turn-based:
 
-```mermaid
-sequenceDiagram
-    participant Player
-    participant Game
-    participant Input
-    participant State
-    participant Render
+```d2
+direction: down
 
-    loop Until Game Over
-        Player->>Input: Key Press
-        Input->>Game: Process Input
-        Game->>State: Update Game State
-        State->>State: Move Player
-        State->>State: Move Monsters
-        State->>Render: Render Frame
-        Render->>Player: Display
-    end
+s1: "1. Player presses a key"
+s2: "2. Input handler picks it up"
+s3: "3. Game processes the input"
+s4: "4. Game updates state"
+s5: "5. State moves the Player"
+s6: "6. State moves the Monsters"
+s7: "7. State asks Render to draw the frame"
+s8: "8. Render displays the frame to the Player"
+
+s1 -> s2 -> s3 -> s4 -> s5 -> s6 -> s7 -> s8
 ```
 
 ```ruby

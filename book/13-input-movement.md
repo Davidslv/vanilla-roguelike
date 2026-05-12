@@ -6,25 +6,20 @@ Input in a roguelike flows through multiple layers before affecting the game sta
 
 ### The Input Flow
 
-```mermaid
-sequenceDiagram
-    participant Keyboard
-    participant KeyboardHandler
-    participant InputHandler
-    participant InputSystem
-    participant World
-    participant Command
-    participant MovementSystem
+```d2
+direction: down
 
-    Keyboard->>KeyboardHandler: Key Press
-    KeyboardHandler->>InputHandler: handle_input(key)
-    InputHandler->>InputHandler: Create Command
-    InputHandler->>World: queue_command(command)
-    World->>InputSystem: update()
-    InputSystem->>World: process_commands()
-    World->>Command: execute(world)
-    Command->>MovementSystem: move(entity, direction)
-    MovementSystem->>World: Update entity position
+s1: "1. Keyboard registers a key press"
+s2: "2. KeyboardHandler forwards it to InputHandler.handle_input(key)"
+s3: "3. InputHandler creates a Command for the action"
+s4: "4. InputHandler enqueues the Command on the World"
+s5: "5. InputSystem.update() runs on its turn"
+s6: "6. InputSystem asks the World to process_commands()"
+s7: "7. The Command executes against the World"
+s8: "8. Command calls MovementSystem.move(entity, direction)"
+s9: "9. MovementSystem updates the entity's position"
+
+s1 -> s2 -> s3 -> s4 -> s5 -> s6 -> s7 -> s8 -> s9
 ```
 
 ### InputHandler: Converting Keys to Commands

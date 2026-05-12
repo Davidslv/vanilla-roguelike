@@ -4,31 +4,37 @@
 
 ECS architecture makes testing easier because systems are independent. You can test a system without setting up the entire game.
 
-```mermaid
-graph TD
-    A[Testing Strategy] --> B[Unit Tests]
-    A --> C[Integration Tests]
-    A --> D[Algorithm Tests]
+```d2
+direction: down
 
-    B --> B1[Test Systems in Isolation]
-    B --> B2[Test Components]
-    B --> B3[Test Commands]
-    B1 --> B4[Fast Execution]
-    B1 --> B5[Easy Setup]
+unit: "Unit Tests" {
+  i1: "Test systems in isolation"
+  i2: "Test components"
+  i3: "Test commands"
+  i4: "Fast execution, easy setup"
+  i1 -> i2: {style.opacity: 0}
+  i2 -> i3: {style.opacity: 0}
+  i3 -> i4: {style.opacity: 0}
+}
 
-    C --> C1[Test System Interactions]
-    C --> C2[Test End-to-End Flows]
-    C1 --> C3[Real Systems]
-    C1 --> C4[Real Entities]
+integration: "Integration Tests" {
+  i1: "Test system interactions"
+  i2: "Test end-to-end flows"
+  i3: "Real systems, real entities"
+  i1 -> i2: {style.opacity: 0}
+  i2 -> i3: {style.opacity: 0}
+}
 
-    D --> D1[Test Maze Properties]
-    D --> D2[Test Algorithm Correctness]
-    D1 --> D3[Spanning Tree]
-    D1 --> D4[Connectivity]
+algorithm: "Algorithm Tests" {
+  i1: "Test maze properties"
+  i2: "Test algorithm correctness"
+  i3: "Spanning tree, connectivity"
+  i1 -> i2: {style.opacity: 0}
+  i2 -> i3: {style.opacity: 0}
+}
 
-    style B fill:#e1f5ff
-    style C fill:#e1ffe1
-    style D fill:#fff4e1
+unit -> integration: {style.opacity: 0}
+integration -> algorithm: {style.opacity: 0}
 ```
 
 ### Testing a System

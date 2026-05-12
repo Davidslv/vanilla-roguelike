@@ -12,28 +12,33 @@ Over the decades, the roguelike genre has evolved. Modern games like *The Bindin
 
 What makes a roguelike a roguelike? While there's some debate in the community, most agree on these fundamental characteristics:
 
-```mermaid
-graph TD
-    A[Roguelike Game] --> B[Procedural Generation]
-    A --> C[Permadeath]
-    A --> D[Turn-Based Gameplay]
-    A --> E[Grid-Based Movement]
+```d2
+grid-columns: 2
+grid-gap: 40
 
-    B --> B1[Infinite Variety]
-    B --> B2[Replayability]
-    B --> B3[Efficient Development]
+procedural: "Procedural Generation" {
+  "Infinite Variety"
+  "Replayability"
+  "Efficient Development"
+}
 
-    C --> C1[Tension]
-    C --> C2[Risk vs Reward]
-    C --> C3[Mastery]
+permadeath: "Permadeath" {
+  "Tension"
+  "Risk vs Reward"
+  "Mastery"
+}
 
-    D --> D1[Strategic Thinking]
-    D --> D2[Accessibility]
-    D --> D3[Clarity]
+turn_based: "Turn-Based Gameplay" {
+  "Strategic Thinking"
+  "Accessibility"
+  "Clarity"
+}
 
-    E --> E1[Precision]
-    E --> E2[Simplicity]
-    E --> E3[Classic Feel]
+grid_based: "Grid-Based Movement" {
+  "Precision"
+  "Simplicity"
+  "Classic Feel"
+}
 ```
 
 ### Procedural Generation
@@ -74,29 +79,56 @@ Everything exists on a grid. You move from cell to cell, not smoothly across spa
 
 Building a roguelike from scratch teaches you more than just game development. It's a masterclass in:
 
-```mermaid
-mindmap
-  root((Roguelike<br/>Learning))
-    Algorithms
-      Graph Theory
-      Pathfinding
-      Randomization
-      Maze Generation
-    Architecture
-      ECS Pattern
-      System Design
-      Code Organization
-      Scalability
-    Game Design
-      Difficulty Curves
-      Item Balance
-      Player Progression
-      Fun Factor
-    Problem Solving
-      Debugging
-      System Interactions
-      Performance
-      Optimization
+```d2
+direction: right
+
+root: "Roguelike Learning" {shape: circle}
+
+algorithms: "Algorithms"
+architecture: "Architecture"
+game_design: "Game Design"
+problem_solving: "Problem Solving"
+
+root -> algorithms
+root -> architecture
+root -> game_design
+root -> problem_solving
+
+graph_theory: "Graph Theory"
+pathfinding: "Pathfinding"
+randomization: "Randomization"
+maze_generation: "Maze Generation"
+algorithms -> graph_theory
+algorithms -> pathfinding
+algorithms -> randomization
+algorithms -> maze_generation
+
+ecs_pattern: "ECS Pattern"
+system_design: "System Design"
+code_organization: "Code Organization"
+scalability: "Scalability"
+architecture -> ecs_pattern
+architecture -> system_design
+architecture -> code_organization
+architecture -> scalability
+
+difficulty_curves: "Difficulty Curves"
+item_balance: "Item Balance"
+player_progression: "Player Progression"
+fun_factor: "Fun Factor"
+game_design -> difficulty_curves
+game_design -> item_balance
+game_design -> player_progression
+game_design -> fun_factor
+
+debugging: "Debugging"
+system_interactions: "System Interactions"
+performance: "Performance"
+optimization: "Optimization"
+problem_solving -> debugging
+problem_solving -> system_interactions
+problem_solving -> performance
+problem_solving -> optimization
 ```
 
 ### Algorithms

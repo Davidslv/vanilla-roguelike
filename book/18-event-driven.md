@@ -106,13 +106,21 @@ This allows:
 
 ## Event Flow
 
-```mermaid
-graph LR
-    A[System Emits Event] --> B[World Queues Event]
-    B --> C[EventManager Processes]
-    C --> D[Store Event]
-    C --> E[Notify Subscribers]
-    E --> F[Subscribers React]
+```d2
+direction: down
+
+emit: "System Emits Event"
+queue: "World Queues Event"
+process: "EventManager Processes"
+store: "Store Event"
+notify: "Notify Subscribers"
+react: "Subscribers React"
+
+emit -> queue
+queue -> process
+process -> store
+process -> notify
+notify -> react
 ```
 
 Events flow through the system:

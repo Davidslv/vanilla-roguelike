@@ -4,29 +4,40 @@
 
 Building a roguelike teaches you more than just game development. You've learned:
 
-```mermaid
-mindmap
-  root((Roguelike<br/>Journey))
-    Algorithms
-      Maze Generation
-      Graph Theory
-      Pathfinding
-      Randomization
-    Architecture
-      ECS Pattern
-      System Design
-      Event-Driven
-      Separation of Concerns
-    Game Design
-      Iterative Development
-      Player Experience
-      Balance
-      Difficulty Curves
-    Skills
-      Problem Solving
-      Debugging
-      Testing
-      Refactoring
+```d2
+direction: right
+
+root: "Roguelike Journey" {shape: circle}
+
+algorithms: Algorithms
+architecture: Architecture
+game_design: "Game Design"
+skills: Skills
+
+root -> algorithms
+root -> architecture
+root -> game_design
+root -> skills
+
+algorithms -> "Maze Generation"
+algorithms -> "Graph Theory"
+algorithms -> "Pathfinding"
+algorithms -> "Randomization"
+
+architecture -> "ECS Pattern"
+architecture -> "System Design"
+architecture -> "Event-Driven"
+architecture -> "Separation of Concerns"
+
+game_design -> "Iterative Development"
+game_design -> "Player Experience"
+game_design -> "Balance"
+game_design -> "Difficulty Curves"
+
+skills -> "Problem Solving"
+skills -> "Debugging"
+skills -> "Testing"
+skills -> "Refactoring"
 ```
 
 ### Algorithms

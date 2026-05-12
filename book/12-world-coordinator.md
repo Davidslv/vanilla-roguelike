@@ -57,22 +57,19 @@ end
 
 The update flow:
 
-```mermaid
-sequenceDiagram
-    participant Game
-    participant World
-    participant Systems
-    participant Commands
-    participant Events
+```d2
+direction: down
 
-    Game->>World: update()
-    World->>Systems: Update in priority order
-    Systems->>World: Emit events / Queue commands
-    World->>Commands: process_commands()
-    Commands->>World: Execute actions
-    World->>Events: process_events()
-    Events->>World: Notify subscribers
-    World->>Game: Frame complete
+s1: "1. Game calls world.update()"
+s2: "2. World runs each system in priority order"
+s3: "3. Systems emit events and queue commands on the World"
+s4: "4. World runs process_commands()"
+s5: "5. Commands execute their actions on the World"
+s6: "6. World runs process_events()"
+s7: "7. Events notify their subscribers"
+s8: "8. Frame complete; control returns to Game"
+
+s1 -> s2 -> s3 -> s4 -> s5 -> s6 -> s7 -> s8
 ```
 
 ### System Execution Order
@@ -223,13 +220,21 @@ end
 
 ### Event Flow
 
-```mermaid
-graph LR
-    A[System Emits Event] --> B[World Queues Event]
-    B --> C[process_events Called]
-    C --> D[EventManager Stores]
-    C --> E[Notify Subscribers]
-    E --> F[Subscribers React]
+```d2
+direction: down
+
+emit: "System Emits Event"
+queue: "World Queues Event"
+called: "process_events Called"
+store: "EventManager Stores"
+notify: "Notify Subscribers"
+react: "Subscribers React"
+
+emit -> queue
+queue -> called
+called -> store
+called -> notify
+notify -> react
 ```
 
 ## Entity Management
@@ -290,37 +295,30 @@ Levels contain the grid and entities. The world provides access to the current l
 
 Here's how the world coordinates everything:
 
-```mermaid
-graph TB
-    subgraph "World"
-        A[Entities Hash]
-        B[Systems Array]
-        C[Command Queue]
-        D[Event Queue]
-        E[Event Subscribers]
-    end
+```d2
+direction: down
 
-    subgraph "Game Loop"
-        F[Game.update]
-        F --> G[World.update]
-        G --> H[Systems Update]
-        H --> I[Process Commands]
-        I --> J[Process Events]
-    end
+state: "World state (what the World owns)" {
+  "Entities Hash"
+  "Systems Array"
+  "Command Queue"
+  "Event Queue"
+  "Event Subscribers"
+}
 
-    subgraph "Systems"
-        K[MovementSystem]
-        L[CombatSystem]
-        M[RenderSystem]
-    end
+frame: "Each game frame" {
+  step1: "Game.update"
+  step2: "World.update"
+  step3: "Systems update\n(in priority order)"
+  step4: "Process commands"
+  step5: "Process events"
+  step1 -> step2
+  step2 -> step3
+  step3 -> step4
+  step4 -> step5
+}
 
-    A --> K
-    A --> L
-    A --> M
-    K --> C
-    L --> D
-    M --> D
-    D --> E
+state -> frame: "drives"
 ```
 
 ## Key Takeaway

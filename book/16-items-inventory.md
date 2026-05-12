@@ -110,25 +110,23 @@ The system handles pickup, use, and removal, emitting events for other systems t
 
 Items interact with entities through systems:
 
-```mermaid
-stateDiagram-v2
-    [*] --> OnGround: Item Spawned
-    OnGround --> PickedUp: Player Collides
-    PickedUp --> InInventory: Added to Inventory
-    InInventory --> Used: Use Command
-    InInventory --> Dropped: Drop Command
-    Used --> [*]: Consumed
-    Dropped --> OnGround: Placed at Position
+```d2
+direction: down
 
-    note right of OnGround
-        Item has PositionComponent
-        Visible in world
-    end note
+start: "Item Spawned"
+on_ground: "OnGround\n(has PositionComponent,\nvisible in world)"
+picked_up: "PickedUp by Player"
+in_inventory: "InInventory\n(in InventoryComponent,\nnot visible in world)"
+choice: "Player choice" {shape: diamond}
+used: "Used (consumed)"
+dropped: "Dropped at position\n(returns to OnGround state)"
 
-    note right of InInventory
-        Item in InventoryComponent
-        Not visible in world
-    end note
+start -> on_ground
+on_ground -> picked_up: "Player Collides"
+picked_up -> in_inventory: "Added"
+in_inventory -> choice
+choice -> used: "Use"
+choice -> dropped: "Drop"
 ```
 
 **Pickup:**
