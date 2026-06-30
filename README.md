@@ -65,6 +65,20 @@ The simplest way to play the game is to use the executable:
 ./bin/play.rb
 ```
 
+### Graphical preview (Ruby2D, experimental)
+
+A second, graphical front-end runs the **same** game engine in a desktop window
+instead of the terminal — a proof of concept for the renderer/input abstraction
+(the game logic is untouched; only the input and output seams differ).
+
+```bash
+bundle install --with gui   # one-time; installs ruby2d (needs SDL2)
+./bin/play_gui.rb --seed=12345
+```
+
+On macOS the native libraries are: `brew install sdl2 sdl2_image sdl2_mixer sdl2_ttf`.
+This is optional — the terminal game above needs none of it.
+
 ## Game Controls
 
 Use either Vim-style keys or arrow keys to navigate your character:

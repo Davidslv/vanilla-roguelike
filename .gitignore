@@ -16,3 +16,4 @@ combined_game.rb
 current_diff.diff
 book_output/
 .bundle/
+.claude/worktrees/
