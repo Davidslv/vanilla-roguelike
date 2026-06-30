@@ -92,6 +92,45 @@ RSpec.describe Vanilla::Commands::AttackCommand do
         expect { command.execute(world) }.not_to raise_error
       end
     end
+
+    context 'when routing combat by faction' do
+      before do
+        allow(world).to receive(:systems).and_return([[combat_system, 3]])
+        allow(combat_system).to receive(:is_a?).with(Vanilla::Systems::CombatSystem).and_return(true)
+        allow(combat_system).to receive(:process_attack)
+        allow(combat_system).to receive(:process_turn_based_combat)
+      end
+
+      def faction(id, hostile_to)
+        Vanilla::Components::FactionComponent.new(faction_id: id, hostile_to: hostile_to)
+      end
+
+      it 'starts turn-based combat when the player attacks a hostile target' do
+        attacker.add_tag(:player)
+        attacker.add_component(faction(Vanilla::Factions::HERO, [Vanilla::Factions::MONSTER]))
+        target.add_component(faction(Vanilla::Factions::MONSTER, [Vanilla::Factions::HERO]))
+
+        expect(combat_system).to receive(:process_turn_based_combat).with(attacker, target)
+        described_class.new(attacker, target).execute(world)
+      end
+
+      it 'falls back to a single attack when the player target is not hostile' do
+        attacker.add_tag(:player)
+        attacker.add_component(faction(Vanilla::Factions::HERO, [Vanilla::Factions::MONSTER]))
+        target.add_component(faction(Vanilla::Factions::HERO, [Vanilla::Factions::MONSTER]))
+
+        expect(combat_system).to receive(:process_attack).with(attacker, target)
+        described_class.new(attacker, target).execute(world)
+      end
+
+      it 'uses a single attack when a non-player attacks (e.g. monster retaliation)' do
+        attacker.add_component(faction(Vanilla::Factions::MONSTER, [Vanilla::Factions::HERO]))
+        target.add_tag(:player)
+        target.add_component(faction(Vanilla::Factions::HERO, [Vanilla::Factions::MONSTER]))
+
+        expect(combat_system).to receive(:process_attack).with(attacker, target)
+        described_class.new(attacker, target).execute(world)
+      end
+    end
   end
 end
-

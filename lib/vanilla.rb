@@ -42,6 +42,9 @@ module Vanilla
   # entities
   require_relative 'vanilla/entities'
 
+  # faction hostility/ally queries (operate on FactionComponent data)
+  require_relative 'vanilla/factions'
+
   # event system
   require_relative 'vanilla/events'
 

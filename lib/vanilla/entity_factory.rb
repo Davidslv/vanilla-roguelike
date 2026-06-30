@@ -16,6 +16,7 @@ module Vanilla
       player.add_component(Vanilla::Components::InventoryComponent.new(max_size: 20))
       player.add_component(Vanilla::Components::CurrencyComponent.new(0, :gold))
       player.add_component(Vanilla::Components::VisibilityComponent.new(vision_radius: 3))
+      player.add_component(Vanilla::Components::FactionComponent.new(faction_id: Vanilla::Factions::HERO, hostile_to: [Vanilla::Factions::MONSTER]))
 
       # Add dev mode component if requested
       if dev_mode
@@ -45,6 +46,7 @@ module Vanilla
       monster.add_component(Vanilla::Components::RenderComponent.new(character: Vanilla::Support::TileType::MONSTER, color: :white))
       monster.add_component(Vanilla::Components::HealthComponent.new(max_health: health))
       monster.add_component(Vanilla::Components::CombatComponent.new(attack_power: damage, defense: 1, accuracy: 0.7))
+      monster.add_component(Vanilla::Components::FactionComponent.new(faction_id: Vanilla::Factions::MONSTER, hostile_to: [Vanilla::Factions::HERO]))
       monster
     end
   end

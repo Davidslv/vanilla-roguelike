@@ -6,8 +6,10 @@ RSpec.describe Vanilla::Systems::MessageSystem do
   let(:world) { instance_double('Vanilla::World') }
   let(:system) { described_class.new(world) }
   let(:logger) { instance_double('Vanilla::Logger') }
-  let(:player) { Vanilla::Entities::Entity.new.tap { |e| e.name = "Player"; e.add_tag(:player) } }
-  let(:monster) { Vanilla::Entities::Entity.new.tap { |e| e.name = "Goblin"; e.add_tag(:monster) } }
+  let(:player) { Vanilla::Entities::Entity.new.tap { |e| e.name = "Player"; e.add_tag(:player); e.add_component(hero_faction) } }
+  let(:monster) { Vanilla::Entities::Entity.new.tap { |e| e.name = "Goblin"; e.add_tag(:monster); e.add_component(monster_faction) } }
+  let(:hero_faction) { Vanilla::Components::FactionComponent.new(faction_id: Vanilla::Factions::HERO, hostile_to: [Vanilla::Factions::MONSTER]) }
+  let(:monster_faction) { Vanilla::Components::FactionComponent.new(faction_id: Vanilla::Factions::MONSTER, hostile_to: [Vanilla::Factions::HERO]) }
 
   before do
     allow(Vanilla::Logger).to receive(:instance).and_return(logger)

@@ -67,6 +67,7 @@ The codebase is built around three core pillars:
    - `InputComponent`: Player input state
    - `InventoryComponent`: Item storage
    - `CombatComponent`: Combat stats
+   - `FactionComponent`: Faction membership and hostility (data only; hostility logic lives in `Vanilla::Factions`)
 
 3. **Systems** (`lib/vanilla/systems/`): Logic that operates on entities with specific component combinations. Systems run in priority order:
    - **MazeSystem (0)**: Generates procedural mazes
