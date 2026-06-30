@@ -11,6 +11,7 @@ RSpec.describe Vanilla::Commands::ChangeLevelCommand do
   end
   let(:world) { instance_double('Vanilla::World') }
   let(:maze_system) { instance_double('Vanilla::Systems::MazeSystem') }
+  let(:fov_system) { instance_double('Vanilla::Systems::FOVSystem') }
   let(:level) { instance_double('Vanilla::Level', add_entity: nil) }
   let(:logger) { instance_double('Vanilla::Logger') }
 
@@ -20,14 +21,18 @@ RSpec.describe Vanilla::Commands::ChangeLevelCommand do
     allow(logger).to receive(:info)
     allow(logger).to receive(:error)
     allow(logger).to receive(:warn)
-    allow(world).to receive(:systems).and_return([[maze_system, 0]])
+    allow(world).to receive(:systems).and_return([[maze_system, 0], [fov_system, 5]])
     allow(world).to receive(:current_level).and_return(level)
     allow(world).to receive(:level_changed=)
     allow(world).to receive(:level_changed).and_return(false)
     allow(world).to receive(:emit_event)
     allow(maze_system).to receive(:is_a?).with(Vanilla::Systems::MazeSystem).and_return(true)
+    allow(maze_system).to receive(:is_a?).with(Vanilla::Systems::FOVSystem).and_return(false)
     allow(maze_system).to receive(:difficulty=)
     allow(maze_system).to receive(:update)
+    allow(fov_system).to receive(:is_a?).with(Vanilla::Systems::MazeSystem).and_return(false)
+    allow(fov_system).to receive(:is_a?).with(Vanilla::Systems::FOVSystem).and_return(true)
+    allow(fov_system).to receive(:update)
   end
 
   describe '#initialize' do
