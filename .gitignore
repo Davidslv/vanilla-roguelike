@@ -15,3 +15,4 @@ test_results/
 combined_game.rb
 current_diff.diff
 book_output/
+.claude/worktrees/

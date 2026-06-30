@@ -17,5 +17,7 @@ module Vanilla
     # Load rendering-related code
     autoload :Renderer, File.expand_path('renderers/renderer', __dir__)
     autoload :TerminalRenderer, File.expand_path('renderers/terminal_renderer', __dir__)
+    # Ruby2D-free frame description consumed by bin/play_gui.rb (graphical POC).
+    autoload :Ruby2DScene, File.expand_path('renderers/ruby2d_scene', __dir__)
   end
 end
