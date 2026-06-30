@@ -184,13 +184,20 @@ module Vanilla
           entity = @world.get_entity(data[:entity_id])
           other = @world.get_entity(data[:other_entity_id])
           @logger.debug("[MessageSystem] Entity: #{entity&.id}, tags: #{entity&.tags&.inspect}, Other: #{other&.id}, tags: #{other&.tags&.inspect}")
-          if entity&.has_tag?(:player) && other&.has_tag?(:monster)
+          player, monster = player_monster_pair(entity, other)
+          if player && monster
             @logger.info("[MessageSystem] Player-monster collision detected, adding combat message")
             # Clear options from previous combat collision messages to prevent duplicates
             clear_previous_combat_options
-            # Store collision data for attack/run away commands
-            @last_collision_data = data
-            enemy_name = other.name || "Monster"
+            # Normalise collision data so the attack/run-away callbacks always read
+            # the player as the actor and the monster as the target, regardless of
+            # which entity moved into the other.
+            @last_collision_data = {
+              entity_id: player.id,
+              other_entity_id: monster.id,
+              position: data[:position]
+            }
+            enemy_name = monster.name || "Monster"
             add_message("combat.collision",
               metadata: { enemy: enemy_name, x: data[:position][:row], y: data[:position][:column] },
               options: [
@@ -767,6 +774,18 @@ module Vanilla
             @logger.debug("[MessageSystem] Cleared options from previous combat collision message")
           end
         end
+      end
+
+      # Identify the player and monster in a colliding pair, regardless of which
+      # one moved into the other. A player walking into a monster and a monster
+      # hunting into the player both produce the same combat menu.
+      # @return [Array(Entity, Entity)] [player, monster], or [nil, nil] if the
+      #   pair isn't a player and a monster.
+      def player_monster_pair(first, second)
+        return [first, second] if first&.has_tag?(:player) && second&.has_tag?(:monster)
+        return [second, first] if second&.has_tag?(:player) && first&.has_tag?(:monster)
+
+        [nil, nil]
       end
 
       # Clear options from loot drop messages

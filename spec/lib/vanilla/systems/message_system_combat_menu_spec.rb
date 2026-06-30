@@ -59,6 +59,28 @@ RSpec.describe Vanilla::Systems::MessageSystem do
       expect(run_away_option[:content]).to include("Run Away")
     end
 
+    it 'raises the combat menu when a monster moves into the player (reversed collision order)' do
+      # entity_id is the mover (the monster); other_entity_id is the player.
+      system.handle_event(:entities_collided, {
+        entity_id: monster.id,
+        other_entity_id: player.id,
+        position: { row: 5, column: 6 }
+      })
+
+      system.update(nil) # Process message queue
+
+      messages = system.instance_variable_get(:@manager).instance_variable_get(:@message_log).messages
+      collision_messages = messages.select { |m| m.content == "combat.collision" || (m.respond_to?(:key) && m.key == "combat.collision") }
+      expect(collision_messages).not_to be_empty
+      expect(collision_messages.first.options.size).to eq(2)
+
+      # Collision data is normalised so callbacks treat the player as the actor
+      # and the monster as the target regardless of who moved.
+      stored = system.instance_variable_get(:@last_collision_data)
+      expect(stored[:entity_id]).to eq(player.id)
+      expect(stored[:other_entity_id]).to eq(monster.id)
+    end
+
     it 'option 1 triggers attack command' do
       system.instance_variable_set(:@last_collision_data, {
         entity_id: player.id,

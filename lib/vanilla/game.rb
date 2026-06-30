@@ -66,6 +66,9 @@ module Vanilla
       # FOV System runs after movement (priority 2.5) - will get grid dynamically
       @fov_system = Vanilla::Systems::FOVSystem.new(@world)
       @world.add_system(@fov_system, 2.5)
+      # Monster AI runs after FOV (fresh sight lines) and before collision (so a
+      # monster reaching the player is detected on the same turn).
+      @world.add_system(Vanilla::Systems::MonsterAISystem.new(@world), 2.6)
       @world.add_system(Vanilla::Systems::CombatSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::LootSystem.new(@world), 3)

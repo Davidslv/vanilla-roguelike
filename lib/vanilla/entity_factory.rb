@@ -2,6 +2,10 @@
 
 module Vanilla
   class EntityFactory
+    # How far (in tiles) a monster can see when hunting. Line of sight is still
+    # blocked by walls, so this is an upper bound, not a guaranteed range.
+    MONSTER_VISION_RADIUS = 5
+
     def self.create_player(row, column, dev_mode: false)
       player = Vanilla::Entities::Entity.new
 
@@ -47,6 +51,11 @@ module Vanilla
       monster.add_component(Vanilla::Components::HealthComponent.new(max_health: health))
       monster.add_component(Vanilla::Components::CombatComponent.new(attack_power: damage, defense: 1, accuracy: 0.7))
       monster.add_component(Vanilla::Components::FactionComponent.new(faction_id: Vanilla::Factions::MONSTER, hostile_to: [Vanilla::Factions::HERO]))
+      # Movement lets MonsterAISystem drive the monster via MovementSystem#move;
+      # visibility lets FOVSystem compute the monster's line of sight so it only
+      # hunts targets it can actually see.
+      monster.add_component(Vanilla::Components::MovementComponent.new(active: true))
+      monster.add_component(Vanilla::Components::VisibilityComponent.new(vision_radius: MONSTER_VISION_RADIUS))
       monster
     end
   end
