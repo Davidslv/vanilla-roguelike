@@ -28,5 +28,6 @@ module Vanilla
     require_relative 'components/combat_component'
     require_relative 'components/visibility_component'
     require_relative 'components/dev_mode_component'
+    require_relative 'components/faction_component'
   end
 end
