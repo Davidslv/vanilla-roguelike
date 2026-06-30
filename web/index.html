@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vanilla Roguelike (Web)</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; background: #0b0d10; color: #cdd6e0;
+    font-family: "SF Mono", "Fira Mono", Menlo, Consolas, monospace;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 18px; gap: 14px;
+  }
+  h1 { font-size: 16px; letter-spacing: 2px; color: #8fbcff; margin: 0; }
+  .hud {
+    display: flex; gap: 18px; flex-wrap: wrap; justify-content: center;
+    font-size: 13px; color: #9aa7b8;
+  }
+  .hud b { color: #e6edf6; }
+  .hp { color: #6fe08f; }
+  .hp.low { color: #ff6b6b; }
+  .layout { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+  pre#grid {
+    background: #06080a; border: 1px solid #1c2430; border-radius: 8px;
+    padding: 14px 16px; margin: 0; line-height: 1.12; font-size: 14px;
+    color: #cfe3ff; white-space: pre; overflow-x: auto;
+  }
+  #log {
+    width: 260px; max-height: 420px; overflow-y: auto;
+    background: #06080a; border: 1px solid #1c2430; border-radius: 8px;
+    padding: 10px 12px; font-size: 12px;
+  }
+  #log .msg { padding: 2px 0; border-bottom: 1px dashed #161d27; }
+  #log .combat { color: #ff9b8a; }
+  #log .movement { color: #7f8b9c; }
+  #log .system { color: #9fb4ff; }
+  #selection { color: #ffd479; font-weight: bold; min-height: 18px; }
+  .controls { font-size: 12px; color: #6b7787; text-align: center; line-height: 1.6; }
+  .controls kbd {
+    background:#1c2430; border:1px solid #2b3543; border-radius:4px;
+    padding:1px 6px; color:#cdd6e0;
+  }
+  button {
+    background:#1c2430; color:#cdd6e0; border:1px solid #2b3543;
+    border-radius:6px; padding:6px 12px; cursor:pointer; font-family:inherit;
+  }
+  button:hover { background:#28323f; }
+</style>
+</head>
+<body>
+  <h1>VANILLA ROGUELIKE</h1>
+
+  <div class="hud" id="hud"></div>
+  <div id="selection"></div>
+
+  <div class="layout">
+    <pre id="grid">loading…</pre>
+    <div id="log"></div>
+  </div>
+
+  <div class="controls">
+    Move: <kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> or arrow keys &nbsp;•&nbsp;
+    Messages: <kbd>m</kbd> &nbsp;•&nbsp; FOV: <kbd>f</kbd> &nbsp;•&nbsp;
+    Menu select: <kbd>1</kbd>–<kbd>9</kbd>
+    <br>
+    <button id="newgame">New game</button>
+  </div>
+
+<script>
+const ARROWS = { ArrowUp: 'k', ArrowDown: 'j', ArrowLeft: 'h', ArrowRight: 'l' };
+
+async function post(path, body) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {})
+  });
+  return res.json();
+}
+
+async function get(path) {
+  const res = await fetch(path);
+  return res.json();
+}
+
+function render(frame) {
+  if (!frame) return;
+  if (frame.error) {
+    document.getElementById('grid').textContent = 'Server error:\n' + frame.error;
+    return;
+  }
+  document.getElementById('grid').textContent = frame.grid;
+
+  const h = frame.hud || {};
+  const hpLow = h.max_hp && h.hp != null && (h.hp / h.max_hp) < 0.34;
+  document.getElementById('hud').innerHTML = `
+    <span class="hp ${hpLow ? 'low' : ''}">HP <b>${h.hp ?? '?'}/${h.max_hp ?? '?'}</b></span>
+    <span>Level <b>${h.difficulty ?? '?'}</b></span>
+    <span>Seed <b>${h.seed ?? '?'}</b></span>
+    <span>Turn <b>${frame.turn ?? 0}</b></span>
+    <span>Pos <b>${h.player_row ?? '?'},${h.player_column ?? '?'}</b></span>
+    <span>Algo <b>${h.algorithm ?? '?'}</b></span>
+  `;
+
+  const log = document.getElementById('log');
+  log.innerHTML = (frame.messages || [])
+    .map(m => `<div class="msg ${m.category}">${escapeHtml(m.text)}</div>`)
+    .join('');
+
+  document.getElementById('selection').textContent =
+    frame.selection_mode ? '▸ Menu open — press a number key to choose' : '';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c]));
+}
+
+let busy = false;
+async function sendKey(key) {
+  if (busy) return;
+  busy = true;
+  try { render(await post('/input', { key })); }
+  finally { busy = false; }
+}
+
+window.addEventListener('keydown', e => {
+  let key = ARROWS[e.key] || e.key;
+  // Accept hjkl, m, f, q, and digit menu keys.
+  if (/^[hjklmfFqQ1-9]$/.test(key)) {
+    e.preventDefault();
+    sendKey(key);
+  }
+});
+
+document.getElementById('newgame').addEventListener('click', async () => {
+  render(await post('/new', { difficulty: 1 }));
+});
+
+// Initial frame.
+get('/state').then(render);
+</script>
+</body>
+</html>
