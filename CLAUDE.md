@@ -73,8 +73,9 @@ The codebase is built around three core pillars:
    - **MazeSystem (0)**: Generates procedural mazes
    - **InputSystem (1)**: Processes keyboard input
    - **MovementSystem (2)**: Moves entities
+   - **MonsterAISystem (2.6)**: Monsters hunt visible hostiles (faction-driven pursuit, runs after FOV, before collision)
    - **CollisionSystem (3)**: Handles collisions
-   - **MonsterSystem (4)**: Monster AI and pathfinding
+   - **MonsterSystem (4)**: Monster spawning/despawning and lifecycle
    - **RenderSystem (10)**: Terminal rendering
 
 ### World Coordinator

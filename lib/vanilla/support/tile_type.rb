@@ -30,10 +30,11 @@ module Vanilla
       def self.walkable?(tile)
         return false unless valid?(tile)
 
-        # FIX: Treat MONSTER as walkable tile
-        # Temporary workaround: Treat MONSTER as walkable until a combat system is implemented.
-        # This ensures players can navigate mazes when the only path to stairs crosses a monster.
-        [MONSTER, EMPTY, FLOOR, DOOR, STAIRS, GOLD].include?(tile)
+        # Actors share a cell when they meet: the player steps onto a MONSTER's
+        # tile to attack it, and a hunting monster steps onto the PLAYER's tile
+        # to reach them (which triggers the combat menu via collision). Both
+        # actor tiles are therefore walkable.
+        [MONSTER, PLAYER, EMPTY, FLOOR, DOOR, STAIRS, GOLD].include?(tile)
       end
 
       # Check if the tile is a wall type (blocks movement)

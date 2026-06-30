@@ -47,6 +47,8 @@ RSpec.describe Vanilla::Support::TileType do
         described_class::FLOOR,
         described_class::DOOR,
         described_class::STAIRS,
+        described_class::PLAYER,
+        described_class::MONSTER,
       ]
 
       walkable_tiles.each do |tile|
@@ -57,8 +59,7 @@ RSpec.describe Vanilla::Support::TileType do
     it 'returns false for non-walkable tiles' do
       non_walkable_tiles = [
         described_class::WALL,
-        described_class::VERTICAL_WALL,
-        described_class::PLAYER
+        described_class::VERTICAL_WALL
       ]
 
       non_walkable_tiles.each do |tile|
