@@ -1,11 +1,58 @@
 {
   "permissions": {
     "allow": [
+      "Edit",
+      "Write",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(bundle:*)",
       "Bash(bundle exec rspec:*)",
+      "Bash(bundle exec rubocop:*)",
+      "Bash(rspec:*)",
+      "Bash(rubocop:*)",
+      "Bash(ruby:*)",
+      "Bash(rake:*)",
+      "Bash(jq:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)",
+      "Bash(sed:*)",
+      "Bash(awk:*)",
+      "Bash(sort:*)",
+      "Bash(uniq:*)",
+      "Bash(wc:*)",
+      "Bash(diff:*)",
+      "Bash(echo:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(chmod:*)",
+      "Bash(touch:*)",
       "Bash(timeout 3 ./bin/play.rb:*)",
-      "Bash(ruby:*)"
+      "Bash(./bin/run_tests:*)",
+      "Bash(claude:*)",
+      "Read(/Users/davidslv/projects/me/site/scribe/**)",
+      "Read(/Users/davidslv/projects/scribe/**)"
     ],
-    "deny": [],
-    "ask": []
+    "deny": [
+      "Bash(sudo:*)",
+      "Bash(rm -rf /:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push origin --delete:*)",
+      "Bash(gh repo delete:*)",
+      "Bash(gh repo edit:*)"
+    ],
+    "ask": [],
+    "additionalDirectories": [
+      "/Users/davidslv/projects/me/site/scribe"
+    ]
+  },
+  "worktree": {
+    "bgIsolation": "none"
   }
 }
