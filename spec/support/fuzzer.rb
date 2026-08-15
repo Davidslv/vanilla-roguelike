@@ -36,9 +36,10 @@ class RandomWalkFuzzer
 
   # Consecutive presses spent inside selection mode before the fuzzer stops
   # trusting the random walk to leave and drills the exit: MENU_EXIT_BOUND
-  # presses of the toggle must return the game to normal mode, or menu mode
-  # is not exitable and the run fails. The random walk draws the toggle at
-  # roughly 1-in-alphabet, so an exitable menu almost never dwells this long.
+  # presses of the toggle must return the game to normal mode (or reveal a
+  # live combat menu — see drill_menu_exit), or menu mode is not exitable
+  # and the run fails. Menus chain (inventory -> items -> actions), so long
+  # dwells are routine and the drill fires often; it failing is the signal.
   MENU_DWELL_LIMIT = 12
   MENU_EXIT_BOUND = 3
 
@@ -47,7 +48,7 @@ class RandomWalkFuzzer
   # the exact sequence the game consumes).
   KEY_STREAM_SALT = 0xF022
 
-  Result = Struct.new(:seed, :turns, :keys, :quit, keyword_init: true)
+  Result = Struct.new(:seed, :turns, :keys, :quit, :died, keyword_init: true)
 
   # Carries everything needed to reproduce the failed run: construct a
   # HeadlessGame with the same seed, start it, and press `keys` in order.
@@ -82,16 +83,22 @@ class RandomWalkFuzzer
   end
 
   # Press `keys` random keys, checking every invariant after each press,
-  # then quit through the real exit path. Raises InvariantViolation on the
-  # first breach; returns a Result otherwise.
+  # then quit through the real exit path. Player death ends the walk early
+  # as a legitimate outcome: CombatSystem removes the dead player from the
+  # world, after which InputHandler can queue no command at all — so the
+  # quit assertion is unsatisfiable by engine design, not broken. Raises
+  # InvariantViolation on the first breach; returns a Result otherwise.
   def walk(keys:)
+    snapshot_step_baseline
     keys.times do
+      break if player_dead?
+
       press(next_key)
       check_invariants
       drill_menu_exit if @menu_dwell > MENU_DWELL_LIMIT
     end
-    quit_game
-    Result.new(seed: @game.seed, turns: @game.turn, keys: @keys, quit: @game.quit?)
+    quit_game unless player_dead?
+    Result.new(seed: @game.seed, turns: @game.turn, keys: @keys, quit: @game.quit?, died: player_dead?)
   end
 
   private
@@ -109,8 +116,15 @@ class RandomWalkFuzzer
     alphabet[@rng.rand(alphabet.size)]
   end
 
+  def player_dead?
+    @game.player.nil?
+  end
+
   # --- invariants, checked after every press -----------------------------
 
+  # A crash inside the checking machinery itself (an engine bug handing us
+  # a nil grid, say) is still a finding: wrap it so the seed and key script
+  # are never lost.
   def check_invariants
     check_player_cell
     check_player_step
@@ -119,6 +133,10 @@ class RandomWalkFuzzer
     @extra_invariants.each do |name, invariant|
       fail!(name) unless invariant.call(@game)
     end
+  rescue InvariantViolation
+    raise
+  rescue StandardError => e
+    fail!("exception inside invariant checks: #{e.class}: #{e.message}")
   end
 
   # The player, while alive, stands on an in-bounds cell that is linked
@@ -144,6 +162,13 @@ class RandomWalkFuzzer
   # In a perfect maze every cell is linked somewhere, so wall-phasing
   # cannot be caught by looking at the destination cell alone — only the
   # step's edge betrays it.
+  # Taken before the first press, so the step invariant covers the whole
+  # walk rather than starting one press late.
+  def snapshot_step_baseline
+    @stepped_grid = @game.grid
+    @stepped_position = @game.player_position
+  end
+
   def check_player_step
     previous_grid = @stepped_grid
     previous_position = @stepped_position
@@ -194,13 +219,24 @@ class RandomWalkFuzzer
 
   # Menu mode has dwelt past the limit: it must now prove it is exitable
   # within MENU_EXIT_BOUND presses of the toggle. The drill's presses are
-  # recorded in the script like any other, so the run still replays.
+  # recorded in the script like any other, so the run still replays; other
+  # invariants are next checked after the drill, so a violation a drill
+  # press causes is attributed up to MENU_EXIT_BOUND keys late.
+  #
+  # A combat menu open after the drill is not a wedged menu: each drill
+  # press runs a full frame, so a hunting monster can reach the player
+  # mid-drill and legitimately re-raise Fight/Run the instant the toggle
+  # closed the old menu. That is fresh play, not a stuck state — reset the
+  # dwell and let the walk answer it; only a NON-combat menu that refuses
+  # to close is a violation.
   def drill_menu_exit
     MENU_EXIT_BOUND.times do
       press(MENU_TOGGLE_KEY)
       break unless @game.selection_mode?
     end
-    fail!("menu mode not exitable within #{MENU_EXIT_BOUND} presses of '#{MENU_TOGGLE_KEY}'") if @game.selection_mode?
+    if @game.selection_mode? && !@game.message_system.in_combat_mode?
+      fail!("menu mode not exitable within #{MENU_EXIT_BOUND} presses of '#{MENU_TOGGLE_KEY}'")
+    end
     @menu_dwell = 0
   end
 
@@ -221,7 +257,14 @@ class RandomWalkFuzzer
       seed: @game.seed,
       turns: @game.turn,
       keys: @keys.dup,
-      player_position: @game.player_position
+      player_position: last_known_position
     )
+  end
+
+  # Never let the failure report itself crash on a corrupted world.
+  def last_known_position
+    @game.player_position
+  rescue StandardError
+    nil
   end
 end

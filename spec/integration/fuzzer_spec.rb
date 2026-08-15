@@ -43,11 +43,22 @@ RSpec.describe 'Random-walk fuzzer', type: :integration do
       second_game.start
       second = RandomWalkFuzzer.new(second_game).walk(keys: 60)
 
-      expect(first.keys).not_to be_empty
+      # 60 requested keys plus the scripted quit; menu-exit drills only add.
+      expect(first.keys.size).to be >= 61
+      # Keys outside NORMAL_KEYS are drawn only in selection mode, so their
+      # presence proves the walk actually entered (and fuzzed) menus.
+      expect(first.keys - RandomWalkFuzzer::NORMAL_KEYS).not_to be_empty
       expect(second.keys).to eq(first.keys)
       expect(EventStream.normalize(second_game.events)).to eq(first_events)
     ensure
       second_game&.cleanup
+    end
+
+    it 'draws different scripts for different seeds' do
+      first = fuzz(7, keys: 60)
+      second = fuzz(8, keys: 60)
+
+      expect(second.keys).not_to eq(first.keys)
     end
 
     it 'ends every walk by quitting through the real exit path' do
@@ -79,6 +90,38 @@ RSpec.describe 'Random-walk fuzzer', type: :integration do
         ensure
           replay&.cleanup
         end
+    end
+
+    it 'reports a menu that refuses to close as an unexitable-menu violation' do
+      game = HeadlessGame.new(seed: 7)
+      game.start
+      # Simulate a wedged menu: the game claims selection mode forever, and
+      # no combat menu explains it, so the exit drill must fail loudly.
+      allow(game).to receive(:selection_mode?).and_return(true)
+
+      expect { RandomWalkFuzzer.new(game).walk(keys: 20) }
+        .to raise_error(RandomWalkFuzzer::InvariantViolation) do |error|
+          expect(error.message).to include('menu mode not exitable')
+          expect(error.seed).to eq(7)
+          expect(error.keys).not_to be_empty
+        end
+    ensure
+      game&.cleanup
+    end
+
+    it 'wraps an exception out of the engine with the seed and key script' do
+      game = HeadlessGame.new(seed: 7)
+      game.start
+      allow(game).to receive(:press).and_raise(RuntimeError, 'boom')
+
+      expect { RandomWalkFuzzer.new(game).walk(keys: 5) }
+        .to raise_error(RandomWalkFuzzer::InvariantViolation) do |error|
+          expect(error.message).to include('exception out of the engine: RuntimeError: boom')
+          expect(error.seed).to eq(7)
+          expect(error.keys.size).to eq(1)
+        end
+    ensure
+      game&.cleanup
     end
   end
 
