@@ -52,6 +52,20 @@ RSpec.describe HeadlessGame, type: :integration do
     end
   end
 
+  # Place a goblin on a cell linked to the player's, so one key press walks
+  # the player into it. The goblin's movement component is removed so it
+  # stands still: a hunting monster would step into the player during the
+  # same frame and the two would swap cells before collision detection runs.
+  def stage_adjacent_monster(game)
+    direction, target = linked_direction(player_cell(game))
+    monster = Vanilla::EntityFactory.create_monster('goblin', target.row, target.column, 20, 5)
+    monster.remove_component(:movement)
+    game.world.add_entity(monster)
+    game.current_level.add_entity(monster)
+    game.current_level.update_grid_with_entity(monster)
+    [KEY_FOR.fetch(direction), monster]
+  end
+
   describe 'movement' do
     it 'moves the player when a movement key is pressed' do
       game = described_class.new(seed: seed)
@@ -63,6 +77,40 @@ RSpec.describe HeadlessGame, type: :integration do
 
       expect(game.player_position).to eq([target.row, target.column])
       expect(game.events(:entity_moved)).not_to be_empty
+    end
+  end
+
+  describe 'the Fight/Run menu' do
+    it 'raises the menu when the player walks into a monster' do
+      game = described_class.new(seed: seed)
+      game.start
+      remove_monsters(game)
+      key, monster = stage_adjacent_monster(game)
+
+      game.press(key)
+
+      monster_position = monster.get_component(:position)
+      expect(game.player_position).to eq([monster_position.row, monster_position.column])
+      expect(game.selection_mode?).to be(true)
+      expect(game.message_system.valid_menu_option?('1')).to be(true)
+      expect(game.message_system.valid_menu_option?('2')).to be(true)
+      expect(game.events(:entities_collided)).not_to be_empty
+    end
+
+    it 'resolves combat when the fight key is pressed' do
+      game = described_class.new(seed: seed)
+      game.start
+      remove_monsters(game)
+      key, monster = stage_adjacent_monster(game)
+      game.press(key)
+      expect(game.selection_mode?).to be(true)
+
+      game.press('1')
+
+      expect(game.world.get_entity(monster.id)).to be_nil
+      expect(game.events(:combat_attack)).not_to be_empty
+      death_events = game.events(:combat_death)
+      expect(death_events.map { |e| e.data[:entity_id] }).to include(monster.id)
     end
   end
 end
