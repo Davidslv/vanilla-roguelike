@@ -57,6 +57,46 @@ RSpec.describe 'Replay regression tapes', type: :integration do
     end
   end
 
+  describe 'the committed fixtures' do
+    # The canonical scenarios and the event types each exists to pin
+    # (issue #134's acceptance criteria). A tape may widen its covers;
+    # this is the floor a re-record can never drop below.
+    canonical_coverage = {
+      'movement-level-transition' => %w[level_transitioned],
+      'combat-death-loot' => %w[entities_collided combat_death loot_dropped]
+    }
+
+    it 'keeps at least two tapes on the shelf' do
+      expect(Tape.names.size).to be >= 2
+    end
+
+    canonical_coverage.each do |name, types|
+      it "pins #{name} to cover #{types.join(', ')}" do
+        expect(Tape.load(name).fetch('covers')).to include(*types)
+      end
+    end
+
+    Tape.names.each do |name|
+      describe "tape #{name}" do
+        it 'declares coverage its recorded stream includes' do
+          types = Tape.expected_events(name).map { |event| event.fetch('type') }
+
+          expect(types).to include(*Tape.load(name).fetch('covers'))
+        end
+
+        it 'replays bit-exact' do
+          tape = Tape.load(name)
+          expected = Tape.expected_events(name)
+
+          actual = Tape.play(seed: tape.fetch('seed'), difficulty: tape.fetch('difficulty'),
+                             keys: tape.fetch('keys'))
+
+          expect(actual).to eq(expected), Tape.mismatch_message(name, expected, actual)
+        end
+      end
+    end
+  end
+
   describe 'the mismatch diff' do
     let(:expected) do
       [
