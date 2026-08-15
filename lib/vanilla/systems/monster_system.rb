@@ -130,7 +130,12 @@ module Vanilla
         @logger.info("Spawned #{monster_type} at [#{cell.row}, #{cell.column}] with #{health} HP and #{damage} damage")
 
         # Emit event for Goal 2 integration
-        emit_event(:monster_spawned, { monster_id: monster.id, position: { row: cell.row, column: cell.column } })
+        # monster_type is in the payload so run-to-run comparisons (the
+        # determinism tripwire, replay tapes) can see type divergence, not
+        # just position divergence.
+        emit_event(:monster_spawned,
+                   { monster_id: monster.id, monster_type: monster_type,
+                     position: { row: cell.row, column: cell.column } })
 
         monster
       end
@@ -164,7 +169,9 @@ module Vanilla
       # @return [String] The selected monster type
       def select_weighted_monster_type(types)
         total = types.values.sum
-        roll = rand(total)
+        # rand * total, not rand(total): Kernel#rand truncates a Float max to
+        # an Integer (rand(1.0) is always 0), which would collapse the roll.
+        roll = rand * total
         running_total = 0
         types.each do |type, probability|
           running_total += probability
