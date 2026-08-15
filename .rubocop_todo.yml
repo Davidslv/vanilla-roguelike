@@ -103,6 +103,7 @@ RSpec/DescribeClass:
     - '**/spec/routing/**/*'
     - '**/spec/system/**/*'
     - '**/spec/views/**/*'
+    - 'spec/integration/determinism_spec.rb'
     - 'spec/integration/known_issues_spec.rb'
     - 'spec/integration/level_transition_spec.rb'
     - 'spec/integration/system_interactions_spec.rb'

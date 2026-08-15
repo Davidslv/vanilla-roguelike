@@ -57,7 +57,7 @@ RSpec.describe 'Determinism tripwire', type: :integration do
     script.each { |key| game.press(key) }
     game.events
   ensure
-    game.cleanup
+    game&.cleanup
   end
 
   # Derives the fixed key script for this seed by playing one exploratory
@@ -81,7 +81,7 @@ RSpec.describe 'Determinism tripwire', type: :integration do
     end
     keys + route
   ensure
-    game.cleanup
+    game&.cleanup
   end
 
   # Replace the maze's own monsters with one stationary goblin adjacent to
