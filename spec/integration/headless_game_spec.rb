@@ -113,4 +113,60 @@ RSpec.describe HeadlessGame, type: :integration do
       expect(death_events.map { |e| e.data[:entity_id] }).to include(monster.id)
     end
   end
+
+  describe 'stairs' do
+    # Direction that moves from one cell to an adjacent one.
+    def direction_between(from, to)
+      return :north if to.row < from.row
+      return :south if to.row > from.row
+      return :east if to.column > from.column
+
+      :west
+    end
+
+    it 'triggers a level transition when the player steps onto the stairs' do
+      game = described_class.new(seed: seed)
+      game.start
+      remove_monsters(game)
+
+      stairs_position = game.world.find_entity_by_tag(:stairs).get_component(:position)
+      stairs_cell = cell_at(game, stairs_position.row, stairs_position.column)
+      standing_cell = stairs_cell.links.first
+      game.player.get_component(:position).set_position(standing_cell.row, standing_cell.column)
+      # Level#entities starts empty after maze generation and is only synced
+      # from world entities by MovementSystem#move. A real player has always
+      # moved before reaching the stairs; teleporting skips that sync, so
+      # MoveCommand's stairs check would miss. Sync the way the engine does.
+      game.current_level.entities.clear
+      game.world.entities.each_value { |entity| game.current_level.add_entity(entity) }
+
+      game.press(KEY_FOR.fetch(direction_between(standing_cell, stairs_cell)))
+
+      expect(game.events(:level_transitioned)).not_to be_empty
+      expect(game.current_level.difficulty).to eq(2)
+      expect(game.player_position).to eq([0, 0])
+    end
+  end
+
+  describe 'spec hygiene' do
+    it 'writes no event log files during a run' do
+      before_files = Dir.glob('event_logs/*').sort
+
+      game = described_class.new(seed: seed)
+      game.start
+      direction, = linked_direction(player_cell(game))
+      game.press(KEY_FOR.fetch(direction))
+
+      expect(Dir.glob('event_logs/*').sort).to eq(before_files)
+    end
+
+    it 'leaves the ServiceRegistry clean after cleanup' do
+      game = described_class.new(seed: seed)
+      game.start
+      game.cleanup
+
+      expect(Vanilla::ServiceRegistry.get(:event_manager)).to be_nil
+      expect(Vanilla::ServiceRegistry.get(:message_system)).to be_nil
+    end
+  end
 end
