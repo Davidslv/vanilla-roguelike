@@ -71,13 +71,15 @@ class HeadlessGame
   # immediately after input, exactly as the real loop does.
   def press(key)
     @keyboard.push(key)
-    if selection_mode?
-      @input_system.update(nil)
+    # Branch as the real loop does: on selection mode BEFORE the key is
+    # dispatched (dispatching a menu key can toggle selection mode off).
+    in_menu = selection_mode?
+    @input_system.update(nil)
+    if in_menu
       @world.send(:process_events)
       @message_system.update(nil)
       @world.update(nil)
     else
-      @input_system.update(nil)
       @world.update(nil)
       @turn += 1
     end

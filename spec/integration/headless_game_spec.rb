@@ -16,7 +16,9 @@ RSpec.describe HeadlessGame, type: :integration do
   end
 
   # Map a movement direction to the key the real game binds it to.
-  KEY_FOR = { north: 'k', south: 'j', east: 'l', west: 'h' }.freeze
+  def key_for(direction)
+    { north: 'k', south: 'j', east: 'l', west: 'h' }.fetch(direction)
+  end
 
   def cell_at(game, row, column)
     game.grid[row, column]
@@ -26,18 +28,14 @@ RSpec.describe HeadlessGame, type: :integration do
     cell_at(game, *game.player_position)
   end
 
-  # First direction from the cell with a linked, walkable neighbour.
+  # First direction from the cell with a linked neighbour.
   # @return [Array(Symbol, Vanilla::MapUtils::Cell)]
   def linked_direction(cell)
-    KEY_FOR.each_key do |direction|
-      neighbour = cell.public_send(direction_accessor(direction))
+    [:north, :south, :east, :west].each do |direction|
+      neighbour = cell.public_send(direction)
       return [direction, neighbour] if neighbour && cell.linked?(neighbour)
     end
     raise 'maze cell has no linked neighbour'
-  end
-
-  def direction_accessor(direction)
-    { north: :north, south: :south, east: :east, west: :west }.fetch(direction)
   end
 
   # Remove spawned monsters so movement specs cannot be interrupted by a
@@ -63,7 +61,7 @@ RSpec.describe HeadlessGame, type: :integration do
     game.world.add_entity(monster)
     game.current_level.add_entity(monster)
     game.current_level.update_grid_with_entity(monster)
-    [KEY_FOR.fetch(direction), monster]
+    [key_for(direction), monster]
   end
 
   describe 'movement' do
@@ -73,7 +71,7 @@ RSpec.describe HeadlessGame, type: :integration do
       remove_monsters(game)
 
       direction, target = linked_direction(player_cell(game))
-      game.press(KEY_FOR.fetch(direction))
+      game.press(key_for(direction))
 
       expect(game.player_position).to eq([target.row, target.column])
       expect(game.events(:entity_moved)).not_to be_empty
@@ -140,7 +138,7 @@ RSpec.describe HeadlessGame, type: :integration do
       game.current_level.entities.clear
       game.world.entities.each_value { |entity| game.current_level.add_entity(entity) }
 
-      game.press(KEY_FOR.fetch(direction_between(standing_cell, stairs_cell)))
+      game.press(key_for(direction_between(standing_cell, stairs_cell)))
 
       expect(game.events(:level_transitioned)).not_to be_empty
       expect(game.current_level.difficulty).to eq(2)
@@ -155,7 +153,7 @@ RSpec.describe HeadlessGame, type: :integration do
       game = described_class.new(seed: seed)
       game.start
       direction, = linked_direction(player_cell(game))
-      game.press(KEY_FOR.fetch(direction))
+      game.press(key_for(direction))
 
       expect(Dir.glob('event_logs/*').sort).to eq(before_files)
     end
