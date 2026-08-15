@@ -1,0 +1,9 @@
+{
+  "seed": 1,
+  "difficulty": 1,
+  "keys": "jjjjjllllll",
+  "covers": [
+    "entity_moved",
+    "level_transitioned"
+  ]
+}

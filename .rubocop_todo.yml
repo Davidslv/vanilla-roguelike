@@ -108,6 +108,7 @@ RSpec/DescribeClass:
     - 'spec/integration/fuzzer_spec.rb'
     - 'spec/integration/known_issues_spec.rb'
     - 'spec/integration/level_transition_spec.rb'
+    - 'spec/integration/replay_tapes_spec.rb'
     - 'spec/integration/system_interactions_spec.rb'
 
 # Offense count: 93

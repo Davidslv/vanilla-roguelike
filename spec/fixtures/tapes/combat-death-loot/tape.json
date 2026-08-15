@@ -1,0 +1,11 @@
+{
+  "seed": 3,
+  "difficulty": 1,
+  "keys": "jjjjljjjl11llllll",
+  "covers": [
+    "entities_collided",
+    "combat_death",
+    "loot_dropped",
+    "level_transitioned"
+  ]
+}
