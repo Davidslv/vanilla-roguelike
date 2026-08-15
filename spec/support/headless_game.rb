@@ -55,6 +55,10 @@ class HeadlessGame
     @seed = seed
     @difficulty = difficulty
     @turn = 0
+    # Reseeding here (and in MazeSystem/start, mirroring the real game) pins
+    # the global RNG; remember what it was so cleanup can restore it and the
+    # rest of the suite doesn't inherit this game's rand stream.
+    @previous_seed = srand(@seed)
     setup_world
   end
 
@@ -66,9 +70,13 @@ class HeadlessGame
   end
 
   # Feed one key press through the real input dispatch, then run one pass of
-  # the game loop. Mirrors both branches of Vanilla::Game#game_loop: the
-  # selection-mode (Fight/Run menu) branch processes events and messages
-  # immediately after input, exactly as the real loop does.
+  # the game loop. Mirrors both branches of Vanilla::Game#game_loop, with one
+  # deliberate simplification: one key per press. In the real game InputSystem
+  # sits inside world.update, so the menu branch's trailing world.update
+  # blocks for (and consumes) a SECOND key before commands drain, and the
+  # normal branch reads its key between MazeSystem and MovementSystem rather
+  # than before the frame. Neither difference reorders command or event
+  # processing within a frame; the smoke specs pin the observable behaviour.
   def press(key)
     @keyboard.push(key)
     # Branch as the real loop does: on selection mode BEFORE the key is
@@ -113,11 +121,12 @@ class HeadlessGame
     @world.quit?
   end
 
-  # Captured events, optionally filtered by type.
+  # Captured events, optionally filtered by type. Always a copy, so callers
+  # cannot corrupt the capture buffer.
   # @return [Array<Vanilla::Events::Event>]
   def events(type = nil)
     all = @event_manager.captured_events
-    type ? all.select { |event| event.type == type } : all
+    type ? all.select { |event| event.type == type } : all.dup
   end
 
   def recent_messages(limit = 10)
@@ -132,10 +141,14 @@ class HeadlessGame
     @world.send(:process_events)
   end
 
-  # Unregister everything this instance placed in the global ServiceRegistry
-  # so consecutive specs do not leak state.
+  # Undo this instance's global side effects so consecutive specs do not
+  # leak state: unregister exactly the services setup_world placed, and
+  # restore the global RNG seed captured at construction.
   def cleanup
-    Vanilla::ServiceRegistry.clear
+    Vanilla::ServiceRegistry.unregister(:game)
+    Vanilla::ServiceRegistry.unregister(:event_manager)
+    Vanilla::ServiceRegistry.unregister(:message_system)
+    srand(@previous_seed)
   end
 
   private
@@ -150,6 +163,9 @@ class HeadlessGame
     @event_manager = Vanilla::Events::EventManager.new(store_config: { file: false })
     @event_manager.singleton_class.prepend(EventCapture)
     Vanilla::ServiceRegistry.register(:event_manager, @event_manager)
+    # The real game registers itself as :game; Vanilla.game_turn reads it for
+    # message turn-stamps and effect expiry. The harness answers #turn too.
+    Vanilla::ServiceRegistry.register(:game, self)
 
     @player = Vanilla::EntityFactory.create_player(0, 0)
     @world.add_entity(@player)

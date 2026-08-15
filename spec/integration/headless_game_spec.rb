@@ -10,8 +10,12 @@ RSpec.describe HeadlessGame, type: :integration do
   # Any fixed seed keeps a spec deterministic; the helpers below derive the
   # actual moves from the generated maze, so the value itself is arbitrary.
   let(:seed) { 20_260_815 }
+  let(:game) { described_class.new(seed: seed) }
 
   after do
+    game.cleanup
+    # Belt and braces for services an example registered outside the harness
+    # (the roster spec constructs a real Game, which self-registers).
     Vanilla::ServiceRegistry.clear
   end
 
@@ -60,13 +64,11 @@ RSpec.describe HeadlessGame, type: :integration do
     monster.remove_component(:movement)
     game.world.add_entity(monster)
     game.current_level.add_entity(monster)
-    game.current_level.update_grid_with_entity(monster)
     [key_for(direction), monster]
   end
 
   describe 'movement' do
     it 'moves the player when a movement key is pressed' do
-      game = described_class.new(seed: seed)
       game.start
       remove_monsters(game)
 
@@ -80,7 +82,6 @@ RSpec.describe HeadlessGame, type: :integration do
 
   describe 'the Fight/Run menu' do
     it 'raises the menu when the player walks into a monster' do
-      game = described_class.new(seed: seed)
       game.start
       remove_monsters(game)
       key, monster = stage_adjacent_monster(game)
@@ -96,7 +97,6 @@ RSpec.describe HeadlessGame, type: :integration do
     end
 
     it 'resolves combat when the fight key is pressed' do
-      game = described_class.new(seed: seed)
       game.start
       remove_monsters(game)
       key, monster = stage_adjacent_monster(game)
@@ -109,6 +109,23 @@ RSpec.describe HeadlessGame, type: :integration do
       expect(game.events(:combat_attack)).not_to be_empty
       death_events = game.events(:combat_death)
       expect(death_events.map { |e| e.data[:entity_id] }).to include(monster.id)
+    end
+
+    it 'clears the menu when the run key is pressed' do
+      game.start
+      remove_monsters(game)
+      key, = stage_adjacent_monster(game)
+      game.press(key)
+      expect(game.selection_mode?).to be(true)
+
+      game.press('2')
+
+      # RunAwayCommand travels the queued-command path: queued during input
+      # dispatch, executed by the same press's world.update. Either outcome
+      # proves the path ran; the menu clears immediately in both.
+      flee_events = game.events(:combat_flee_success) + game.events(:combat_flee_failed)
+      expect(flee_events).not_to be_empty
+      expect(game.selection_mode?).to be(false)
     end
   end
 
@@ -123,7 +140,6 @@ RSpec.describe HeadlessGame, type: :integration do
     end
 
     it 'triggers a level transition when the player steps onto the stairs' do
-      game = described_class.new(seed: seed)
       game.start
       remove_monsters(game)
 
@@ -146,11 +162,35 @@ RSpec.describe HeadlessGame, type: :integration do
     end
   end
 
+  describe 'system roster' do
+    it 'runs the same systems as the real game, minus the terminal-bound ones' do
+      harness_roster = game.world.systems.map { |system, priority| [system.class, priority] }
+
+      # Force any EventManager the real Game constructs to skip file storage,
+      # so this spec can never write event_logs/.
+      allow(Vanilla::Events::EventManager).to receive(:new).and_wrap_original do |original, *|
+        original.call(store_config: { file: false })
+      end
+      previous_trap = Signal.trap('INT') {} # Game#initialize replaces the handler
+      begin
+        real_game = Vanilla::Game.new(seed: seed)
+        expected_roster = real_game.world.systems
+                                   .map { |system, priority| [system.class, priority] }
+                                   .reject do |klass, _priority|
+          [Vanilla::Systems::InputSystem, Vanilla::Systems::RenderSystem].include?(klass)
+        end
+
+        expect(harness_roster).to eq(expected_roster)
+      ensure
+        Signal.trap('INT', previous_trap)
+      end
+    end
+  end
+
   describe 'spec hygiene' do
     it 'writes no event log files during a run' do
       before_files = Dir.glob('event_logs/*').sort
 
-      game = described_class.new(seed: seed)
       game.start
       direction, = linked_direction(player_cell(game))
       game.press(key_for(direction))
@@ -159,12 +199,20 @@ RSpec.describe HeadlessGame, type: :integration do
     end
 
     it 'leaves the ServiceRegistry clean after cleanup' do
-      game = described_class.new(seed: seed)
       game.start
       game.cleanup
 
+      expect(Vanilla::ServiceRegistry.get(:game)).to be_nil
       expect(Vanilla::ServiceRegistry.get(:event_manager)).to be_nil
       expect(Vanilla::ServiceRegistry.get(:message_system)).to be_nil
+    end
+
+    it 'restores the global RNG seed after cleanup' do
+      srand(4242)
+      game.start
+      game.cleanup
+
+      expect(rand(1_000_000)).to eq(Random.new(4242).rand(1_000_000))
     end
   end
 end
