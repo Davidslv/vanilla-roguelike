@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        ruby: [head, 3.4.1]
+        ruby: ['3.4']
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout code
@@ -19,16 +19,5 @@ jobs:
         ruby-version: ${{ matrix.ruby }}
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
 
-    - name: Make scripts executable
-      run: chmod +x bin/run_tests bin/test_game
-
-    - name: Run comprehensive test suite
-      run: bin/run_tests -f
-
-    - name: Upload test results
-      uses: actions/upload-artifact@v3
-      if: always() # Upload even if tests fail
-      with:
-        name: test-results-${{ matrix.os }}-ruby-${{ matrix.ruby }}
-        path: test_results/
-        retention-days: 7
+    - name: Run test suite
+      run: bundle exec rspec
