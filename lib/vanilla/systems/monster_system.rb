@@ -16,7 +16,6 @@ module Vanilla
         @player = player
         @monsters = []
         @logger = logger || Vanilla::Logger.instance
-        @rng = Random.new
         @world.subscribe(:combat_damage, self) # Prepare for future combat events
       end
 
@@ -82,12 +81,15 @@ module Vanilla
 
       private
 
-      # Determine how many monsters to spawn based on level
+      # Determine how many monsters to spawn based on level.
+      # Draws from the global RNG (srand-pinned), never a private Random:
+      # spawning must replay under the same seed — the determinism tripwire
+      # spec guards this.
       # @param level [Integer] The current difficulty level
       # @return [Integer] The number of monsters to spawn
       def determine_monster_count(level)
         max = MAX_MONSTERS[level] || MAX_MONSTERS.values.last
-        @rng.rand((max / 2.0).ceil..max)
+        rand((max / 2.0).ceil..max)
       end
 
       # Spawn a single monster at a valid location
@@ -128,7 +130,12 @@ module Vanilla
         @logger.info("Spawned #{monster_type} at [#{cell.row}, #{cell.column}] with #{health} HP and #{damage} damage")
 
         # Emit event for Goal 2 integration
-        emit_event(:monster_spawned, { monster_id: monster.id, position: { row: cell.row, column: cell.column } })
+        # monster_type is in the payload so run-to-run comparisons (the
+        # determinism tripwire, replay tapes) can see type divergence, not
+        # just position divergence.
+        emit_event(:monster_spawned,
+                   { monster_id: monster.id, monster_type: monster_type,
+                     position: { row: cell.row, column: cell.column } })
 
         monster
       end
@@ -154,7 +161,7 @@ module Vanilla
 
           walkable_cells << cell
         end
-        walkable_cells.empty? ? nil : walkable_cells.sample(random: @rng)
+        walkable_cells.empty? ? nil : walkable_cells.sample
       end
 
       # Select a monster type based on weighted probabilities
@@ -162,7 +169,9 @@ module Vanilla
       # @return [String] The selected monster type
       def select_weighted_monster_type(types)
         total = types.values.sum
-        roll = @rng.rand(total)
+        # rand * total, not rand(total): Kernel#rand truncates a Float max to
+        # an Integer (rand(1.0) is always 0), which would collapse the roll.
+        roll = rand * total
         running_total = 0
         types.each do |type, probability|
           running_total += probability
