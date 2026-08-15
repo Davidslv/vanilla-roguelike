@@ -49,7 +49,7 @@ class HeadlessGame
     end
   end
 
-  attr_reader :world, :turn, :event_manager, :message_system
+  attr_reader :world, :turn, :event_manager, :message_system, :seed
 
   def initialize(seed: Random.new_seed, difficulty: 1)
     @seed = seed
