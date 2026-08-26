@@ -106,6 +106,8 @@ RSpec/DescribeClass:
     - 'spec/integration/certifier_spec.rb'
     - 'spec/integration/determinism_spec.rb'
     - 'spec/integration/fuzzer_spec.rb'
+    - 'spec/integration/game_lifecycle_spec.rb'
+    - 'spec/integration/harness_fidelity_spec.rb'
     - 'spec/integration/known_issues_spec.rb'
     - 'spec/integration/level_transition_spec.rb'
     - 'spec/integration/replay_tapes_spec.rb'
