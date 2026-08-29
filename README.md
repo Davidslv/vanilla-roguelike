@@ -79,6 +79,24 @@ bundle install --with gui   # one-time; installs ruby2d (needs SDL2)
 On macOS the native libraries are: `brew install sdl2 sdl2_image sdl2_mixer sdl2_ttf`.
 This is optional — the terminal game above needs none of it.
 
+#### Reproducible frames
+
+The graphical front-end can also draw a single frame and exit, with no human at
+the keyboard. A seed fixes the dungeon and a key script fixes the player's path,
+so the same two arguments always produce the same picture:
+
+```bash
+./bin/play_gui.rb --seed=12345 --dev-mode --screenshot=dungeon.png  # whole map, no fog
+./bin/play_gui.rb --seed=12345 --keys=jjlljjll --screenshot=fog.png # after walking
+```
+
+- `--keys=SCRIPT` replays movement keys (`hjkl`, `f` to toggle FOV) before drawing.
+- `--screenshot=PATH` saves one frame as a PNG and quits.
+
+This is the same seed-plus-keys contract the headless harness uses (see
+`documents/proposals/012_end_to_end_playability_testing_proposal.md`), pointed at
+pixels instead of assertions.
+
 ## Game Controls
 
 Use either Vim-style keys or arrow keys to navigate your character:

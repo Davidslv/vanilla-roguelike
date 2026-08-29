@@ -41,6 +41,8 @@ OptionParser.new do |opts|
   opts.on('--seed=SEED', Integer, 'Set random seed') { |s| options[:seed] = s }
   opts.on('--difficulty=LEVEL', Integer, 'Difficulty 1-5') { |l| options[:difficulty] = l }
   opts.on('--dev-mode', 'Disable fog of war') { options[:dev_mode] = true }
+  opts.on('--keys=SCRIPT', 'Replay a key script before drawing (e.g. jjll)') { |k| options[:keys] = k }
+  opts.on('--screenshot=PATH', 'Save one frame to PATH (PNG) and exit') { |p| options[:screenshot] = p }
 end.parse!
 
 # --- Layout & palette ------------------------------------------------------
@@ -137,16 +139,44 @@ KEY_MAP = {
   'f' => 'f'
 }.freeze
 
+# One game step, shared by the scripted keys below and by live input, so a
+# screenshot is reachable by exactly the same path a player would take.
+def step(input_handler, world, fov_system, key)
+  input_handler.handle_input(key) # queue movement / FOV-toggle command
+  world.update(nil)               # run systems, execute the command, fire events
+  fov_system&.update(nil)         # refresh fog of war for the new frame
+end
+
+# Replay a key script before the first draw. With --seed this makes any frame
+# reproducible: same seed + same keys == same picture.
+options[:keys].to_s.each_char do |key|
+  mapped = KEY_MAP[key]
+  step(input_handler, world, fov_system, mapped) if mapped
+end
+
 redraw(world, options[:seed])
+
+# --screenshot: let the scene rasterise, save it, and quit. Gives the project a
+# repeatable way to produce an image of a known seed without a human at the keys.
+if options[:screenshot]
+  path = options[:screenshot]
+  frames = 0
+  update do
+    frames += 1
+    next unless frames > 2 # give SDL a couple of frames to present
+
+    get(:window).screenshot(path)
+    puts "Saved screenshot to #{path}"
+    close
+  end
+end
 
 on :key_down do |event|
   key = event.key
   if %w[q escape].include?(key)
     close
   elsif (mapped = KEY_MAP[key])
-    input_handler.handle_input(mapped) # queue movement / FOV-toggle command
-    world.update(nil)                  # run systems, execute the command, fire events
-    fov_system&.update(nil)            # refresh fog of war for the new frame
+    step(input_handler, world, fov_system, mapped)
     redraw(world, options[:seed])
   end
 end
