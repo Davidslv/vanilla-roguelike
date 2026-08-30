@@ -7,6 +7,8 @@ Vanilla is a roguelike game written in Ruby, inspired by the original 1980's [Ro
 
 Vanilla is the companion code to my book **[Building Your Own Roguelike: A Practical Guide](https://www.amazon.com/Building-Your-Own-Roguelike-Hands-ebook/dp/B0G1RBWF6V)**. The book walks through building a complete roguelike from scratch, explaining the architecture, design patterns, and game development concepts you see implemented here.
 
+Also available as [paperback](https://www.amazon.com/dp/B0G1SGN181) and a [free web edition](https://davidslv.uk/books/vanilla-roguelike/).
+
 If you're finding this code useful and want the full tutorial with detailed explanations of the ECS pattern, event system, and maze generation algorithms, the book covers all of it step-by-step.
 
 <!--
