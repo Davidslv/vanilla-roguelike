@@ -1,5 +1,13 @@
 name: Vanilla Roguelike Test Suite
 on: [push, pull_request]
+
+permissions:
+  contents: read
+
+env:
+  # Solargraph and its native deps are editor tooling, not needed here.
+  BUNDLE_WITHOUT: development
+
 jobs:
   test:
     name: Ruby ${{ matrix.ruby }} on ${{ matrix.os }}
@@ -7,6 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
+        # Ruby 4.0 needs a lockfile bump first: unicode-emoji 4.0.4 (via
+        # rubocop) declares ruby < 4.0.
         ruby: ['3.4']
     runs-on: ${{ matrix.os }}
     steps:
@@ -21,3 +31,19 @@ jobs:
 
     - name: Run test suite
       run: bundle exec rspec
+
+  lint:
+    name: RuboCop
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.4'
+        bundler-cache: true
+
+    - name: Run RuboCop
+      run: bundle exec rubocop
