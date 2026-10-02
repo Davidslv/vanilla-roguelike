@@ -2,7 +2,6 @@
 
 STDOUT.sync = true
 
-require 'pry'
 require 'logger'
 require 'securerandom'
 require 'i18n'
