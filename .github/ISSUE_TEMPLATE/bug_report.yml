@@ -1,0 +1,79 @@
+name: Bug report
+description: Something in the game or its tooling does not work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. A seed makes most game bugs reproducible: it is printed at the top of the screen.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The command you ran and the keys you pressed.
+      placeholder: |
+        1. ./bin/play.rb --seed=12345 --difficulty=1
+        2. Press j j l l
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: seed
+    attributes:
+      label: Seed
+      description: From the `Seed:` line at the top of the game screen. Leave blank if the bug is not in a game run.
+      placeholder: "12345"
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Maze generation
+        - Movement or collision
+        - Combat
+        - Monsters
+        - Items, loot or inventory
+        - Messages or menus
+        - Rendering or field of view
+        - Input or quitting
+        - Tests or tooling
+        - Install or setup
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Error output or log excerpt
+      description: Backtrace, or the relevant lines from `logs/development/`. Run with `VANILLA_LOG_LEVEL=debug` for more detail.
+      render: text
+  - type: input
+    id: ruby
+    attributes:
+      label: Ruby version
+      description: Output of `ruby -v`.
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal
+      description: For example Terminal.app, iTerm2, GNOME Terminal, tmux.

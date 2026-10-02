@@ -28,7 +28,7 @@ module RuboCop
 
         def on_defs(node)
           return unless @is_component
-          return unless node receiver&.self_type? # Only match `self.` methods
+          return unless node.receiver&.self_type? # Only match `self.` methods
 
           method_name = node.method_name.to_s
           return if ALLOWED_METHODS.include?(method_name)

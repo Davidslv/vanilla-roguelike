@@ -6,8 +6,9 @@ require 'fileutils'
 require_relative '../lib/vanilla/events/types'
 
 # Generate events.md from Types::EVENTS
-FileUtils.mkdir_p('documents') unless Dir.exist?('documents')
-File.open('documents/events.md', 'w') do |file|
+Dir.chdir(File.expand_path('..', __dir__))
+FileUtils.mkdir_p('docs')
+File.open('docs/events.md', 'w') do |file|
   file.puts "# Event System Documentation"
   file.puts
   file.puts "## Core Game Events"
@@ -22,4 +23,4 @@ File.open('documents/events.md', 'w') do |file|
   end
 end
 
-puts "Generated documents/events.md with #{Vanilla::Events::Types::EVENTS.size} events"
+puts "Generated docs/events.md with #{Vanilla::Events::Types::EVENTS.size} events"

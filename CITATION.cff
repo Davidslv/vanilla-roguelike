@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Vanilla Roguelike"
+abstract: "A terminal roguelike in plain Ruby with an Entity-Component-System architecture, procedural mazes and a replayable event log. Companion code to the book Building Your Own Roguelike: A Practical Guide."
+type: software
+authors:
+  - family-names: Silva
+    given-names: David
+license: MIT
+repository-code: "https://github.com/Davidslv/vanilla-roguelike"
+url: "https://davidslv.uk/books/vanilla-roguelike/"
+keywords:
+  - roguelike
+  - ruby
+  - entity-component-system
+  - procedural-generation
+  - maze-generation

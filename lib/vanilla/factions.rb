@@ -10,7 +10,7 @@ module Vanilla
   # checking entity tags such as +:player+ / +:monster+ directly, which keeps
   # combat targeting player-agnostic and ready for allied NPCs or
   # monster-vs-monster combat (see
-  # documents/proposals/010_faction_system_proposal.md).
+  # docs/proposals/010_faction_system_proposal.md).
   #
   # Entities without a FactionComponent are treated as neutral: hostile to
   # nobody and allied with nobody.

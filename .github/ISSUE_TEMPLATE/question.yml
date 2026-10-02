@@ -1,0 +1,21 @@
+name: Question
+description: Ask how something in the code works, or how to do something with it.
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check [docs/](https://github.com/Davidslv/vanilla-roguelike/tree/main/docs) and existing issues first.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What you want to know, and what you have already read or tried.
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where in the code
+      description: File or class, if you know it.
+      placeholder: lib/vanilla/systems/monster_ai_system.rb
