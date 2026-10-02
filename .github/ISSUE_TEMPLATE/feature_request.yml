@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest a new mechanic, system, or tool.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Vanilla is a small roguelike that teaches ECS in plain Ruby. Features that keep the code readable are the best fit.
+        Larger features are written up as a proposal in `docs/proposals/` before code. Please wait for a reply here before starting.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What should the player (or developer) be able to do?
+      description: Describe the experience or capability, not the implementation.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of change
+      options:
+        - New gameplay mechanic (new components and a system)
+        - Change to an existing system
+        - New maze algorithm
+        - Developer tooling, tests or docs
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: ecs
+    attributes:
+      label: ECS sketch
+      description: Which components would hold the data, which system would run the logic, and which events it would emit. Rough is fine.
+      placeholder: |
+        Components: HungerComponent (current, max)
+        System: HungerSystem, priority 4, ticks hunger each turn
+        Events: hunger_changed, player_starving
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to implement this myself.

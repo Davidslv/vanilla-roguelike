@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and help
+    url: https://github.com/Davidslv/vanilla-roguelike/blob/main/SUPPORT.md
+    about: Where to ask questions and what is in scope.
+  - name: Free web edition of the book
+    url: https://davidslv.uk/books/vanilla-roguelike/
+    about: Step-by-step explanation of how the game is built.
