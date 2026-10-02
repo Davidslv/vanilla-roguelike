@@ -11,6 +11,10 @@ inherit_from: .rubocop_todo.yml
 #
 # See https://docs.rubocop.org/rubocop/configuration
 
+AllCops:
+  # New cops are opted into one at a time, not on RuboCop upgrade.
+  NewCops: disable
+
 plugins:
   - rubocop-rspec
 
