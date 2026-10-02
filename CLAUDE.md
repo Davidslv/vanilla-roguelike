@@ -134,7 +134,7 @@ Each frame:
 
 ### Method Ordering in Classes
 
-Follow this order for consistency (from `documents/coding_practices.md`):
+Follow this order for consistency (from `docs/coding-practices.md`):
 
 1. Initialization (`initialize`)
 2. Core lifecycle methods (`update`, `render`)
