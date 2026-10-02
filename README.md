@@ -3,7 +3,7 @@
 [![Test Suite](https://github.com/Davidslv/vanilla-roguelike/actions/workflows/test.yml/badge.svg)](https://github.com/Davidslv/vanilla-roguelike/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Vanilla is a terminal roguelike written in plain Ruby, inspired by the 1980 [Rogue](https://en.wikipedia.org/wiki/Rogue_(video_game)). It has procedurally generated mazes, turn-based movement and combat, monsters, loot, field of view, and an Entity-Component-System architecture with an event log you can replay.
+Vanilla is a terminal roguelike written in plain Ruby, inspired by the 1980 [Rogue](https://en.wikipedia.org/wiki/Rogue_(video_game)). It has procedurally generated mazes, turn-based movement and combat, monsters, loot, field of view, and an Entity-Component-System architecture. Every run is seeded, so you can replay it exactly, and every game event is logged so you can inspect it.
 
 ![Vanilla Roguelike Demo](https://github.com/user-attachments/assets/4dc9e47d-a8e9-49b1-b852-802e15b9436d)
 
@@ -11,7 +11,10 @@ Vanilla is a terminal roguelike written in plain Ruby, inspired by the 1980 [Rog
 
 Vanilla is the companion code to **[Building Your Own Roguelike: A Practical Guide](https://www.amazon.com/Building-Your-Own-Roguelike-Hands-ebook/dp/B0G1RBWF6V)**. The book builds this game from scratch and explains the ECS pattern, the event system, and the maze algorithms step by step.
 
-Also available as [paperback](https://www.amazon.com/dp/B0G1SGN181), a [PDF](https://davidslv.gumroad.com/l/building-your-own-roguelike), and a [free web edition](https://davidslv.uk/books/vanilla-roguelike/).
+Also available as [paperback](https://www.amazon.com/dp/B0G1SGN181) and a [PDF](https://davidslv.gumroad.com/l/building-your-own-roguelike).
+
+> [!TIP]
+> You can read the whole book for free in the [web edition](https://davidslv.uk/books/vanilla-roguelike/).
 
 ## Quickstart
 
@@ -24,11 +27,22 @@ bundle install
 ./bin/play.rb
 ```
 
-On macOS, `./install.sh` installs rbenv and the right Ruby through Homebrew first. Full steps: [docs/getting-started.md](docs/getting-started.md).
+> [!TIP]
+> On macOS, `./install.sh` sets everything up for you: Homebrew, rbenv, the right Ruby, and the gems.
+
+Full steps, including Linux: [docs/getting-started.md](docs/getting-started.md).
 
 ## Playing
 
-Find the stairs (`%`) to go down a level. Each level is a new maze.
+Find the stairs to go down a level. Each level is a new maze, with more monsters as you go down.
+
+| On screen | Means |
+|---|---|
+| `@` | You |
+| `M` | A monster. Walk into it to choose: attack or run away |
+| `%` | Stairs to the next level |
+| `+---+` and `\|` | Walls |
+| blank | Somewhere you haven't seen yet |
 
 | Key | Action |
 |---|---|
@@ -38,22 +52,33 @@ Find the stairs (`%`) to go down a level. Each level is a new maze.
 | `f` | Toggle field of view |
 | `q` or `Ctrl+C` | Quit |
 
-Arrow keys are not supported. While a menu is open, `q` and `Ctrl+C` are ignored: close it with `m` first. The first key after closing a menu is also swallowed, so press `q` twice to quit straight after.
+> [!NOTE]
+> Arrow keys don't work. Use `h` `j` `k` `l`.
+
+> [!WARNING]
+> While a menu is open, `q` and `Ctrl+C` do nothing. Close the menu with `m` first. The first key after closing it is also ignored, so press `q` twice. Tracked in [#146](https://github.com/Davidslv/vanilla-roguelike/issues/146).
+
+Options:
 
 ```bash
-./bin/play.rb --seed=12345       # Replay the same maze and monsters
+./bin/play.rb --seed=12345       # Play the same maze and monsters again
 ./bin/play.rb --difficulty=3     # Start at level 3 (1-5)
+./bin/play.rb --dev-mode         # See the whole map (field of view off)
 ./bin/play.rb --help             # All options
 ```
+
+> [!TIP]
+> The seed is shown at the top of the screen. Put it in bug reports: it lets anyone replay your exact game.
 
 ## Development
 
 ```bash
-bundle exec rspec       # 600+ examples, including replay tapes and a fuzzer
-bundle exec rubocop     # Lint (CI gate)
+bundle exec rspec       # 650+ examples, including replay tapes and a fuzzer
+bundle exec rubocop     # Lint
 ```
 
-Both run in CI on every push and pull request.
+> [!IMPORTANT]
+> Both must pass before a pull request is merged; CI runs them on every push. If you change how the game behaves on purpose, the replay tapes will fail. Re-record them in the same pull request: see [docs/how-to.md](docs/how-to.md#re-record-replay-tapes).
 
 ## Documentation
 
@@ -74,4 +99,7 @@ Bug fixes and small improvements are welcome as pull requests. Larger features s
 
 ## License
 
-The code is available under the [MIT License](LICENSE). The book is a separate work and is not covered by this license.
+The code is available under the [MIT License](LICENSE).
+
+> [!NOTE]
+> The MIT License covers the code only. The book is a separate work and is not included.
