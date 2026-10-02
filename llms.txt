@@ -1,0 +1,33 @@
+# Vanilla Roguelike
+
+> A turn-based terminal roguelike in plain Ruby, built on an Entity-Component-System with an event system and seeded, replayable runs. Companion code to the book "Building Your Own Roguelike: A Practical Guide". MIT licensed.
+
+Run with `./bin/play.rb`. Test with `bundle exec rspec`; lint with `bundle exec rubocop`.
+
+## Docs
+
+- [README](README.md): what it is, quickstart, keys, doc map
+- [Getting started](docs/getting-started.md): install, run, first change
+- [Architecture](docs/architecture.md): ECS, game loop, system order, design rationale, known limits
+- [How-to](docs/how-to.md): add a component, system, command or event; re-record tapes; logs
+- [Events](docs/events.md): every event type and its data
+- [Coding practices](docs/coding-practices.md): method order and Ruby conventions
+
+## Code entry points
+
+- [bin/play.rb](bin/play.rb): CLI entry point and options
+- [lib/vanilla/game.rb](lib/vanilla/game.rb): world setup, system registration, game loop
+- [lib/vanilla/world.rb](lib/vanilla/world.rb): ECS coordinator
+- [lib/vanilla/events/types.rb](lib/vanilla/events/types.rb): event type registry
+- [spec/support/headless_game.rb](spec/support/headless_game.rb): drives the real game without a terminal
+
+## Contributing
+
+- [AGENTS.md](AGENTS.md): rules for AI coding agents
+- [CONTRIBUTING.md](CONTRIBUTING.md): how changes are proposed and reviewed
+- [Proposals](docs/proposals/): design records for larger features
+
+## Optional
+
+- [Replay tapes](spec/fixtures/tapes/README.md): behaviour regression fixtures
+- [Free web edition of the book](https://davidslv.uk/books/vanilla-roguelike/)
