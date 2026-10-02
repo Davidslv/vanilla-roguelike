@@ -35,7 +35,7 @@ bundle exec ruby scripts/record_tape.rb --all                        # after int
 | `bin/play.rb` | Entry point and CLI options (`--seed`, `--difficulty`, `--dev-mode`) |
 | `lib/vanilla/game.rb` | Builds the world, registers systems, runs the loop |
 | `lib/vanilla/world.rb` | ECS coordinator: entities, systems, command and event queues |
-| `lib/vanilla/components/` | Data only. Each implements `type`, `to_hash`, `self.from_hash` and calls `Component.register` |
+| `lib/vanilla/components/` | Data only. Each implements `type`, `to_hash`, `self.from_hash` and calls `Component.register` (which skips classes whose `new` needs arguments) |
 | `lib/vanilla/systems/` | Logic. Subclass `System`, query with `entities_with(...)`, publish with `emit_event` |
 | `lib/vanilla/commands/` | One class per player action, `execute(world)` |
 | `lib/vanilla/events/types.rb` | Every event type. `docs/events.md` is generated from it |
@@ -48,7 +48,7 @@ bundle exec ruby scripts/record_tape.rb --all                        # after int
 
 ## System order
 
-Systems run each turn in priority order, as registered in `Game#setup_world` (`lib/vanilla/game.rb`). `spec/support/headless_game.rb` mirrors the same list. A spec checks this table against `game.rb`.
+Systems run each turn in priority order (order between equal priorities is not guaranteed), as registered in `Game#setup_world` (`lib/vanilla/game.rb`). `spec/support/headless_game.rb` mirrors the same list. A spec checks this table against `game.rb`.
 
 | Priority | System |
 |---|---|

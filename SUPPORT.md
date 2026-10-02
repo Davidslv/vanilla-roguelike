@@ -8,7 +8,7 @@ Vanilla is a hobby project with one maintainer. There is no SLA. Replies usually
 |---|---|
 | Report a bug | [Bug report](https://github.com/Davidslv/vanilla-roguelike/issues/new?template=bug_report.yml) |
 | Suggest a feature | [Feature request](https://github.com/Davidslv/vanilla-roguelike/issues/new?template=feature_request.yml) |
-| Ask a question about the code | [Open an issue](https://github.com/Davidslv/vanilla-roguelike/issues) with the `question` label |
+| Ask a question about the code | [Question](https://github.com/Davidslv/vanilla-roguelike/issues/new?template=question.yml) |
 | Learn how it works | [docs/](docs/) and the [free web edition of the book](https://davidslv.uk/books/vanilla-roguelike/) |
 
 Search existing issues first.

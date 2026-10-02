@@ -186,7 +186,7 @@ Systems contain the logic that operates on entities with specific component comb
 | 5 | MessageSystem | Message log and option menus |
 | 10 | RenderSystem | Draws the frame |
 
-Systems with the same priority run in the order they were added.
+`World#add_system` re-sorts with `sort_by!`, which is not stable, so the order between systems with the same priority is not guaranteed. Today Combat, Collision and Loot happen to run in the order they were added.
 
 ## Game Loop
 
@@ -722,13 +722,14 @@ Example: Adding a combat system
 These are known limits. Read them before a large change.
 
 - **Input blocks inside a system.** `InputSystem#update` waits on the keyboard, so the game is strictly turn-based. Animation or real-time play would need input moved out of the system loop. The headless harness works around it by not registering `InputSystem`.
-- **Two paths through a frame.** When a menu is open, `Game#game_loop` runs input, events, messages and render by hand, then calls `World#update`. Changes to frame order must be checked in both paths.
-- **Implicit order at equal priority.** Combat, Collision and Loot all run at 3. Their order is insertion order in `Game#setup_world`.
+- **Two paths through a frame.** When a menu is open, `Game#game_loop` runs input, events, messages and render by hand, then calls `World#update`. Changes to frame order must be checked in both paths. One visible symptom: `World#update` runs `InputSystem` again, which blocks for a second key before the queued close-menu command is processed, so the first key after closing a menu is swallowed.
+- **Undefined order at equal priority.** Combat, Collision and Loot all run at 3. `World#add_system` sorts with `sort_by!`, which is not stable, so their relative order is whatever the sort produces. If one must run before another, give it a distinct priority.
 - **Global services.** `ServiceRegistry` makes systems reachable from anywhere. `RunAwayCommand` reaches into `MessageSystem` state through it. This couples systems that the ECS split was meant to keep apart.
 - **MessageSystem is large.** It owns the message log, the combat menu, the inventory menu and their callbacks (about 800 lines). It is the most likely place for a change to have side effects.
 - **One shared random stream.** Every `rand` call draws from the global seed. Adding or reordering a `rand` call shifts every later roll and will change the replay tapes. That is expected; re-record them in the same PR.
 - **Linear entity queries.** `World#query_entities` scans every entity. Fine at current map sizes; large maps or many entities would need an index.
 - **Full redraw.** `TerminalRenderer` prints the whole frame every turn. `#present` is still a stub.
-- **Single-byte input.** `KeyboardHandler` reads one byte, so arrow keys (multi-byte escape sequences) are not supported.
+- **Single-character input.** `KeyboardHandler` reads one character with `getc`, so arrow keys (multi-byte escape sequences) are not supported.
+- **Component registry skips some components.** `Component.register` builds an instance with no arguments to read its `type`, and silently gives up if `new` needs arguments. Components with required arguments (such as `PositionComponent`) are never registered, so `Component.get_class` and `from_hash` lookup return nil for them.
 - **Run away does not move.** `RunAwayCommand` computes a flee direction but only clears the collision; the player stays put.
 

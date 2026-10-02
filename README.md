@@ -38,7 +38,7 @@ Find the stairs (`%`) to go down a level. Each level is a new maze.
 | `f` | Toggle field of view |
 | `q` or `Ctrl+C` | Quit |
 
-Arrow keys are not supported.
+Arrow keys are not supported. While a menu is open, `q` and `Ctrl+C` are ignored: close it with `m` first. The first key after closing a menu is also swallowed, so press `q` twice to quit straight after.
 
 ```bash
 ./bin/play.rb --seed=12345       # Replay the same maze and monsters

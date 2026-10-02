@@ -11,6 +11,8 @@ Components are data. Logic goes in systems. The custom cop `ECS/ComponentBehavio
    - return a symbol from `type`
    - implement `to_hash` and `self.from_hash`
    - call `Component.register(YourComponent)` after the class
+
+   `register` only works if `YourComponent.new` succeeds with no arguments; otherwise it silently skips the class (as it does for `PositionComponent`). Give arguments defaults if you need the component to round-trip through `Component.from_hash`.
 2. Add a `require_relative` line in [`lib/vanilla/components.rb`](../lib/vanilla/components.rb).
 3. Add a spec in `spec/lib/vanilla/components/` that checks the `to_hash` / `from_hash` round trip.
 4. Attach it to entities in [`lib/vanilla/entity_factory.rb`](../lib/vanilla/entity_factory.rb).
@@ -21,7 +23,7 @@ Components are data. Logic goes in systems. The custom cop `ECS/ComponentBehavio
 2. Implement `update(_delta_time)`. Find entities with `entities_with(:component_a, :component_b)`.
 3. Publish state changes with `emit_event(:event_name, { ... })`. Keep the system stateless: read and write components, not instance variables.
 4. Add a `require_relative` line in [`lib/vanilla/systems.rb`](../lib/vanilla/systems.rb).
-5. Register it in `Game#setup_world` in [`lib/vanilla/game.rb`](../lib/vanilla/game.rb) with a priority. The current order is in [architecture.md](architecture.md#systems). Systems at equal priority run in the order they are added.
+5. Register it in `Game#setup_world` in [`lib/vanilla/game.rb`](../lib/vanilla/game.rb) with a priority. The current order is in [architecture.md](architecture.md#systems). Give it a priority no other system uses if order matters: the order between equal priorities is not guaranteed.
 6. Also register it in [`spec/support/headless_game.rb`](../spec/support/headless_game.rb), which mirrors `setup_world` for integration specs.
 7. Add the system to the priority table in [AGENTS.md](../AGENTS.md#system-order). A spec checks that table against `game.rb`.
 
@@ -66,7 +68,7 @@ Every run prints its seed. Rerun with it:
 
 ## Read the logs
 
-Each run writes a log to `logs/development/`. Set the level with `VANILLA_LOG_LEVEL` (`debug`, `info`, `warn`, `error`, `fatal`; default `info`):
+Each run writes a log to `logs/development/` under the directory you started the game from (normally the repo root). Set the level with `VANILLA_LOG_LEVEL` (`debug`, `info`, `warn`, `error`, `fatal`; default `info`):
 
 ```bash
 VANILLA_LOG_LEVEL=debug ./bin/play.rb
@@ -103,4 +105,4 @@ bundle exec ruby scripts/code_analyzer.rb lib            # unused classes and me
 bundle exec ruby scripts/code_analyzer.rb lib --full     # full report
 ```
 
-The analysis is static, so treat results as leads, not proof.
+The analysis is static and partial: some files fail to parse and are skipped with an error line, and methods called dynamically (such as every command's `execute`) show as unused. Treat results as leads, not proof.
