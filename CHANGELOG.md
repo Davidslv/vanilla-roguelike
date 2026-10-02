@@ -12,7 +12,7 @@ Vanilla has no tagged releases yet. Changes before this file was restarted are i
 ### Added
 
 - Community files: `SUPPORT.md`, `GOVERNANCE.md`, `MAINTAINERS.md`, `CITATION.cff`, `.editorconfig`.
-- GitHub issue forms, pull request template, `CODEOWNERS`, Dependabot config.
+- GitHub issue forms (bug, feature, question), pull request template, `CODEOWNERS`, Dependabot config.
 - `docs/getting-started.md` and `docs/how-to.md`; design rationale and known limits in `docs/architecture.md`.
 - `AGENTS.md` and `llms.txt`.
 - RuboCop as a CI gate.
@@ -25,6 +25,11 @@ Vanilla has no tagged releases yet. Changes before this file was restarted are i
 - `MIT-LICENSE` renamed to `LICENSE`.
 - README rewritten: correct key list and default maze algorithm, links to the docs.
 - The game no longer loads `pry` at boot.
+
+### Fixed
+
+- The custom `ECS/ComponentBehavior` cop crashed on class methods, so RuboCop exited 1 while reporting no offences.
+- `scripts/generate_events_md.rb` works from any directory.
 
 ### Removed
 
