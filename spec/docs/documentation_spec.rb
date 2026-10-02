@@ -17,8 +17,12 @@ RSpec.describe 'Repository documentation' do # rubocop:disable RSpec/DescribeCla
 
   # GitHub's heading anchor: lowercase, drop punctuation, spaces to hyphens.
   def self.anchors_in(path)
-    File.read(path).scan(/^#+\s+(.+)$/).map do |(heading)|
-      heading.strip.downcase.gsub(/[^\p{Word}\- ]/, '').tr(' ', '-')
+    headings = File.read(path).gsub(/^```.*?^```/m, '').scan(/^#+\s+(.+)$/).flatten
+    slugs = headings.map { |heading| heading.strip.downcase.gsub(/[^\p{Word}\- ]/, '').tr(' ', '-') }
+    # GitHub suffixes repeated headings with -1, -2, ...
+    slugs.each_with_index.map do |slug, index|
+      repeats = slugs.first(index).count(slug)
+      repeats.zero? ? slug : "#{slug}-#{repeats}"
     end
   end
 
@@ -78,16 +82,23 @@ RSpec.describe 'Repository documentation' do # rubocop:disable RSpec/DescribeCla
   describe 'Ruby version' do
     let(:pinned_minor) { File.read(File.join(root, '.ruby-version')).strip[/\A\d+\.\d+/] }
 
+    let(:workflow) { YAML.load_file(File.join(root, '.github/workflows/test.yml')) }
+
     it 'is the version CI tests on' do
-      workflow = YAML.load_file(File.join(root, '.github/workflows/test.yml'))
       ci_rubies = workflow.dig('jobs', 'test', 'strategy', 'matrix', 'ruby')
 
       expect(ci_rubies).to include(pinned_minor)
     end
 
+    it 'is the version CI lints on' do
+      lint_ruby = workflow.dig('jobs', 'lint', 'steps').filter_map { |step| step.dig('with', 'ruby-version') }
+
+      expect(lint_ruby).to eq([pinned_minor])
+    end
+
     it 'is not hard-coded in the docs' do
       stale = doc_files.select do |doc|
-        File.read(File.join(root, doc)).match?(/Ruby \(?(version|v)?\s*\d+\.\d+\.\d+/i)
+        File.read(File.join(root, doc)).match?(/\bruby[\s:(-]*(version[\s:]*|v)?(>=\s*)?\d+\.\d+/i)
       end
 
       expect(stale).to be_empty, "Point at .ruby-version instead of a fixed version: #{stale.join(', ')}"
