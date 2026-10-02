@@ -25,7 +25,7 @@ allied NPCs, monster-vs-monster infighting, and dynamic diplomacy — without th
 combat code needing to know about "the player" specifically.
 
 The design follows the analysis written up for the r/roguelikedev thread
-(see `reddit_response_enemy_targeting copy.md`, linked from GitHub issue #119),
+(the reply draft linked from GitHub issue #119; the draft itself was removed from the repo),
 adapted to respect this codebase's ECS discipline.
 
 ## Motivation

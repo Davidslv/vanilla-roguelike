@@ -6,7 +6,8 @@ require 'fileutils'
 require_relative '../lib/vanilla/events/types'
 
 # Generate events.md from Types::EVENTS
-FileUtils.mkdir_p('documents') unless Dir.exist?('documents')
+Dir.chdir(File.expand_path('..', __dir__))
+FileUtils.mkdir_p('docs')
 File.open('docs/events.md', 'w') do |file|
   file.puts "# Event System Documentation"
   file.puts
