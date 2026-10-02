@@ -31,4 +31,4 @@ The game simulator uses UI directions (:up, :down, :left, :right) which are tran
 
 ### Testing
 
-When testing with the game simulator, always ensure the direction parameter is a Symbol, not a Grid object. For more details about testing, including troubleshooting common issues, please see the [Testing Guide](../../doc/testing.md).
+When testing with the game simulator, always ensure the direction parameter is a Symbol, not a Grid object. Integration specs drive the game through `spec/support/headless_game.rb`; see [docs/how-to.md](../../../docs/how-to.md).

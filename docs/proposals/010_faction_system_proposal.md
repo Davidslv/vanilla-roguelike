@@ -5,7 +5,7 @@
 **Phase 1 (this proposal): implemented.** Foundation only — a data model and
 hostility queries, wired into the existing player-vs-monster combat with no
 change to observable gameplay. Phase 2 (monster targeting/AI that *uses*
-factions) is described under [Future Work](#future-work) and is intentionally
+factions) is described under [Future Work](#future-work-phase-2) and is intentionally
 out of scope here.
 
 ## Overview

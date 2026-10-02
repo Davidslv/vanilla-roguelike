@@ -170,13 +170,23 @@ Components are pure data containers. They define *what* an entity is, not *how* 
 
 Systems contain the logic that operates on entities with specific component combinations. They define *how* entities behave.
 
-**System Priority Order:**
-1. **MazeSystem (0)**: Generates the maze
-2. **InputSystem (1)**: Processes keyboard input
-3. **MovementSystem (2)**: Moves entities
-4. **CollisionSystem (3)**: Handles collisions
-5. **MonsterSystem (4)**: Manages monster AI
-6. **RenderSystem (10)**: Renders the game
+**System Priority Order** (registered in `Game#setup_world`, `lib/vanilla/game.rb`):
+
+| Priority | System | Job |
+|---|---|---|
+| 0 | MazeSystem | Generates the maze for the current level |
+| 1 | InputSystem | Blocks on one keypress, turns it into a command |
+| 2 | MovementSystem | Moves entities |
+| 2.5 | FOVSystem | Recomputes what the player can see |
+| 2.6 | MonsterAISystem | Monsters pursue visible hostiles |
+| 3 | CombatSystem | Resolves attacks and deaths |
+| 3 | CollisionSystem | Detects entities sharing a cell |
+| 3 | LootSystem | Drops loot from dead monsters |
+| 4 | MonsterSystem | Spawns and despawns monsters |
+| 5 | MessageSystem | Message log and option menus |
+| 10 | RenderSystem | Draws the frame |
+
+Systems with the same priority run in the order they were added.
 
 ## Game Loop
 
@@ -234,9 +244,9 @@ Each frame, systems are updated in priority order:
 flowchart TD
     A[World#update called] --> B[System Priority 0: MazeSystem]
     B --> C[System Priority 1: InputSystem]
-    C --> D[System Priority 2: MovementSystem]
-    D --> E[System Priority 3: CollisionSystem]
-    E --> F[System Priority 4: MonsterSystem]
+    C --> D[System Priority 2-2.6: Movement, FOV, MonsterAI]
+    D --> E[System Priority 3: Combat, Collision, Loot]
+    E --> F[System Priority 4-5: Monster, Message]
     F --> G[System Priority 10: RenderSystem]
     G --> H[Process Commands Queue]
     H --> I[Process Events Queue]
@@ -403,9 +413,9 @@ flowchart TD
 
 ### Available Algorithms
 
-1. **Binary Tree**: Default, creates passages north or east
+1. **Binary Tree**: Creates passages north or east
 2. **Aldous-Broder**: Random walk, completely unbiased
-3. **Recursive Backtracker**: Long corridors, fewer dead ends
+3. **Recursive Backtracker**: Default (`MazeSystem`). Long corridors, fewer dead ends
 4. **Recursive Division**: Boxy, rectangular mazes
 
 ### Grid Structure
@@ -698,4 +708,27 @@ Example: Adding a combat system
 - System: `CombatSystem` (processes entities with combat components)
 - Commands: `AttackCommand`
 - Events: `combat_attack`, `combat_damage`, `combat_death`
+
+## Design Rationale
+
+- **ECS over class hierarchies.** A monster, the player and an item differ by which components they carry, not by subclass. New behaviour is a new component plus a system that queries for it. This is the main teaching point of the companion book.
+- **Commands for input.** `InputHandler` returns command objects instead of acting directly. Specs can build and execute a command without a terminal, and the headless harness drives the real dispatch path with scripted keys.
+- **Events for everything observable.** Systems publish events instead of logging ad hoc. The same stream feeds `event_logs/`, the visualizer, and the replay tapes in `spec/fixtures/tapes/`, which fail any PR that changes behaviour.
+- **One seed per run.** `Game#start` calls `srand(seed)`, so a seed reproduces a run. Bug reports and tapes depend on this.
+- **Plain Ruby.** The runtime needs only the standard library plus `i18n` and `logger`. No game framework, no curses.
+
+## Where This Design Strains
+
+These are known limits. Read them before a large change.
+
+- **Input blocks inside a system.** `InputSystem#update` waits on the keyboard, so the game is strictly turn-based. Animation or real-time play would need input moved out of the system loop. The headless harness works around it by not registering `InputSystem`.
+- **Two paths through a frame.** When a menu is open, `Game#game_loop` runs input, events, messages and render by hand, then calls `World#update`. Changes to frame order must be checked in both paths.
+- **Implicit order at equal priority.** Combat, Collision and Loot all run at 3. Their order is insertion order in `Game#setup_world`.
+- **Global services.** `ServiceRegistry` makes systems reachable from anywhere. `RunAwayCommand` reaches into `MessageSystem` state through it. This couples systems that the ECS split was meant to keep apart.
+- **MessageSystem is large.** It owns the message log, the combat menu, the inventory menu and their callbacks (about 800 lines). It is the most likely place for a change to have side effects.
+- **One shared random stream.** Every `rand` call draws from the global seed. Adding or reordering a `rand` call shifts every later roll and will change the replay tapes. That is expected; re-record them in the same PR.
+- **Linear entity queries.** `World#query_entities` scans every entity. Fine at current map sizes; large maps or many entities would need an index.
+- **Full redraw.** `TerminalRenderer` prints the whole frame every turn. `#present` is still a stub.
+- **Single-byte input.** `KeyboardHandler` reads one byte, so arrow keys (multi-byte escape sequences) are not supported.
+- **Run away does not move.** `RunAwayCommand` computes a flee direction but only clears the collision; the player stays put.
 
