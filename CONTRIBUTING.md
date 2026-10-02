@@ -5,7 +5,7 @@ Thanks for helping. Vanilla is maintained by one person in spare time, so this p
 ## Before you start
 
 - **Bug fix or small improvement:** open a pull request directly. Link the issue if there is one.
-- **New feature or larger change:** open a [feature request](https://github.com/Davidslv/vanilla-roguelike/issues/new?template=feature_request.yml) first and wait for a reply. Big features get a written proposal in [`docs/proposals/`](docs/proposals/) (numbered, e.g. `013_<name>_proposal.md`) before code. See [012](docs/proposals/012_end_to_end_playability_testing_proposal.md) for the shape.
+- **New feature or larger change:** open a [feature request](https://github.com/Davidslv/vanilla-roguelike/issues/new?template=feature_request.yml) first and wait for a reply. Big features get a written proposal in [`docs/proposals/`](docs/proposals/) (numbered, e.g. `013_<name>_proposal.md`) before code. See [012](docs/proposals/archive/012_end_to_end_playability_testing_proposal.md) for the shape.
 - **Question:** see [SUPPORT.md](SUPPORT.md).
 
 This saves you writing code for a change that does not fit the game or the book it accompanies.

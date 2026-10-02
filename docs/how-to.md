@@ -92,11 +92,12 @@ It lists the sessions and asks which one to render.
 
 ## Generate class diagrams
 
+Run from the repo root (the script reads `lib/` relative to where you start it):
+
 ```bash
 bundle exec ruby scripts/analyze_codebase_mermaid.rb
+mv core.mmd components.mmd systems.mmd full.mmd docs/diagrams/
 ```
-
-Writes `core.mmd`, `components.mmd`, `systems.mmd` and `full.mmd` to the current directory. Move them into `docs/diagrams/` to update the committed copies.
 
 ## Find unused code
 

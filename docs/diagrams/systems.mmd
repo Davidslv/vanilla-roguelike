@@ -20,6 +20,41 @@ classDiagram
       +handle_specific_collisions()
     }
     System <|-- CollisionSystem
+    class CombatSystem {
+      -logger
+      -active_combat
+      +initialize()
+      +update()
+      +calculate_damage()
+      +apply_damage()
+      +check_death()
+      +process_attack()
+      +process_turn_based_combat()
+      +player_turn()
+      +monster_turn()
+      +combat_active?()
+    }
+    System <|-- CombatSystem
+    class EquipmentSystem {
+      -logger
+      +initialize()
+      +update()
+    }
+    System <|-- EquipmentSystem
+    class FOVSystem {
+      -grid
+      +initialize()
+      +update()
+      +calculate_fov()
+      +has_line_of_sight?()
+      +bresenham_line()
+      +update_explored_tiles()
+      +dev_mode_active?()
+      +in_bounds?()
+      +blocks_vision?()
+      +entities_with()
+    }
+    System <|-- FOVSystem
     class InputSystem {
       -logger
       -input_handler
@@ -62,6 +97,12 @@ classDiagram
       +toggle_equip()
       +log_message()
     }
+    class ItemDropSystem {
+      -logger
+      +initialize()
+      +update()
+    }
+    System <|-- ItemDropSystem
     class ItemInteractionSystem {
       -inventory_system
       -message_system
@@ -71,6 +112,25 @@ classDiagram
       +pickup_all_items()
       +find_items_at_position()
     }
+    class ItemPickupSystem {
+      -logger
+      +initialize()
+      +update()
+    }
+    System <|-- ItemPickupSystem
+    class ItemUseSystem {
+      -logger
+      +initialize()
+      +update()
+    }
+    System <|-- ItemUseSystem
+    class LootSystem {
+      -logger
+      +initialize()
+      +generate_loot()
+      +create_apple()
+    }
+    System <|-- LootSystem
     class MazeSystem {
       -logger
       -difficulty
@@ -90,6 +150,8 @@ classDiagram
       -message_queue
       -logger
       -manager
+      -last_collision_data
+      -last_loot_data
       +initialize()
       +update()
       +render()
@@ -97,6 +159,8 @@ classDiagram
       +toggle_selection_mode()
       +valid_menu_option?()
       +handle_input()
+      +handle_attack_monster_callback()
+      +handle_run_away_callback()
       +handle_event()
       +log_message()
       +log_success()
@@ -104,16 +168,46 @@ classDiagram
       +log_critical()
       +get_recent_messages()
       +add_message()
+      +add_inventory_option_if_available()
+      +clear_inventory_options()
+      +in_combat_mode?()
+      +handle_inventory_callback()
+      +handle_item_selection()
+      +handle_item_action_callback()
+      +handle_use_item()
+      +handle_drop_item()
       +process_message_queue()
       +trim_message_queue()
       +importance_value()
+      +handle_combat_attack()
+      +handle_combat_miss()
+      +handle_combat_damage()
+      +handle_combat_death()
+      +handle_flee_success()
+      +handle_loot_dropped()
+      +handle_pickup_loot_callback()
+      +handle_ignore_loot_callback()
+      +handle_flee_failed()
+      +clear_previous_combat_options()
+      +player_monster_pair()
+      +clear_loot_options()
     }
     System <|-- MessageSystem
+    class MonsterAISystem {
+      -movement_system
+      +update()
+      +monsters()
+      +can_see?()
+      +step_toward()
+      +direction_between()
+      +cell_for()
+      +movement_system()
+    }
+    System <|-- MonsterAISystem
     class MonsterSystem {
       -player
       -monsters
       -logger
-      -rng
       +initialize()
       +spawn_monsters()
       +update()
@@ -144,6 +238,7 @@ classDiagram
       -logger
       +initialize()
       +update()
+      +update_renderer_info()
       +render_grid()
       +render_messages()
     }

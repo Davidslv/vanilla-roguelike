@@ -2,7 +2,7 @@
 
 ## Status
 
-**Planned (Phase 2).** Design/exploration complete; not yet implemented. Builds
+**Implemented** in PR #124 (`lib/vanilla/systems/monster_ai_system.rb`). Builds
 directly on the faction foundation from
 [Proposal 010](010_faction_system_proposal.md).
 
