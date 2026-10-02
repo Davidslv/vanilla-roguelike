@@ -40,7 +40,7 @@ module Vanilla
 
       # Get the component type
       # @return [Symbol] The component type
-      def self.component_type
+      def self.component_type # rubocop:disable ECS/ComponentBehavior -- predates the cop; spec covers it
         :input
       end
     end
