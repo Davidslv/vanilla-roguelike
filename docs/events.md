@@ -102,6 +102,11 @@
 - **Description**: An entity died as a result of combat
 - **Data**: { entity_id: String, killer_id: String }
 
+### PLAYER_DIED
+- **Type**: `player_died`
+- **Description**: The player died and the game is over
+- **Data**: { cause: Symbol, killer_id: String|nil, killer_name: String|nil, floor: Integer }
+
 ### ITEM_PICKED_UP
 - **Type**: `item_picked_up`
 - **Description**: A player picked up an item

@@ -85,7 +85,12 @@ module Vanilla
         end
 
         emit_event(:combat_death, event_data)
-        @world.remove_entity(entity.id)
+        if was_player
+          # The player stays in the world; the game ends instead (#159).
+          @world.player_died(cause: :combat, killer: killer)
+        else
+          @world.remove_entity(entity.id)
+        end
         @logger.info("[CombatSystem] Entity #{entity.id} has died")
 
         true

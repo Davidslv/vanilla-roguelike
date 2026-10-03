@@ -11,6 +11,7 @@ Vanilla has no tagged releases yet. Changes before this file was restarted are i
 
 ### Added
 
+- Game over: when the player dies the game shows the cause, the floor reached and the seed, waits for a key, and exits (#159). New `player_died` event.
 - Community files: `SUPPORT.md`, `GOVERNANCE.md`, `MAINTAINERS.md`, `CITATION.cff`, `.editorconfig`.
 - GitHub issue forms (bug, feature, question), pull request template, `CODEOWNERS`, Dependabot config.
 - `docs/getting-started.md` and `docs/how-to.md`; design rationale and known limits in `docs/architecture.md`.

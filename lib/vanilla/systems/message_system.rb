@@ -2,6 +2,7 @@
 
 require_relative 'system'
 require_relative '../messages/message'
+require_relative '../messages/death_message'
 require_relative '../messages/message_log'
 require_relative '../messages/message_manager'
 
@@ -29,6 +30,7 @@ module Vanilla
         @world.subscribe(:combat_damage, self)
         @world.subscribe(:combat_miss, self)
         @world.subscribe(:combat_death, self)
+        @world.subscribe(:player_died, self)
         @world.subscribe(:combat_flee_success, self)
         @world.subscribe(:combat_flee_failed, self)
         @world.subscribe(:loot_dropped, self)
@@ -232,6 +234,7 @@ module Vanilla
           handle_combat_miss(data)
         when :combat_death
           handle_combat_death(data)
+        when :player_died then handle_player_died(data)
         when :combat_flee_success
           handle_flee_success(data)
         when :combat_flee_failed
@@ -580,7 +583,6 @@ module Vanilla
 
         # Get entity name before it's removed, or use a default
         entity_name = entity&.name || data[:entity_name] || "enemy"
-        was_player = entity&.has_tag?(:player) || data[:was_player] == true
 
         # Clear collision data if the dead entity was involved in the last collision
         if @last_collision_data &&
@@ -604,13 +606,15 @@ module Vanilla
           else
             @logger.debug("[MessageSystem] Player killed #{entity_name}, message added, keeping selection mode for loot menu")
           end
-        elsif was_player
-          # Player was killed
-          @manager.toggle_selection_mode if @manager.selection_mode?
-          killer_name = killer&.name || "enemy"
-          add_message("death.player_dies", metadata: { enemy: killer_name }, importance: :critical, category: :combat)
-          process_message_queue
         end
+        # A player death is announced by handle_player_died, which knows the cause.
+      end
+
+      def handle_player_died(data)
+        @manager.toggle_selection_mode if @manager.selection_mode?
+        key, metadata = Vanilla::Messages::DeathMessage.for(data)
+        add_message(key, metadata: metadata, importance: :critical, category: :combat)
+        process_message_queue
       end
 
       def handle_flee_success(data)

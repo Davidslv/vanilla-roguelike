@@ -15,7 +15,7 @@ module Vanilla
   # it doesn't decide what happens but ensures everything runs smoothly and on time.
   #
   class World
-    attr_reader :entities, :systems, :display, :current_level
+    attr_reader :entities, :systems, :display, :current_level, :game_over
     attr_accessor :quit, :level_changed
 
     # --- Initialization ---
@@ -48,6 +48,10 @@ module Vanilla
     def quit?
       @logger.debug("[World#quit?] quit: #{@quit}")
       @quit
+    end
+
+    def game_over?
+      !@game_over.nil?
     end
 
     def level_changed?
@@ -89,6 +93,18 @@ module Vanilla
       @systems << [system, priority]
       @systems.sort_by! { |_system, system_priority| system_priority }
       system
+    end
+
+    # The one way the player dies, whatever the cause (#159). Records why,
+    # for the death screen, and emits player_died. A second death in the same
+    # frame keeps the first cause.
+    # @param cause [Symbol] :combat, :starvation, ...
+    # @param killer [Entity, nil] the entity responsible, if any
+    def player_died(cause:, killer: nil)
+      return if game_over?
+
+      @game_over = { cause: cause, killer_id: killer&.id, killer_name: killer&.name, floor: @current_level&.difficulty }
+      emit_event(:player_died, @game_over.dup)
     end
 
     # --- Event and Command Handling ---
