@@ -121,6 +121,11 @@ class HeadlessGame
     @world.quit?
   end
 
+  # The player died (#159). The player entity stays in the world.
+  def game_over?
+    @world.game_over?
+  end
+
   # Captured events, optionally filtered by type. Always a copy, so callers
   # cannot corrupt the capture buffer.
   # @return [Array<Vanilla::Events::Event>]

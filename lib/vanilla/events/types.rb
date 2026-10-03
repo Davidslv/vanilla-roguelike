@@ -123,6 +123,11 @@ module Vanilla
           "An entity died as a result of combat",
           "{ entity_id: String, killer_id: String }"
         ),
+        player_died: Event.new(
+          "player_died",
+          "The player died and the game is over",
+          "{ cause: Symbol, killer_id: String|nil, killer_name: String|nil, floor: Integer }"
+        ),
 
         # Item events
         item_picked_up: Event.new(

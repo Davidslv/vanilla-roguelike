@@ -85,6 +85,8 @@ en:
     starvation: "You collapse from hunger, too weak to go on."
     trap_death: "A deadly trap ends your journey."
     stats_summary: "You reached floor %{floor}, slew %{kills} foes, and collected %{items} items."
+    summary: "You reached floor %{floor}. Seed: %{seed}."
+    press_any_key: "Press any key to exit."
 
   environment:
     door_locked: "The door is locked. You need a key."

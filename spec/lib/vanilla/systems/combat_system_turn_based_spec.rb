@@ -159,14 +159,16 @@ RSpec.describe Vanilla::Systems::CombatSystem do
     it 'stops combat if player dies' do
       # Set player health low
       player.get_component(:health).current_health = 3
+      allow(world).to receive(:player_died)
 
       # Stub rand to guarantee hits
       allow(system).to receive(:rand).and_return(0.5)
 
       system.process_turn_based_combat(player, monster)
 
-      # Combat should have ended
+      # Combat should have ended, and the game with it (#159)
       expect(system.instance_variable_get(:@active_combat)).to be_nil
+      expect(world).to have_received(:player_died).with(cause: :combat, killer: monster)
     end
 
     it 'stops combat if monster dies' do

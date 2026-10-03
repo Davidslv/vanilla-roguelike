@@ -86,6 +86,11 @@ module Vanilla
       input_system = @world.systems.find { |s, _| s.is_a?(Vanilla::Systems::InputSystem) }[0]
 
       until @world.quit?
+        if @world.game_over?
+          show_game_over
+          next
+        end
+
         if message_system&.selection_mode?
           @logger.debug("[Game] In menu mode, waiting for input, turn: #{@turn}")
           input_system.update(nil) # Wait for input
@@ -103,6 +108,16 @@ module Vanilla
         end
         @logger.debug("[Game] Game#game_loop - Rendered, turn: #{@turn}")
       end
+    end
+
+    # Death screen (#159): the last frame (with the death message), the floor
+    # and seed, then one key to leave.
+    def show_game_over
+      render
+      puts I18n.t('death.summary', floor: @world.game_over[:floor], seed: @seed)
+      puts I18n.t('death.press_any_key')
+      @display.keyboard_handler.wait_for_input
+      @world.quit = true
     end
 
     def render
