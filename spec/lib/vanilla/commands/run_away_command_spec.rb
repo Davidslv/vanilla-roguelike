@@ -19,6 +19,7 @@ RSpec.describe Vanilla::Commands::RunAwayCommand do
     allow(world).to receive(:systems).and_return([[combat_system, 3]])
     allow(combat_system).to receive(:is_a?).with(Vanilla::Systems::CombatSystem).and_return(true)
     allow(combat_system).to receive(:process_attack)
+    allow(world).to receive(:end_turn)
   end
 
   describe '#initialize' do
@@ -31,6 +32,23 @@ RSpec.describe Vanilla::Commands::RunAwayCommand do
 
   describe '#execute' do
     let(:command) { described_class.new(player, monster) }
+
+    it 'ends the turn when the flee succeeds' do
+      allow(command).to receive_messages(calculate_flee_chance: 0.5, rand: 0.1)
+      allow(Vanilla::ServiceRegistry).to receive(:get).and_return(nil)
+
+      command.execute(world)
+
+      expect(world).to have_received(:end_turn).once
+    end
+
+    it 'ends the turn when the flee fails' do
+      allow(command).to receive_messages(calculate_flee_chance: 0.1, rand: 0.9)
+
+      command.execute(world)
+
+      expect(world).to have_received(:end_turn).once
+    end
 
     context 'when flee succeeds' do
       it 'moves player away and emits flee success event' do

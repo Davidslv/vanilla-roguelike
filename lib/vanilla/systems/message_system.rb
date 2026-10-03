@@ -453,6 +453,7 @@ module Vanilla
         if inventory_system
           success = inventory_system.use_item(player, item)
           if success
+            @world.end_turn
             add_message("inventory.item_used", metadata: { item: item.name || "item" }, importance: :normal, category: :system)
           else
             add_message("inventory.cannot_use", metadata: { item: item.name || "item" }, importance: :warning, category: :system)
@@ -462,6 +463,7 @@ module Vanilla
           item_use_system = @world.systems.find { |s, _| s.is_a?(Vanilla::Systems::ItemUseSystem) }&.first
           if item_use_system
             item_use_system.use_item(player, item)
+            @world.end_turn
             add_message("inventory.item_used", metadata: { item: item.name || "item" }, importance: :normal, category: :system)
           end
         end
@@ -495,6 +497,7 @@ module Vanilla
         @world.add_entity(item)
         @world.current_level.add_entity(item)
         @world.current_level.update_grid_with_entity(item)
+        @world.end_turn
         
         item_name = item.name || "item"
         if item.has_component?(:item)

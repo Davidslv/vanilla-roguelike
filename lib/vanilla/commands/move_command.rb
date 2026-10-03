@@ -49,7 +49,8 @@ module Vanilla
         is_stairs = target_entities.any?
         @logger.debug("[MoveCommand] Target [#{new_row}, #{new_col}] has stairs entity? #{is_stairs}")
 
-        movement_system.move(@entity, @direction)
+        moved = movement_system.move(@entity, @direction)
+        world.end_turn if moved == true
         new_position = @entity.get_component(:position)
 
         # Check if the entity is at the target position and has stairs component

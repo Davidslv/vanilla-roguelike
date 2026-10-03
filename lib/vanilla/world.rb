@@ -15,7 +15,7 @@ module Vanilla
   # it doesn't decide what happens but ensures everything runs smoothly and on time.
   #
   class World
-    attr_reader :entities, :systems, :display, :current_level, :game_over
+    attr_reader :entities, :systems, :display, :current_level, :game_over, :turn
     attr_accessor :quit, :level_changed
 
     # --- Initialization ---
@@ -23,6 +23,7 @@ module Vanilla
       @entities = {}
       @systems = []
       @quit = false
+      @turn = 0
       @display = DisplayHandler.new
       @logger = Vanilla::Logger.instance
       @current_level = nil
@@ -93,6 +94,16 @@ module Vanilla
       @systems << [system, priority]
       @systems.sort_by! { |_system, system_priority| system_priority }
       system
+    end
+
+    # A player action that takes time has finished (#160): moving, attacking,
+    # running away, using or dropping an item. Free actions (menus, toggles,
+    # unknown keys, walking into a wall) never call this.
+    def end_turn
+      return if game_over?
+
+      @turn += 1
+      emit_event(:turn_ended, { turn: @turn })
     end
 
     # The one way the player dies, whatever the cause (#159). Records why,

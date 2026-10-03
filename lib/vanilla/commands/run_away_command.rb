@@ -53,6 +53,7 @@ module Vanilla
 
           @logger.info("[RunAwayCommand] Player failed to flee, monster attacks")
         end
+        world.end_turn
 
         @executed = true
       end
