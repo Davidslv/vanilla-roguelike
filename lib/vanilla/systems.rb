@@ -33,5 +33,6 @@ module Vanilla
     require_relative 'systems/item_use_system'
     require_relative 'systems/equipment_system'
     require_relative 'systems/loot_system'
+    require_relative 'systems/hunger_system'
   end
 end

@@ -29,5 +29,6 @@ module Vanilla
     require_relative 'components/visibility_component'
     require_relative 'components/dev_mode_component'
     require_relative 'components/faction_component'
+    require_relative 'components/nutrition_component'
   end
 end

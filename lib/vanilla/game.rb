@@ -79,6 +79,7 @@ module Vanilla
       @world.add_system(Vanilla::Systems::ItemUseSystem.new(@world), 3.5)
       @world.add_system(Vanilla::Systems::ItemDropSystem.new(@world), 3.6)
       @world.add_system(Vanilla::Systems::MonsterSystem.new(@world, player: @player), 4)
+      @world.add_system(Vanilla::Systems::HungerSystem.new(@world), 4.5)
       message_system = Vanilla::Systems::MessageSystem.new(@world)
       @world.add_system(message_system, 5) # Add MessageSystem to world systems so update() is called
       Vanilla::ServiceRegistry.register(:message_system, message_system)

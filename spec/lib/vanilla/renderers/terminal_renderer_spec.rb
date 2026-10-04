@@ -48,6 +48,22 @@ RSpec.describe Vanilla::Renderers::TerminalRenderer do
       expect(hud_lines[2]).to eq('HP: 75/100 (75%) | Level: 2')
     end
 
+    it 'shows the hunger status after the level when the player is hungry' do
+      renderer.set_game_info(seed: 1, difficulty: 3)
+      renderer.set_player_health(current: 80, max: 100)
+      renderer.set_player_hunger(status: :hungry)
+
+      expect(hud_lines[2]).to eq('HP: 80/100 (80%) | Level: 3 | Hungry')
+    end
+
+    it 'shows no hunger status when the player is fed' do
+      renderer.set_game_info(seed: 1, difficulty: 3)
+      renderer.set_player_health(current: 80, max: 100)
+      renderer.set_player_hunger(status: :ok)
+
+      expect(hud_lines[2]).to eq('HP: 80/100 (80%) | Level: 3')
+    end
+
     it 'omits the seed and player line before game info is set' do
       expect(hud_lines[0]).to eq('Vanilla Roguelike')
       expect(hud_lines[2]).to eq('')
