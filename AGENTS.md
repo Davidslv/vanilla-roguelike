@@ -60,6 +60,8 @@ Systems run each turn in priority order (order between equal priorities is not g
 | 3 | CombatSystem |
 | 3 | CollisionSystem |
 | 3 | LootSystem |
+| 3.5 | ItemUseSystem |
+| 3.6 | ItemDropSystem |
 | 4 | MonsterSystem |
 | 5 | MessageSystem |
 | 10 | RenderSystem |

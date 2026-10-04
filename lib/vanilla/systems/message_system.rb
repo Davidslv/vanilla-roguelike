@@ -447,72 +447,34 @@ module Vanilla
         end
       end
       
-      # Use an item
+      # Use an item (#164): UseItemCommand does the work and ends the turn.
       def handle_use_item(player, item)
-        inventory_system = Vanilla::ServiceRegistry.get(:inventory_system)
-        if inventory_system
-          success = inventory_system.use_item(player, item)
-          if success
-            @world.end_turn
-            add_message("inventory.item_used", metadata: { item: item.name || "item" }, importance: :normal, category: :system)
-          else
-            add_message("inventory.cannot_use", metadata: { item: item.name || "item" }, importance: :warning, category: :system)
-          end
-        else
-          # Fallback: use ItemUseSystem directly
-          item_use_system = @world.systems.find { |s, _| s.is_a?(Vanilla::Systems::ItemUseSystem) }&.first
-          if item_use_system
-            item_use_system.use_item(player, item)
-            @world.end_turn
-            add_message("inventory.item_used", metadata: { item: item.name || "item" }, importance: :normal, category: :system)
-          end
-        end
-        process_message_queue
-        clear_previous_combat_options
-        @manager.toggle_selection_mode if @manager.selection_mode?
+        used = Vanilla::Commands::UseItemCommand.new(player, item).execute(@world)
+        key = used ? "inventory.item_used" : "inventory.cannot_use"
+        add_message(key, metadata: { item: item_label(item) }, importance: used ? :normal : :warning, category: :system)
+        close_item_menu
       end
-      
-      # Drop an item
+
+      # Drop an item (#164): DropItemCommand does the work and ends the turn.
       def handle_drop_item(player, item)
-        position = player.get_component(:position)
-        return unless position
-        
-        inventory = player.get_component(:inventory)
-        removed_item = inventory.remove(item)
-        return unless removed_item
-        
-        # Place item at player's position (add position component if it doesn't have one)
-        unless item.has_component?(:position)
-          item.add_component(Vanilla::Components::PositionComponent.new(row: position.row, column: position.column))
-        else
-          item_pos = item.get_component(:position)
-          item_pos.set_position(position.row, position.column)
-        end
-        
-        # Add render component if missing (use GOLD as default item character)
-        unless item.has_component?(:render)
-          item.add_component(Vanilla::Components::RenderComponent.new(character: Vanilla::Support::TileType::GOLD, color: :yellow))
-        end
-        
-        @world.add_entity(item)
-        @world.current_level.add_entity(item)
-        @world.current_level.update_grid_with_entity(item)
-        @world.end_turn
-        
-        item_name = item.name || "item"
-        if item.has_component?(:item)
-          item_comp = item.get_component(:item)
-          item_name = item_comp.name || item_name
-        end
-        
-        add_message("inventory.item_dropped", metadata: { item: item_name }, importance: :normal, category: :system)
+        return unless Vanilla::Commands::DropItemCommand.new(player, item).execute(@world)
+
+        add_message("inventory.item_dropped", metadata: { item: item_label(item) }, importance: :normal, category: :system)
+        close_item_menu
+      end
+
+      # --- Private Implementation Details ---
+      private
+
+      def close_item_menu
         process_message_queue
         clear_previous_combat_options
         @manager.toggle_selection_mode if @manager.selection_mode?
       end
 
-      # --- Private Implementation Details ---
-      private
+      def item_label(item)
+        item.get_component(:item)&.name || item.name || "item"
+      end
 
       def process_message_queue
         return if @message_queue.empty?
@@ -677,16 +639,6 @@ module Vanilla
         end
 
         # Add items to inventory
-        # TODO: BUG - Items are being added to inventory but not appearing when inventory is displayed
-        # Issue: After picking up loot with items (e.g., Apple), the items are added to inventory
-        # but when the player opens inventory, it shows 0 items. Logs show items are added successfully,
-        # but handle_inventory_callback shows inventory.items.size = 0.
-        # Possible causes:
-        # - Player entity reference mismatch (different instances?)
-        # - Inventory component being replaced/reset
-        # - Items array reference issue
-        # - Timing issue with entity/component updates
-        # See logs for: [MessageSystem] Adding items, [MessageSystem] Successfully added item, [MessageSystem] handle_inventory_callback
         items_added = []
         @logger.info("[MessageSystem] Checking items: items.empty?=#{items.empty?}, player.has_component?(:inventory)=#{player.has_component?(:inventory)}")
         if !items.empty? && player.has_component?(:inventory)

@@ -186,6 +186,8 @@ class HeadlessGame
     @world.add_system(Vanilla::Systems::CombatSystem.new(@world), 3)
     @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
     @world.add_system(Vanilla::Systems::LootSystem.new(@world), 3)
+    @world.add_system(Vanilla::Systems::ItemUseSystem.new(@world), 3.5)
+    @world.add_system(Vanilla::Systems::ItemDropSystem.new(@world), 3.6)
     @world.add_system(Vanilla::Systems::MonsterSystem.new(@world, player: @player), 4)
     @message_system = Vanilla::Systems::MessageSystem.new(@world)
     @world.add_system(@message_system, 5)
