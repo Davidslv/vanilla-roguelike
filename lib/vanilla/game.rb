@@ -2,7 +2,7 @@
 
 module Vanilla
   class Game
-    attr_reader :turn, :world, :level
+    attr_reader :world, :level
 
     # --- Initialization ---
     def initialize(options = {})
@@ -10,8 +10,6 @@ module Vanilla
       @seed = options[:seed] || Random.new_seed
       @dev_mode = options[:dev_mode] || options[:fov_disabled] || false
       @logger = Vanilla::Logger.instance
-      @turn = 0
-
       setup_world
       Vanilla::ServiceRegistry.register(:game, self)
 
@@ -43,6 +41,12 @@ module Vanilla
       Vanilla::ServiceRegistry.unregister(:game)
     end
 
+    # --- State Queries ---
+    # Player turns so far (#160). The world counts them; see World#end_turn.
+    def turn
+      @world.turn
+    end
+
     # --- Private Implementation Details ---
     private
 
@@ -72,7 +76,10 @@ module Vanilla
       @world.add_system(Vanilla::Systems::CombatSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
       @world.add_system(Vanilla::Systems::LootSystem.new(@world), 3)
+      @world.add_system(Vanilla::Systems::ItemUseSystem.new(@world), 3.5)
+      @world.add_system(Vanilla::Systems::ItemDropSystem.new(@world), 3.6)
       @world.add_system(Vanilla::Systems::MonsterSystem.new(@world, player: @player), 4)
+      @world.add_system(Vanilla::Systems::HungerSystem.new(@world), 4.5)
       message_system = Vanilla::Systems::MessageSystem.new(@world)
       @world.add_system(message_system, 5) # Add MessageSystem to world systems so update() is called
       Vanilla::ServiceRegistry.register(:message_system, message_system)
@@ -80,14 +87,18 @@ module Vanilla
     end
 
     def game_loop
-      @turn = 0
-      @logger.debug("[Game] Starting game loop, turn: #{@turn}")
+      @logger.debug("[Game] Starting game loop, turn: #{turn}")
       message_system = Vanilla::ServiceRegistry.get(:message_system)
       input_system = @world.systems.find { |s, _| s.is_a?(Vanilla::Systems::InputSystem) }[0]
 
       until @world.quit?
+        if @world.game_over?
+          show_game_over
+          next
+        end
+
         if message_system&.selection_mode?
-          @logger.debug("[Game] In menu mode, waiting for input, turn: #{@turn}")
+          @logger.debug("[Game] In menu mode, waiting for input, turn: #{turn}")
           input_system.update(nil) # Wait for input
           # Process events and messages immediately after input to avoid frame delay
           @world.send(:process_events) if @world.respond_to?(:process_events, true)
@@ -96,13 +107,22 @@ module Vanilla
           render
           @world.update(nil) # Process queued commands (but don't re-render systems)
         else
-          @logger.debug("[Game] Running game loop, turn: #{@turn}")
+          @logger.debug("[Game] Running game loop, turn: #{turn}")
           @world.update(nil)
-          @turn += 1
           render
         end
-        @logger.debug("[Game] Game#game_loop - Rendered, turn: #{@turn}")
+        @logger.debug("[Game] Game#game_loop - Rendered, turn: #{turn}")
       end
+    end
+
+    # Death screen (#159): the last frame (with the death message), the floor
+    # and seed, then one key to leave.
+    def show_game_over
+      render
+      puts I18n.t('death.summary', floor: @world.game_over[:floor], seed: @seed)
+      puts I18n.t('death.press_any_key')
+      @display.keyboard_handler.wait_for_input
+      @world.quit = true
     end
 
     def render

@@ -79,12 +79,20 @@ en:
     starving: "Your stomach growls. You need food soon."
     rested: "You feel refreshed and ready to continue."
 
+  hunger:
+    ok: "You feel full."
+    hungry: "You are getting hungry."
+    weak: "You feel weak with hunger."
+    starving: "You are starving!"
+
   death:
     player_dies: "You have fallen to the %{enemy}. Your adventure ends here."
     generic_death: "The dungeon claims your life."
     starvation: "You collapse from hunger, too weak to go on."
     trap_death: "A deadly trap ends your journey."
     stats_summary: "You reached floor %{floor}, slew %{kills} foes, and collected %{items} items."
+    summary: "You reached floor %{floor}. Seed: %{seed}."
+    press_any_key: "Press any key to exit."
 
   environment:
     door_locked: "The door is locked. You need a key."

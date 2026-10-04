@@ -22,3 +22,8 @@ require:
   - ./rubocop/cop/ecs/component_behavior
 ECS/ComponentBehavior:
   Enabled: true
+
+Metrics/ModuleLength:
+  Exclude:
+    # A registry of event definitions: one entry per event, grows by design.
+    - 'lib/vanilla/events/types.rb'

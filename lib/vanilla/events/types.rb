@@ -123,6 +123,21 @@ module Vanilla
           "An entity died as a result of combat",
           "{ entity_id: String, killer_id: String }"
         ),
+        hunger_status_changed: Event.new(
+          "hunger_status_changed",
+          "An entity's hunger status changed (ok, hungry, weak, starving)",
+          "{ entity_id: String, from: Symbol, to: Symbol, food_left: Integer }"
+        ),
+        starvation_damage: Event.new(
+          "starvation_damage",
+          "A starving entity lost health",
+          "{ entity_id: String, damage: Integer, current_health: Integer }"
+        ),
+        player_died: Event.new(
+          "player_died",
+          "The player died and the game is over",
+          "{ cause: Symbol, killer_id: String|nil, killer_name: String|nil, floor: Integer }"
+        ),
 
         # Item events
         item_picked_up: Event.new(

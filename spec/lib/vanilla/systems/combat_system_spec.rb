@@ -126,6 +126,34 @@ RSpec.describe Vanilla::Systems::CombatSystem do
       expect(world).to receive(:remove_entity).with(entity.id)
       system.check_death(entity)
     end
+
+    context 'when the player dies' do
+      let(:killer) { Vanilla::Entities::Entity.new }
+
+      before do
+        entity.add_tag(:player)
+        allow(world).to receive(:player_died)
+      end
+
+      it 'ends the game with cause :combat and the killer' do
+        system.check_death(entity, killer)
+
+        expect(world).to have_received(:player_died).with(cause: :combat, killer: killer)
+      end
+
+      it 'still emits combat_death' do
+        system.check_death(entity, killer)
+
+        expect(world).to have_received(:emit_event)
+          .with(:combat_death, hash_including(entity_id: entity.id, was_player: true, killer_id: killer.id))
+      end
+
+      it 'keeps the player in the world' do
+        system.check_death(entity, killer)
+
+        expect(world).not_to have_received(:remove_entity)
+      end
+    end
   end
 
   describe 'integration' do

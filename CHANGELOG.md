@@ -11,6 +11,9 @@ Vanilla has no tagged releases yet. Changes before this file was restarted are i
 
 ### Added
 
+- Hunger (#161): food runs down one per turn, the HUD shows `Hungry`, `Weak` or `Starving`, starving costs 2 HP a turn and can kill, and apples restore 60 food. `NutritionComponent`, `HungerSystem`, `Vanilla::Hunger`.
+- A real turn: `World#end_turn` counts each player action that takes time and emits `turn_ended` (#160). The message log's turn number and effect durations now use it, so menus, `f` and unknown keys no longer advance it.
+- Game over: when the player dies the game shows the cause, the floor reached and the seed, waits for a key, and exits (#159). New `player_died` event.
 - Community files: `SUPPORT.md`, `GOVERNANCE.md`, `MAINTAINERS.md`, `CITATION.cff`, `.editorconfig`.
 - GitHub issue forms (bug, feature, question), pull request template, `CODEOWNERS`, Dependabot config.
 - `docs/getting-started.md` and `docs/how-to.md`; design rationale and known limits in `docs/architecture.md`.
@@ -31,6 +34,7 @@ Vanilla has no tagged releases yet. Changes before this file was restarted are i
 
 ### Fixed
 
+- Using an item from the inventory menu did nothing, so apples never healed (#164). Item use and drop are now commands (`UseItemCommand`, `DropItemCommand`) backed by `ItemUseSystem` and `ItemDropSystem`, which are now registered.
 - The custom `ECS/ComponentBehavior` cop crashed on class methods, so RuboCop exited 1 while reporting no offences.
 - `scripts/generate_events_md.rb` works from any directory.
 

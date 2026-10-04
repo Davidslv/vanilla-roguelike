@@ -14,6 +14,7 @@ module Vanilla
         @difficulty = nil
         @player_health = nil
         @player_max_health = nil
+        @player_hunger = nil
       end
 
       def set_game_info(seed:, difficulty:)
@@ -24,6 +25,11 @@ module Vanilla
       def set_player_health(current:, max:)
         @player_health = current
         @player_max_health = max
+      end
+
+      # @param status [Symbol] from Vanilla::Hunger.status
+      def set_player_hunger(status:)
+        @player_hunger = status
       end
 
       # --- Core Lifecycle Methods ---
@@ -56,6 +62,9 @@ module Vanilla
         if @difficulty
           player_info_parts << "Level: #{@difficulty}"
         end
+
+        hunger_label = Vanilla::Hunger.label(@player_hunger)
+        player_info_parts << hunger_label if hunger_label
 
         output = [
           header_parts.join(" | "),

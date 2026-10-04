@@ -84,9 +84,8 @@ class RandomWalkFuzzer
 
   # Press `keys` random keys, checking every invariant after each press,
   # then quit through the real exit path. Player death ends the walk early
-  # as a legitimate outcome: CombatSystem removes the dead player from the
-  # world, after which InputHandler can queue no command at all — so the
-  # quit assertion is unsatisfiable by engine design, not broken. Raises
+  # as a legitimate outcome: the game is over (#159), and the real loop
+  # leaves through the death screen, not the quit key. Raises
   # InvariantViolation on the first breach; returns a Result otherwise.
   def walk(keys:)
     snapshot_step_baseline
@@ -117,7 +116,7 @@ class RandomWalkFuzzer
   end
 
   def player_dead?
-    @game.player.nil?
+    @game.game_over?
   end
 
   # --- invariants, checked after every press -----------------------------

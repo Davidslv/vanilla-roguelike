@@ -49,12 +49,11 @@ class HeadlessGame
     end
   end
 
-  attr_reader :world, :turn, :event_manager, :message_system, :seed
+  attr_reader :world, :event_manager, :message_system, :seed
 
   def initialize(seed: Random.new_seed, difficulty: 1)
     @seed = seed
     @difficulty = difficulty
-    @turn = 0
     # Reseeding here (and in MazeSystem/start, mirroring the real game) pins
     # the global RNG; remember what it was so cleanup can restore it and the
     # rest of the suite doesn't inherit this game's rand stream.
@@ -86,11 +85,8 @@ class HeadlessGame
     if in_menu
       @world.send(:process_events)
       @message_system.update(nil)
-      @world.update(nil)
-    else
-      @world.update(nil)
-      @turn += 1
     end
+    @world.update(nil)
   end
 
   # --- State readers for assertions ---
@@ -119,6 +115,16 @@ class HeadlessGame
 
   def quit?
     @world.quit?
+  end
+
+  # Player turns, counted by the world as in the real game (#160).
+  def turn
+    @world.turn
+  end
+
+  # The player died (#159). The player entity stays in the world.
+  def game_over?
+    @world.game_over?
   end
 
   # Captured events, optionally filtered by type. Always a copy, so callers
@@ -180,7 +186,10 @@ class HeadlessGame
     @world.add_system(Vanilla::Systems::CombatSystem.new(@world), 3)
     @world.add_system(Vanilla::Systems::CollisionSystem.new(@world), 3)
     @world.add_system(Vanilla::Systems::LootSystem.new(@world), 3)
+    @world.add_system(Vanilla::Systems::ItemUseSystem.new(@world), 3.5)
+    @world.add_system(Vanilla::Systems::ItemDropSystem.new(@world), 3.6)
     @world.add_system(Vanilla::Systems::MonsterSystem.new(@world, player: @player), 4)
+    @world.add_system(Vanilla::Systems::HungerSystem.new(@world), 4.5)
     @message_system = Vanilla::Systems::MessageSystem.new(@world)
     @world.add_system(@message_system, 5)
     Vanilla::ServiceRegistry.register(:message_system, @message_system)

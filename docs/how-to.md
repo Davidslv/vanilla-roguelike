@@ -31,8 +31,9 @@ Components are data. Logic goes in systems. The custom cop `ECS/ComponentBehavio
 
 1. Create `lib/vanilla/commands/<name>_command.rb`, subclassing `Vanilla::Commands::Command`, with `execute(world)`.
 2. Map a key to it in `InputHandler#process_command` ([`lib/vanilla/input_handler.rb`](../lib/vanilla/input_handler.rb)).
-3. Update the key table in the [README](../README.md#playing).
-4. Spec it in `spec/lib/vanilla/commands/`. Execute the command against a world and assert on components and events.
+3. If the action takes time, call `world.end_turn` once it has actually happened (see `MoveCommand`: only when the move succeeds). Free actions never call it.
+4. Update the key table in the [README](../README.md#playing).
+5. Spec it in `spec/lib/vanilla/commands/`. Execute the command against a world and assert on components, events, and whether `end_turn` was called.
 
 ## Add an event type
 

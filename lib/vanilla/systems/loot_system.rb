@@ -46,7 +46,8 @@ module Vanilla
         apple.add_component(Vanilla::Components::ConsumableComponent.new(
           charges: 1,
           effects: [
-            { type: :heal, amount: 20 } # Restore 20 HP
+            { type: :heal, amount: 20 }, # Restore 20 HP
+            { type: :nourish, amount: Vanilla::Hunger::APPLE_FOOD }
           ],
           auto_identify: true
         ))

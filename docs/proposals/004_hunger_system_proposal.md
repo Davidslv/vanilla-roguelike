@@ -1,298 +1,138 @@
 # Hunger System - Proposal 004
 
-## Overview
+## Status
 
-Implement a hunger system where the player's hunger increases over time, and when hungry, the player loses HP if they don't eat. This adds a survival element to the game, making food items (like apples from loot) more valuable.
+**Accepted, not implemented.** Rewritten 2026-10-03 after a design discussion. The original draft (2025-11-12) is in git history. Delivery is three steps, each its own issue and PR, in this order:
 
-## Requirements
+1. Game over on player death, with the cause shown (#159).
+2. A real turn: one `turn_ended` event per player action that takes time (#160).
+3. Hunger, built on 1 and 2 (#161).
 
-### Hunger Mechanics
-- **Hunger State**: Player has a hunger level that increases over time
-- **Hunger Threshold**: When hunger reaches a certain level, player is considered "hungry"
-- **HP Loss**: When hungry and player doesn't eat, lose 1 HP every 5 movements
-- **Feeding**: Eating food items (e.g., apples) reduces hunger
-- **Hunger Display**: Show hunger status in game UI (optional, can be added later)
+## Goal
 
-### Hunger Progression
-- Hunger increases by 1 every N movements (configurable, e.g., every 10 movements)
-- Hunger levels:
-  - 0-30: Not Hungry (normal state)
-  - 31-60: Hungry (warning state, no HP loss yet)
-  - 61-100: Starving (lose 1 HP every 5 movements)
-- Maximum hunger: 100 (player dies if HP reaches 0)
+Make food matter. The player has a food supply that runs down one unit per turn. When it runs low the HUD warns them. When it runs out they lose health, and they can die of starvation. Apples, which monsters sometimes drop, restore food.
 
-### Food Consumption
-- Apples restore hunger by 20 points
-- Other food items can be added later with different hunger restoration values
+Hunger gives a run a natural limit. Going straight for the stairs is the cheapest route; fighting costs turns and health but is the only way to find food.
 
-## Architecture
+## Decisions
 
-### New Components
-- **HungerComponent**: Tracks hunger level (0-100), hunger increase rate, movement counter
+| Question | Decision |
+|---|---|
+| Can hunger kill? | Yes. The death screen says so: "You collapse from hunger, too weak to go on." (`death.starvation`, already in `config/locales/en.yml`) |
+| What does the clock count? | Turns, not moves. A turn is a player action that takes time (step 2). Menu keys, toggles and unknown keys are free |
+| Where does the state live? | `NutritionComponent` on the player: `food_left` and `max_food`, nothing else |
+| Where do the rules live? | `HungerSystem` (ticking, penalties, events) and `Vanilla::Hunger` (thresholds and the status for a given `food_left`), shared by the system and the HUD |
+| Is the clock random? | No. It is deterministic, so it does not shift other rolls |
 
-### New Systems
-- **HungerSystem**: 
-  - Increases hunger over time (based on movement)
-  - Checks if player is hungry/starving
-  - Triggers HP loss when starving and player moves
+### Why a small component
 
-### Modified Systems
-- **MovementSystem**: Emit hunger-related events on movement
-- **ItemUseSystem**: Reduce hunger when food items are consumed
-- **MessageSystem**: Display hunger warnings and starvation messages
-- **RenderSystem**: Display hunger status (optional, Phase 2)
+State that belongs to one entity goes in a component; systems hold none (AGENTS.md). The component also works as the switch: only entities that have it get hungry. `HealthComponent` (current and max, no logic) is the model.
 
-## TDD Plan
+What the original draft put in the component, and where it goes now:
 
-### Phase 1: Hunger Component (TDD)
-**Tests:**
-- `spec/lib/vanilla/components/hunger_component_spec.rb`
-  - Test initialization with default values
-  - Test hunger level bounds (0-100)
-  - Test hunger increase/decrease methods
-  - Test hunger state checks (not_hungry?, hungry?, starving?)
-  - Test movement counter increment
-  - Test serialization
+| Original draft | Now |
+|---|---|
+| `starving?`, `increase`, `decrease` | `HungerSystem`. Behaviour in a component fails the `ECS/ComponentBehavior` cop |
+| Hunger bands (not hungry / hungry / starving) | Derived from `food_left` by `Vanilla::Hunger.status`. Never stored |
+| Thresholds and rates | Constants in `Vanilla::Hunger`. Game rules, not per-entity data |
+| `movement_counter` | Not needed: the clock counts `turn_ended` |
 
-**Implementation:**
-- Create `HungerComponent` with:
-  - `hunger_level` (0-100)
-  - `movement_counter` (tracks movements for HP loss)
-  - `hunger_increase_rate` (movements before hunger increases)
-  - `hp_loss_interval` (movements before HP loss when starving)
+The name is about what is stored. `food_left` counts down, so `NutritionComponent` reads correctly where "hunger: 150" would read as very hungry.
 
-### Phase 2: Hunger System (TDD)
-**Tests:**
-- `spec/lib/vanilla/systems/hunger_system_spec.rb`
-  - Test hunger increases after N movements
-  - Test hunger doesn't increase when already at max
-  - Test movement counter increments
-  - Test HP loss when starving (every 5 movements)
-  - Test HP loss doesn't occur when not starving
-  - Test HP loss doesn't reduce HP below 0
-  - Test hunger state transitions
+## Measured baseline
 
-**Implementation:**
-- Create `HungerSystem`
-- Subscribe to `:entity_moved` events
-- Track movement count per entity with hunger component
-- Increase hunger after N movements
-- Check if entity is starving and trigger HP loss every 5 movements
-- Emit `:hunger_increased`, `:hunger_starving`, `:hunger_hp_lost` events
+Measured on 2026-10-03 with the stairs bot (`spec/support/stairs_bot.rb`) over seeds 1 to 40, playing to level 6. The bot walks straight to the stairs and fights whatever blocks it.
 
-### Phase 3: Food Consumption Integration (TDD)
-**Tests:**
-- `spec/lib/vanilla/systems/item_use_system_hunger_spec.rb`
-  - Test eating apple reduces hunger by 20
-  - Test hunger doesn't go below 0
-  - Test eating food when not hungry still works
-  - Test eating food stops starvation
+| Measure | Value |
+|---|---|
+| Key presses per level, median | 10 to 14 (range 2 to 25) |
+| Kills per 5-level run | about 1.3 |
+| Apple drops per 5-level run | about 0.5 (30% chance per kill, `loot_system.rb`) |
 
-**Implementation:**
-- Modify `ItemUseSystem` or `ConsumableComponent` effects
-- Add `:reduce_hunger` effect type
-- Apply hunger reduction when food items are consumed
-- Emit `:hunger_reduced` event
+Levels are short, so Rogue's food clock (about 1,300 turns before "Hungry") would last around 100 levels here and never matter. The numbers below are scaled to this game.
 
-### Phase 4: Message System Integration (TDD)
-**Tests:**
-- `spec/lib/vanilla/systems/message_system_hunger_spec.rb`
-  - Test hunger warning message when becoming hungry
-  - Test starvation warning message
-  - Test HP loss message when starving
-  - Test hunger reduced message when eating
+## Rules
 
-**Implementation:**
-- Subscribe to hunger events in `MessageSystem`
-- Add messages for:
-  - Hunger warnings
-  - Starvation warnings
-  - HP loss from starvation
-  - Hunger restored from eating
+Starting values. Tune them in step 3 with the same bot measurement, and record the result here.
 
-### Phase 5: Integration Tests
-**Tests:**
-- `spec/integration/hunger_spec.rb`
-  - Test full flow: movement -> hunger increase -> starvation -> HP loss
-  - Test eating food stops starvation
-  - Test player death from starvation
-  - Test hunger resets after eating
+| Constant | Value | Meaning |
+|---|---|---|
+| `START_FOOD` | 150 | About 11 levels for a direct player (150 / ~13 turns) |
+| `MAX_FOOD` | 200 | Eating cannot store more than this |
+| `HUNGRY_AT` | 50 | HUD shows `Hungry`, about 4 levels of warning |
+| `WEAK_AT` | 20 | HUD shows `Weak`, about 1.5 levels left |
+| `STARVING_AT` | 0 | HUD shows `Starving` and damage starts |
+| `STARVE_DAMAGE` | 2 | HP lost per turn while starving: from 100 HP, death in 50 turns, about 4 levels |
+| `APPLE_FOOD` | 60 | About 4.5 levels of food. Apples keep their existing `heal: 20` |
 
-## Message System Integration
+A gentler first version (1 HP every 5 turns) would let a starving player with 100 HP walk about 38 more levels, so starvation would almost never decide a run.
 
-### New Messages
-```yaml
-hunger:
-  increased: "You feel a bit hungry..."
-  hungry: "You are getting hungry!"
-  starving: "You are starving! Find food soon!"
-  hp_lost: "You lose 1 HP from starvation!"
-  restored: "You feel less hungry after eating."
-  full: "You are no longer hungry."
-```
+### Tuning result (2026-10-04, #161)
 
-### Hunger States
-- **Not Hungry** (0-30): No messages
-- **Hungry** (31-60): Warning message when crossing threshold
-- **Starving** (61-100): Warning message + HP loss messages
+Measured with hunger implemented: the stairs bot over seeds 1 to 40, playing for depth. It picks up apples but never eats, so this is the worst case for food.
 
-## Implementation Details
+| Outcome | Seeds | Depth reached, median (range) |
+|---|---|---|
+| Starved | 9 | 13 (12 to 17), at about 168 turns |
+| Killed in combat | 8 | 13 (9 to 15) |
+| Bot stuck in a menu (a bot limitation, not the game) | 23 | 8 (3 to 14) |
 
-### HungerComponent Structure
-```ruby
-class HungerComponent
-  attr_accessor :hunger_level, :movement_counter
-  attr_reader :hunger_increase_rate, :hp_loss_interval
-  
-  def initialize(
-    hunger_level: 0,
-    hunger_increase_rate: 10,  # Increase hunger every 10 movements
-    hp_loss_interval: 5         # Lose HP every 5 movements when starving
-  )
-    @hunger_level = hunger_level.clamp(0, 100)
-    @movement_counter = 0
-    @hunger_increase_rate = hunger_increase_rate
-    @hp_loss_interval = hp_loss_interval
-  end
-  
-  def not_hungry?
-    @hunger_level <= 30
-  end
-  
-  def hungry?
-    @hunger_level > 30 && @hunger_level <= 60
-  end
-  
-  def starving?
-    @hunger_level > 60
-  end
-  
-  def increase(amount = 1)
-    @hunger_level = [@hunger_level + amount, 100].min
-  end
-  
-  def decrease(amount = 1)
-    @hunger_level = [@hunger_level - amount, 0].max
-  end
-end
-```
+A player who never eats starves at about the depth where monsters start winning anyway. Hunger ends runs without dominating them. The starting values above are kept.
 
-### HungerSystem Logic
-```ruby
-def update(_dt)
-  # Process movement events for entities with hunger component
-  # Increase hunger after N movements
-  # Check starvation and trigger HP loss
-end
+Each `turn_ended`:
 
-def handle_entity_moved(event)
-  entity = @world.get_entity(event[:entity_id])
-  return unless entity&.has_component?(:hunger)
-  
-  hunger = entity.get_component(:hunger)
-  hunger.movement_counter += 1
-  
-  # Increase hunger every N movements
-  if hunger.movement_counter >= hunger.hunger_increase_rate
-    old_level = hunger.hunger_level
-    hunger.increase(1)
-    hunger.movement_counter = 0
-    
-    # Check state transitions
-    check_hunger_state_transition(entity, old_level, hunger.hunger_level)
-  end
-  
-  # Check HP loss when starving
-  if hunger.starving?
-    check_starvation_hp_loss(entity, hunger)
-  end
-end
+1. `food_left` goes down by 1, never below 0.
+2. If the status changed (for example `:ok` to `:hungry`), emit `hunger_status_changed`.
+3. If starving, lower `current_health` by `STARVE_DAMAGE` and emit `starvation_damage`. At 0 HP the player dies with cause `:starvation`, through the death path from step 1.
 
-def check_starvation_hp_loss(entity, hunger)
-  # Lose HP every 5 movements when starving
-  if hunger.movement_counter >= hunger.hp_loss_interval
-    health = entity.get_component(:health)
-    return unless health
-    
-    old_hp = health.current_health
-    health.current_health = [health.current_health - 1, 0].max
-    hunger.movement_counter = 0  # Reset counter after HP loss
-    
-    if health.current_health < old_hp
-      @world.emit_event(:hunger_hp_lost, {
-        entity_id: entity.id,
-        hp_lost: 1,
-        current_hp: health.current_health
-      })
-    end
-  end
-end
-```
+Eating an apple raises `food_left` by `APPLE_FOOD`, up to `MAX_FOOD`, and can move the status back to `:ok`.
 
-### Food Item Integration
-```ruby
-# In LootSystem or ItemUseSystem
-# When apple is consumed, add hunger reduction effect:
-effects: [
-  { type: :heal, amount: 20 },
-  { type: :reduce_hunger, amount: 20 }  # New effect type
-]
-```
+## Step 1: Game over on player death (#159)
 
-## Testing Strategy
+Today the player's death is not handled: `CombatSystem#check_death` removes the player entity, `MessageSystem` prints `death.player_dies`, and the loop keeps running without a player.
 
-1. **Unit Tests**: Test hunger component logic, state checks, bounds
-2. **System Tests**: Test hunger system movement tracking, HP loss timing
-3. **Integration Tests**: Test full hunger cycle with food consumption
-4. **Edge Cases**:
-   - Hunger at max (100)
-   - Hunger at 0
-   - HP at 1 (shouldn't go below 0)
-   - Eating when not hungry
-   - Multiple movements in quick succession
+- One death path for the player, whatever the cause. It carries the cause (`:combat` with the killer, or `:starvation`).
+- The death screen shows the cause message, the floor reached, and the seed, then waits for a key and exits through `Game#cleanup`.
+- `death.stats_summary` (kills, items) can come later; it needs counters the game does not keep yet.
+- Specs: a headless run where the player dies in combat ends the loop and shows the cause.
 
-## Implementation Phases
+## Step 2: A real turn (#160)
 
-### Phase 1: Core Hunger Component (TDD)
-- Create `HungerComponent` with all state management
-- Add to player in `EntityFactory`
-- Write comprehensive tests
+`turn_started` and `turn_ended` are defined in `events/types.rb` but never emitted. `Game#turn` counts loop passes outside menus, so `f` and unknown keys advance it, and menu actions do not. `Vanilla.game_turn` reads it for the message log and `EffectComponent` durations.
 
-### Phase 2: Hunger System (TDD)
-- Create `HungerSystem`
-- Implement movement tracking
-- Implement hunger increase logic
-- Implement starvation HP loss
-- Write tests for all scenarios
+- The world owns the turn counter.
+- `turn_ended { turn: }` is emitted once after each player action that takes time: a successful move, an attack, a run-away attempt, using or dropping an item.
+- These take no time: opening or closing a menu, menu navigation, `f`, unknown keys, walking into a wall.
+- `Vanilla.game_turn` reads the world's counter.
+- Replay tapes are re-recorded: the new event appears in every stream.
 
-### Phase 3: Food Integration (TDD)
-- Add hunger reduction to food items
-- Update `ItemUseSystem` to handle hunger effects
-- Test food consumption reduces hunger
+## Step 3: Hunger (#161)
 
-### Phase 4: Messages (TDD)
-- Add hunger event handlers to `MessageSystem`
-- Add translation keys
-- Test message display
+| Piece | Change |
+|---|---|
+| `lib/vanilla/components/nutrition_component.rb` | New. `food_left`, `max_food`, defaults for both (so `Component.register` works, see #147) |
+| `lib/vanilla/hunger.rb` | New. Constants and `Hunger.status(food_left)` |
+| `lib/vanilla/systems/hunger_system.rb` | New. Subscribes to `turn_ended` |
+| `EntityFactory` | Player gets `NutritionComponent` |
+| Apple (`loot_system.rb`) | Add `{ type: :nourish, amount: APPLE_FOOD }` |
+| `ItemUseSystem` | Handle `:nourish` |
+| `events/types.rb` | `hunger_status_changed`, `starvation_damage`; regenerate `docs/events.md` |
+| `config/locales/en.yml`, `MessageSystem` | "You are getting hungry.", "You feel weak with hunger.", "You are starving!", "That apple hit the spot." |
+| `TerminalRenderer` | Status on the HP line when not `:ok`: `HP: 80/100 (80%) \| Level: 3 \| Hungry` |
+| `game.rb`, `headless_game.rb`, AGENTS.md, `docs/architecture.md` | Register `HungerSystem` (the doc spec checks the tables) |
+| Replay tapes | Re-record |
 
-### Phase 5: Integration & Polish
-- Full integration tests
-- Balance hunger rates
-- Optional: Add hunger display to UI
+### Tests
 
-## Configuration
+- `Vanilla::Hunger.status` at each threshold boundary.
+- `HungerSystem`: one `turn_ended` costs one food; no change without `turn_ended`; status events fire once per crossing; starvation damage of `STARVE_DAMAGE` per turn at 0 food; food never below 0.
+- `ItemUseSystem`: `:nourish` raises food, capped at `MAX_FOOD`.
+- Integration (headless): starting at `food_left: 1` and 1 HP, walking until death ends the game with the starvation message.
+- Integration: menu keys and `f` cost no food.
+- `NutritionComponent` round-trips through `to_hash` / `from_hash`.
 
-Hunger system should be configurable:
-- `hunger_increase_rate`: Movements before hunger increases (default: 10)
-- `hp_loss_interval`: Movements before HP loss when starving (default: 5)
-- `hunger_thresholds`: When player becomes hungry/starving (default: 30/60)
-- `food_hunger_restore`: How much hunger food restores (apple: 20)
+## Not in scope
 
-## Future Enhancements
-
-- Different food types with different hunger restoration
-- Hunger display in game UI (status bar)
-- Hunger-based debuffs (slower movement when starving)
-- Food spoilage system
-- Cooking system to create better food
-
+- Other foods, spoilage, cooking.
+- Penalties at `Weak` beyond the HUD warning (a later option: an `EffectComponent` strength penalty).
+- Fainting (Rogue's lost turns at zero food).

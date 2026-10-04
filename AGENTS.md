@@ -60,7 +60,10 @@ Systems run each turn in priority order (order between equal priorities is not g
 | 3 | CombatSystem |
 | 3 | CollisionSystem |
 | 3 | LootSystem |
+| 3.5 | ItemUseSystem |
+| 3.6 | ItemDropSystem |
 | 4 | MonsterSystem |
+| 4.5 | HungerSystem |
 | 5 | MessageSystem |
 | 10 | RenderSystem |
 
@@ -69,6 +72,7 @@ Systems run each turn in priority order (order between equal priorities is not g
 - Components hold data. Put logic in systems. Faction hostility lives in `Vanilla::Factions`, not in `FactionComponent`.
 - Systems should not keep game state in instance variables. Read and write components.
 - Emit an event for every state change another system or the log might care about.
+- A player action that takes time ends with `world.end_turn`, which counts the turn and emits `turn_ended`. Free actions (menus, toggles, unknown keys, walking into a wall) never call it. Read the count with `world.turn` or `Vanilla.game_turn`.
 - All randomness comes from the global seed (`srand` in `Game#start`). Any new `rand` call shifts later rolls and changes the tapes. That is fine if intended; re-record.
 - Method order inside classes: `initialize`, lifecycle (`update`, `render`), state queries, event handlers, helpers, private. See `docs/coding-practices.md`.
 - Keep methods short. Use guard clauses. Name magic numbers as constants.

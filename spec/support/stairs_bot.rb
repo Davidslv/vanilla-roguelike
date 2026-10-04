@@ -81,7 +81,7 @@ class StairsBot
   private
 
   def take_action
-    fail!('player died') unless @game.player
+    fail!('player died') if @game.game_over?
 
     if @game.selection_mode?
       answer_menu

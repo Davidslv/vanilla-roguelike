@@ -69,6 +69,77 @@ RSpec.describe Vanilla::World do
     end
   end
 
+  describe '#end_turn' do
+    let(:subscriber) { instance_double(Vanilla::Systems::MessageSystem, handle_event: nil) }
+
+    before { world.subscribe(:turn_ended, subscriber) }
+
+    it 'starts at turn 0' do
+      expect(world.turn).to eq(0)
+    end
+
+    it 'counts the turn and emits turn_ended with its number' do
+      world.end_turn
+      world.end_turn
+      world.send(:process_events)
+
+      expect(world.turn).to eq(2)
+      expect(subscriber).to have_received(:handle_event).with(:turn_ended, { turn: 1 }).ordered
+      expect(subscriber).to have_received(:handle_event).with(:turn_ended, { turn: 2 }).ordered
+    end
+
+    it 'does nothing once the game is over' do
+      world.player_died(cause: :combat)
+      world.end_turn
+
+      expect(world.turn).to eq(0)
+    end
+  end
+
+  describe '#player_died' do
+    let(:killer) { Vanilla::Entities::Entity.new.tap { |e| e.name = 'Troll' } }
+    let(:level) { instance_double(Vanilla::Level, difficulty: 3) }
+    let(:subscriber) { instance_double(Vanilla::Systems::MessageSystem, handle_event: nil) }
+
+    before do
+      world.set_level(level)
+      world.subscribe(:player_died, subscriber)
+    end
+
+    it 'is not game over before anyone dies' do
+      expect(world.game_over?).to be false
+      expect(world.game_over).to be_nil
+    end
+
+    it 'records the cause, killer and floor' do
+      world.player_died(cause: :combat, killer: killer)
+
+      expect(world.game_over?).to be true
+      expect(world.game_over).to eq(cause: :combat, killer_id: killer.id, killer_name: 'Troll', floor: 3)
+    end
+
+    it 'records a death with no killer' do
+      world.player_died(cause: :starvation)
+
+      expect(world.game_over).to eq(cause: :starvation, killer_id: nil, killer_name: nil, floor: 3)
+    end
+
+    it 'emits player_died with the same data' do
+      world.player_died(cause: :combat, killer: killer)
+      world.send(:process_events)
+
+      expect(subscriber).to have_received(:handle_event)
+        .with(:player_died, { cause: :combat, killer_id: killer.id, killer_name: 'Troll', floor: 3 })
+    end
+
+    it 'keeps the first death if called twice' do
+      world.player_died(cause: :combat, killer: killer)
+      world.player_died(cause: :starvation)
+
+      expect(world.game_over[:cause]).to eq(:combat)
+    end
+  end
+
   describe 'entity management' do
     let(:entity) do
       instance_double(

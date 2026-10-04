@@ -19,8 +19,13 @@ RSpec.describe Vanilla::Systems::MessageSystem do
     allow(logger).to receive(:warn)
     allow(world).to receive(:subscribe)
     allow(world).to receive(:queue_command)
+    allow(world).to receive(:end_turn)
     allow(world).to receive(:get_entity).and_return(nil)
     allow(Vanilla::ServiceRegistry).to receive(:register)
+  end
+
+  def messages
+    system.instance_variable_get(:@manager).instance_variable_get(:@message_log).messages
   end
 
   describe 'combat event handling' do
@@ -106,18 +111,50 @@ RSpec.describe Vanilla::Systems::MessageSystem do
         expect(combat_messages.first.content).to eq("combat.player_kill")
       end
 
-      it 'shows player death message when player is killed' do
-        system.handle_event(:combat_death, {
-          entity_id: player.id,
-          killer_id: monster.id
-        })
+      # The death message comes from player_died, which carries the cause.
+      # combat_death for the player only cleans up combat state.
+      it 'adds no death message on combat_death for the player' do
+        system.handle_event(:combat_death, { entity_id: player.id, killer_id: monster.id, was_player: true })
+        system.update(nil)
 
-        system.update(nil) # Process message queue
+        expect(messages.map(&:content)).not_to include('death.player_dies')
+      end
+    end
 
-        messages = system.instance_variable_get(:@manager).instance_variable_get(:@message_log).messages
-        combat_messages = messages.select { |m| m.category == :combat }
-        expect(combat_messages).not_to be_empty
-        expect(combat_messages.first.content).to eq("death.player_dies")
+    describe 'hunger_status_changed' do
+      it 'warns with the message for the new status' do
+        system.handle_event(:hunger_status_changed, { entity_id: player.id, from: :ok, to: :hungry, food_left: 50 })
+        system.update(nil)
+
+        warning = messages.find { |m| m.content == 'hunger.hungry' }
+        expect(warning).not_to be_nil
+        expect(warning.importance).to eq(:warning)
+      end
+    end
+
+    describe 'player_died' do
+      it 'names the killer when the cause is combat' do
+        system.handle_event(:player_died, { cause: :combat, killer_id: monster.id, killer_name: 'Goblin', floor: 2 })
+        system.update(nil)
+
+        death = messages.find { |m| m.content == 'death.player_dies' }
+        expect(death).not_to be_nil
+        expect(death.metadata).to include(enemy: 'Goblin')
+        expect(death.importance).to eq(:critical)
+      end
+
+      it 'shows the starvation message when the cause is starvation' do
+        system.handle_event(:player_died, { cause: :starvation, killer_id: nil, killer_name: nil, floor: 2 })
+        system.update(nil)
+
+        expect(messages.map(&:content)).to include('death.starvation')
+      end
+
+      it 'falls back to the generic message for an unknown cause' do
+        system.handle_event(:player_died, { cause: :mystery, killer_id: nil, killer_name: nil, floor: 2 })
+        system.update(nil)
+
+        expect(messages.map(&:content)).to include('death.generic_death')
       end
     end
   end

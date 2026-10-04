@@ -2,41 +2,50 @@
 
 module Vanilla
   module Systems
+    # Applies a consumable's effects when the player uses it (#164). Driven by
+    # UseItemCommand, the way CombatSystem is driven by AttackCommand.
     class ItemUseSystem < System
       def initialize(world)
         super(world)
         @logger = Vanilla::Logger.instance
       end
 
-      def update(_dt)
-        @world.command_queue.each do |command_type, params|
-          next unless command_type == :use_item
+      # Items are used through UseItemCommand, not on a tick.
+      def update(_dt); end
 
-          entity = @world.get_entity(params[:entity_id])
-          item = @world.get_entity(params[:item_id])
-          next unless entity && item && entity.has_component?(:inventory) && entity.get_component(:inventory).items.include?(item)
+      # @return [Boolean] true if the item was used
+      def use_item(entity, item)
+        inventory = entity.get_component(:inventory)
+        return false unless inventory&.items&.include?(item) && item.has_component?(:consumable)
 
-          next unless item.has_component?(:consumable)
+        consumable = item.get_component(:consumable)
+        consumable.effects.each { |effect| apply_effect(entity, effect) }
+        consumable.charges -= 1
+        use_up(entity, item) if consumable.charges <= 0
 
-          consumable = item.get_component(:consumable)
-          consumable.effects.each do |effect|
-            case effect[:type]
-            when :heal
-              health = entity.get_component(:health)
-              health.current_health = [health.max_health, health.current_health + effect[:amount]].min if health
-            when :buff
-              effect_comp = entity.get_component(:effect) || entity.add_component(EffectComponent.new)
-              effect_comp.add_effect(effect)
-            end
-          end
-          consumable.charges -= 1
-          if consumable.charges <= 0
-            entity.get_component(:inventory).items.delete(item)
-            @world.remove_entity(item.id)
-          end
-          @world.emit_event(:item_used, { entity_id: entity.id, item_id: item.id })
-          @logger.info("Item used: #{item.get_component(:item).name}")
+        emit_event(:item_used, { entity_id: entity.id, item_id: item.id })
+        @logger.info("[ItemUseSystem] #{entity.id} used #{item.name}")
+        true
+      end
+
+      private
+
+      def apply_effect(entity, effect)
+        case effect[:type]
+        when :heal
+          health = entity.get_component(:health)
+          health.current_health += effect[:amount] if health # the setter caps at max
+        when :nourish
+          nutrition = entity.get_component(:nutrition)
+          nutrition.food_left = [nutrition.food_left + effect[:amount], nutrition.max_food].min if nutrition
+        else
+          @logger.warn("[ItemUseSystem] Unsupported effect: #{effect[:type].inspect}")
         end
+      end
+
+      def use_up(entity, item)
+        entity.get_component(:inventory).remove(item)
+        @world.remove_entity(item.id)
       end
     end
   end
