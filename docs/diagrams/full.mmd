@@ -41,6 +41,7 @@ classDiagram
       -entities
       -systems
       -quit
+      -turn
       -display
       -logger
       -current_level
@@ -48,9 +49,11 @@ classDiagram
       -event_subscribers
       -event_queue
       -command_queue
+      -game_over
       +initialize()
       +update()
       +quit?()
+      +game_over?()
       +level_changed?()
       +add_entity()
       +remove_entity()
@@ -59,6 +62,8 @@ classDiagram
       +find_entity_by_tag()
       +query_entities()
       +add_system()
+      +end_turn()
+      +player_died()
       +queue_command()
       +emit_event()
       +subscribe()
@@ -72,6 +77,16 @@ classDiagram
     }
   end
   subgraph Components
+    class CombatComponent {
+      -attack_power
+      -defense
+      -accuracy
+      +initialize()
+      +type()
+      +to_hash()
+    }
+    Component <|-- CombatComponent
+    style CombatComponent fill:#ffcccc
     class Component {
       -component_classes
       +register()
@@ -104,6 +119,16 @@ classDiagram
       +to_hash()
     }
     style CurrencyComponent fill:#ffcccc
+    class DevModeComponent {
+      -fov_disabled
+      -show_all_entities
+      +initialize()
+      +type()
+      +toggle_fov()
+      +to_hash()
+    }
+    Component <|-- DevModeComponent
+    style DevModeComponent fill:#ffcccc
     class DurabilityComponent {
       -max_durability
       -current_durability
@@ -147,6 +172,15 @@ classDiagram
     }
     Component <|-- EquippableComponent
     style EquippableComponent fill:#ffcccc
+    class FactionComponent {
+      -faction_id
+      -hostile_to
+      +initialize()
+      +type()
+      +to_hash()
+    }
+    Component <|-- FactionComponent
+    style FactionComponent fill:#ffcccc
     class HealthComponent {
       -max_health
       -current_health
@@ -190,6 +224,9 @@ classDiagram
       -stack_size
       +initialize()
       +type()
+      +stackable?()
+      +increase_stack()
+      +decrease_stack()
       +to_hash()
     }
     Component <|-- ItemComponent
@@ -216,6 +253,15 @@ classDiagram
     }
     Component <|-- MovementComponent
     style MovementComponent fill:#ffcccc
+    class NutritionComponent {
+      -food_left
+      -max_food
+      +initialize()
+      +type()
+      +to_hash()
+    }
+    Component <|-- NutritionComponent
+    style NutritionComponent fill:#ffcccc
     class PositionComponent {
       -row
       -column
@@ -245,6 +291,23 @@ classDiagram
     }
     Component <|-- StairsComponent
     style StairsComponent fill:#ffcccc
+    class VisibilityComponent {
+      -vision_radius
+      -visible_tiles
+      -explored_tiles
+      -blocks_vision
+      +initialize()
+      +type()
+      +add_visible_tile()
+      +clear_visible_tiles()
+      +clear_explored_tiles()
+      +reset()
+      +tile_visible?()
+      +tile_explored?()
+      +to_hash()
+    }
+    Component <|-- VisibilityComponent
+    style VisibilityComponent fill:#ffcccc
     class TestPositionComponent {
       -row
       -column
@@ -264,6 +327,49 @@ classDiagram
       +handle_specific_collisions()
     }
     System <|-- CollisionSystem
+    class CombatSystem {
+      -logger
+      -active_combat
+      +initialize()
+      +update()
+      +calculate_damage()
+      +apply_damage()
+      +check_death()
+      +process_attack()
+      +process_turn_based_combat()
+      +player_turn()
+      +monster_turn()
+      +combat_active?()
+    }
+    System <|-- CombatSystem
+    class EquipmentSystem {
+      -logger
+      +initialize()
+      +update()
+    }
+    System <|-- EquipmentSystem
+    class FOVSystem {
+      -grid
+      +initialize()
+      +update()
+      +calculate_fov()
+      +has_line_of_sight?()
+      +bresenham_line()
+      +update_explored_tiles()
+      +dev_mode_active?()
+      +in_bounds?()
+      +blocks_vision?()
+      +entities_with()
+    }
+    System <|-- FOVSystem
+    class HungerSystem {
+      +initialize()
+      +update()
+      +handle_event()
+      +tick()
+      +starve()
+    }
+    System <|-- HungerSystem
     class InputSystem {
       -logger
       -input_handler
@@ -306,6 +412,14 @@ classDiagram
       +toggle_equip()
       +log_message()
     }
+    class ItemDropSystem {
+      -logger
+      +initialize()
+      +update()
+      +drop_item()
+      +place()
+    }
+    System <|-- ItemDropSystem
     class ItemInteractionSystem {
       -inventory_system
       -message_system
@@ -315,6 +429,28 @@ classDiagram
       +pickup_all_items()
       +find_items_at_position()
     }
+    class ItemPickupSystem {
+      -logger
+      +initialize()
+      +update()
+    }
+    System <|-- ItemPickupSystem
+    class ItemUseSystem {
+      -logger
+      +initialize()
+      +update()
+      +use_item()
+      +apply_effect()
+      +use_up()
+    }
+    System <|-- ItemUseSystem
+    class LootSystem {
+      -logger
+      +initialize()
+      +generate_loot()
+      +create_apple()
+    }
+    System <|-- LootSystem
     class MazeSystem {
       -logger
       -difficulty
@@ -334,6 +470,8 @@ classDiagram
       -message_queue
       -logger
       -manager
+      -last_collision_data
+      -last_loot_data
       +initialize()
       +update()
       +render()
@@ -341,6 +479,8 @@ classDiagram
       +toggle_selection_mode()
       +valid_menu_option?()
       +handle_input()
+      +handle_attack_monster_callback()
+      +handle_run_away_callback()
       +handle_event()
       +log_message()
       +log_success()
@@ -348,16 +488,49 @@ classDiagram
       +log_critical()
       +get_recent_messages()
       +add_message()
+      +add_inventory_option_if_available()
+      +clear_inventory_options()
+      +in_combat_mode?()
+      +handle_inventory_callback()
+      +handle_item_selection()
+      +handle_item_action_callback()
+      +handle_use_item()
+      +handle_drop_item()
+      +close_item_menu()
+      +item_label()
       +process_message_queue()
       +trim_message_queue()
       +importance_value()
+      +handle_combat_attack()
+      +handle_combat_miss()
+      +handle_combat_damage()
+      +handle_combat_death()
+      +handle_player_died()
+      +handle_flee_success()
+      +handle_loot_dropped()
+      +handle_pickup_loot_callback()
+      +handle_ignore_loot_callback()
+      +handle_flee_failed()
+      +clear_previous_combat_options()
+      +player_monster_pair()
+      +clear_loot_options()
     }
     System <|-- MessageSystem
+    class MonsterAISystem {
+      -movement_system
+      +update()
+      +monsters()
+      +can_see?()
+      +step_toward()
+      +direction_between()
+      +cell_for()
+      +movement_system()
+    }
+    System <|-- MonsterAISystem
     class MonsterSystem {
       -player
       -monsters
       -logger
-      -rng
       +initialize()
       +spawn_monsters()
       +update()
@@ -388,6 +561,7 @@ classDiagram
       -logger
       +initialize()
       +update()
+      +update_renderer_info()
       +render_grid()
       +render_messages()
     }
@@ -403,6 +577,31 @@ classDiagram
     }
   end
   subgraph Others
+    class Grid {
+      -rows
+      -columns
+      -cells
+      -type_factory
+      -grid
+      +initialize()
+      +[]()
+      +[]=()
+      +each_cell()
+      +random_cell()
+      +size()
+      +in_bounds?()
+      +blocks_vision?()
+    }
+    class Player {
+      -row
+      -column
+      -name
+      -level
+      -experience
+      -inventory
+      +initialize()
+      +to_hash()
+    }
     class AbstractAlgorithm {
     }
     class AldousBroder {
@@ -429,6 +628,15 @@ classDiagram
       +divide_vertically()
     }
     AbstractAlgorithm <|-- RecursiveDivision
+    class AttackCommand {
+      -attacker
+      -target
+      -executed
+      +initialize()
+      +execute()
+      +player_initiated_against_hostile?()
+    }
+    Command <|-- AttackCommand
     class ChangeLevelCommand {
       -difficulty
       -player
@@ -444,6 +652,14 @@ classDiagram
       +initialize()
       +execute()
     }
+    class DropItemCommand {
+      -entity
+      -item
+      -executed
+      +initialize()
+      +execute()
+    }
+    Command <|-- DropItemCommand
     class ExitCommand {
       -logger
       -executed
@@ -473,30 +689,48 @@ classDiagram
       +execute()
     }
     Command <|-- NullCommand
+    class RunAwayCommand {
+      -player
+      -monster
+      -logger
+      -executed
+      +initialize()
+      +execute()
+      +calculate_flee_chance()
+      +move_player_away()
+    }
+    Command <|-- RunAwayCommand
+    class ToggleFOVCommand {
+      +execute()
+    }
+    Command <|-- ToggleFOVCommand
     class ToggleMenuModeCommand {
       +execute()
     }
     Command <|-- ToggleMenuModeCommand
+    class UseItemCommand {
+      -entity
+      -item
+      -executed
+      +initialize()
+      +execute()
+    }
+    Command <|-- UseItemCommand
     class DisplayHandler {
       -keyboard_handler
       +initialize()
       +cleanup()
     }
+    class Item {
+      +initialize()
+    }
+    Entity <|-- Item
     class Monster {
       -monster_type
       +initialize()
       +to_hash()
     }
     Entity <|-- Monster
-    class Player {
-      -name
-      -level
-      -experience
-      -inventory
-      +initialize()
-      +to_hash()
-    }
-    Entity <|-- Player
     class Stairs {
       +initialize()
     }
@@ -560,18 +794,21 @@ classDiagram
     class Game {
       -difficulty
       -seed
+      -dev_mode
       -logger
-      -turn
       -world
       -display
       -event_manager
       -player
       -maze_system
+      -fov_system
       +initialize()
       +start()
       +cleanup()
+      +turn()
       +setup_world()
       +game_loop()
+      +show_game_over()
       +render()
     }
     class InputHandler {
@@ -583,24 +820,6 @@ classDiagram
       +publish_key_press_event()
       +publish_command_issued_event()
       +process_command()
-    }
-    class Item {
-      -entity
-      +initialize()
-      +item_component()
-      +name()
-      +description()
-      +stackable?()
-      +type()
-      +weight()
-      +value()
-      +stack_size()
-      +equippable?()
-      +equippable_component()
-      +consumable?()
-      +consumable_component()
-      +use()
-      +to_s()
     }
     class ItemFactory {
       -logger
@@ -664,6 +883,7 @@ classDiagram
     }
     class KeyboardHandler {
       +wait_for_input()
+      +cleanup()
     }
     class Level {
       -grid
@@ -748,17 +968,6 @@ classDiagram
       +cells()
       +path_to()
       +max()
-    }
-    class Grid {
-      -rows
-      -columns
-      -type_factory
-      -grid
-      +initialize()
-      +[]()
-      +each_cell()
-      +random_cell()
-      +size()
     }
     class Message {
       -content
@@ -862,9 +1071,19 @@ classDiagram
       +present()
     }
     class TerminalRenderer {
+      -seed
+      -difficulty
+      -player_health
+      -player_max_health
+      -player_hunger
+      +initialize()
+      +set_game_info()
+      +set_player_health()
+      +set_player_hunger()
       +draw_grid()
       +clear()
       +present()
+      +dimmed_tile_for_cell()
     }
     Renderer <|-- TerminalRenderer
     class TileType {
@@ -939,38 +1158,161 @@ classDiagram
       +suggest_fix_for_event_serialization()
       +suggest_fix_for_level_transition()
     }
+    class RandomWalkFuzzer {
+      -seed
+      -turns
+      -keys
+      -player_position
+      -game
+      -extra_invariants
+      -rng
+      -menu_dwell
+      -stepped_grid
+      -stepped_position
+      -checked_events
+      +initialize()
+      +walk()
+      +press()
+      +next_key()
+      +player_dead?()
+      +check_invariants()
+      +check_player_cell()
+      +snapshot_step_baseline()
+      +check_player_step()
+      +check_health_bounds()
+      +check_event_stream()
+      +named_type?()
+      +drill_menu_exit()
+      +quit_game()
+      +fail!()
+      +last_known_position()
+    }
+    class InvariantViolation {
+      -seed
+      -turns
+      -keys
+      -player_position
+      +initialize()
+    }
+    class HeadlessGame {
+      -keys
+      -captured_events
+      -seed
+      -difficulty
+      -previous_seed
+      -world
+      -keyboard
+      -event_manager
+      -player
+      -maze_system
+      -input_system
+      -fov_system
+      -message_system
+      +initialize()
+      +push()
+      +wait_for_input()
+      +cleanup()
+      +captured_events()
+      +publish()
+      +start()
+      +press()
+      +player()
+      +player_position()
+      +current_level()
+      +grid()
+      +selection_mode?()
+      +quit?()
+      +turn()
+      +game_over?()
+      +events()
+      +recent_messages()
+      +flush_pending_events()
+      +setup_world()
+    }
+    class ScriptedKeyboard {
+      -keys
+      +initialize()
+      +push()
+      +wait_for_input()
+      +cleanup()
+    }
+    class StairsBot {
+      -seed
+      -turns
+      -keys
+      -player_position
+      -game
+      -level_presses
+      -stalled_presses
+      -fingerprint
+      -stairs_distances_grid
+      -stairs_distances
+      +initialize()
+      +play()
+      +take_action()
+      +answer_menu()
+      +step_toward_stairs()
+      +press()
+      +stairs_distances()
+      +direction_between()
+      +depth()
+      +track_progress()
+      +fingerprint()
+      +fail!()
+    }
+    class CertificationFailure {
+      -seed
+      -turns
+      -keys
+      -player_position
+      +initialize()
+    }
+    class CoverageError {
+    }
   end
   %% Relationships
+  Grid --> Grid : uses
+  Grid --> CellTypeFactory : uses
+  Grid --> Cell : uses
+  Player --> Grid : uses
+  Player --> Player : uses
+  Player --> PositionComponent : uses
+  Player --> MovementComponent : uses
+  Player --> StairsComponent : uses
+  Player --> RenderComponent : uses
+  Player --> HealthComponent : uses
   ChangeLevelCommand --> World :  emits_level_transitioned
   MoveCommand --> ChangeLevelCommand : uses
   InvalidDirectionError --> ChangeLevelCommand : uses
   InvalidDirectionError --> Logger : uses
   InvalidDirectionError --> TileType : uses
   InvalidDirectionError --> World :  emits_entity_moved
+  RunAwayCommand --> World :  emits_combat_flee_success
+  RunAwayCommand --> World :  emits_combat_flee_failed
+  ToggleFOVCommand --> World :  emits_dev_mode_toggled
   ConsumableComponent --> Component : uses
   CurrencyComponent --> Component : uses
   DurabilityComponent --> Component : uses
   EffectComponent --> Component : uses
   EquippableComponent --> Component : uses
+  FactionComponent --> FactionComponent : uses
+  FactionComponent --> Component : uses
   HealthComponent --> Component : uses
   InputComponent --> Component : uses
   InventoryComponent --> Component : uses
   ItemComponent --> Component : uses
   KeyComponent --> Component : uses
   MovementComponent --> Component : uses
+  NutritionComponent --> Component : uses
   PositionComponent --> Component : uses
   RenderComponent --> Component : uses
   StairsComponent --> Component : uses
   Entity --> Component : uses
+  Item --> ItemComponent : uses
   Monster --> PositionComponent : uses
   Monster --> MovementComponent : uses
   Monster --> RenderComponent : uses
   Monster --> HealthComponent : uses
-  Player --> PositionComponent : uses
-  Player --> MovementComponent : uses
-  Player --> StairsComponent : uses
-  Player --> RenderComponent : uses
-  Player --> HealthComponent : uses
   Stairs --> PositionComponent : uses
   Stairs --> RenderComponent : uses
   EntityFactory --> Entity : uses
@@ -979,6 +1321,13 @@ classDiagram
   EntityFactory --> InputComponent : uses
   EntityFactory --> MovementComponent : uses
   EntityFactory --> HealthComponent : uses
+  EntityFactory --> CombatComponent : uses
+  EntityFactory --> InventoryComponent : uses
+  EntityFactory --> NutritionComponent : uses
+  EntityFactory --> CurrencyComponent : uses
+  EntityFactory --> VisibilityComponent : uses
+  EntityFactory --> FactionComponent : uses
+  EntityFactory --> DevModeComponent : uses
   EntityFactory --> StairsComponent : uses
   EventManager --> Event : uses
   FileEventStore --> Event : uses
@@ -986,6 +1335,7 @@ classDiagram
   Game --> EntityFactory : uses
   InputHandler --> MoveCommand : uses
   InputHandler --> ToggleMenuModeCommand : uses
+  InputHandler --> ToggleFOVCommand : uses
   InputHandler --> ExitCommand : uses
   InputHandler --> NullCommand : uses
   ItemFactory --> Entity : uses
@@ -999,12 +1349,11 @@ classDiagram
   InventorySystemFacade --> ItemRegistry : uses
   Logger --> Logger : uses
   Map --> Logger : uses
+  Map --> Grid : uses
   Cell --> Cell : uses
   Cell --> Logger : uses
   CellTypeFactory --> CellType : uses
   DistanceBetweenCells --> DistanceBetweenCells : uses
-  Grid --> CellTypeFactory : uses
-  Grid --> Cell : uses
   MessageLog --> Logger : uses
   MessageLog --> Message : uses
   MessageManager --> Logger : uses
@@ -1017,10 +1366,33 @@ classDiagram
   CollisionSystem --> World :  emits_item_picked_up
   CollisionSystem --> World :  queues_add_to_inventory
   CollisionSystem --> World :  queues_remove_entity
+  CombatSystem --> Logger : uses
+  CombatSystem --> World :  emits_combat_damage
+  CombatSystem --> World :  emits_loot_dropped
+  CombatSystem --> World :  emits_combat_death
+  CombatSystem --> World :  emits_combat_attack
+  CombatSystem --> World :  emits_combat_miss
+  EquipmentSystem --> Logger : uses
+  EquipmentSystem --> World :  emits_item_unequipped
+  EquipmentSystem --> World :  emits_item_equipped
+  HungerSystem --> World :  emits_hunger_status_changed
+  HungerSystem --> World :  emits_starvation_damage
   InputSystem --> Logger : uses
   InputSystem --> InputHandler : uses
   InputSystem --> ToggleMenuModeCommand : uses
   InventorySystem --> PositionComponent : uses
+  ItemDropSystem --> Logger : uses
+  ItemDropSystem --> PositionComponent : uses
+  ItemDropSystem --> RenderComponent : uses
+  ItemDropSystem --> World :  emits_item_dropped
+  ItemPickupSystem --> Logger : uses
+  ItemPickupSystem --> World :  emits_item_picked_up
+  ItemUseSystem --> Logger : uses
+  ItemUseSystem --> World :  emits_item_used
+  LootSystem --> Logger : uses
+  LootSystem --> Entity : uses
+  LootSystem --> ItemComponent : uses
+  LootSystem --> ConsumableComponent : uses
   MazeSystem --> Logger : uses
   MazeSystem --> CellTypeFactory : uses
   MazeSystem --> Level : uses
@@ -1028,6 +1400,11 @@ classDiagram
   MazeSystem --> EntityFactory : uses
   MessageSystem --> Logger : uses
   MessageSystem --> MessageManager : uses
+  MessageSystem --> AttackCommand : uses
+  MessageSystem --> RunAwayCommand : uses
+  MessageSystem --> UseItemCommand : uses
+  MessageSystem --> DropItemCommand : uses
+  MessageSystem --> CurrencyComponent : uses
   MonsterSystem --> Logger : uses
   MonsterSystem --> EntityFactory : uses
   MonsterSystem --> World :  emits_monster_despawned
@@ -1043,6 +1420,8 @@ classDiagram
   RenderSystemFactory --> Logger : uses
   World --> DisplayHandler : uses
   World --> Logger : uses
+  World --> World :  emits_turn_ended
+  World --> World :  emits_player_died
   ServiceRegistry --> ServiceRegistry : uses
   ServiceRegistry --> Game : uses
   Scheduler --> ServiceRegistry : uses
@@ -1051,6 +1430,46 @@ classDiagram
   CodeAnalyzer --> CodeAnalyzer : uses
   LogMonitor --> LogMonitor : uses
   TestPositionComponent --> Component : uses
+  InvariantViolation --> InvariantViolation : uses
+  HeadlessGame --> ServiceRegistry : uses
+  HeadlessGame --> World : uses
+  HeadlessGame --> EventManager : uses
+  HeadlessGame --> EntityFactory : uses
+  HeadlessGame --> MazeSystem : uses
+  HeadlessGame --> InputSystem : uses
+  HeadlessGame --> MovementSystem : uses
+  HeadlessGame --> FOVSystem : uses
+  HeadlessGame --> MonsterAISystem : uses
+  HeadlessGame --> CombatSystem : uses
+  HeadlessGame --> CollisionSystem : uses
+  HeadlessGame --> LootSystem : uses
+  HeadlessGame --> ItemUseSystem : uses
+  HeadlessGame --> ItemDropSystem : uses
+  HeadlessGame --> MonsterSystem : uses
+  HeadlessGame --> HungerSystem : uses
+  HeadlessGame --> MessageSystem : uses
+  ScriptedKeyboard --> ServiceRegistry : uses
+  ScriptedKeyboard --> World : uses
+  ScriptedKeyboard --> ScriptedKeyboard : uses
+  ScriptedKeyboard --> EventManager : uses
+  ScriptedKeyboard --> EntityFactory : uses
+  ScriptedKeyboard --> MazeSystem : uses
+  ScriptedKeyboard --> InputSystem : uses
+  ScriptedKeyboard --> MovementSystem : uses
+  ScriptedKeyboard --> FOVSystem : uses
+  ScriptedKeyboard --> MonsterAISystem : uses
+  ScriptedKeyboard --> CombatSystem : uses
+  ScriptedKeyboard --> CollisionSystem : uses
+  ScriptedKeyboard --> LootSystem : uses
+  ScriptedKeyboard --> ItemUseSystem : uses
+  ScriptedKeyboard --> ItemDropSystem : uses
+  ScriptedKeyboard --> MonsterSystem : uses
+  ScriptedKeyboard --> HungerSystem : uses
+  ScriptedKeyboard --> MessageSystem : uses
+  StairsBot --> HeadlessGame : uses
+  CertificationFailure --> HeadlessGame : uses
+  CertificationFailure --> CertificationFailure : uses
+  CoverageError --> HeadlessGame : uses
   Entity o--> "many" Component : contains
   World o--> "many" Entity : manages
   World o--> "many" System : manages

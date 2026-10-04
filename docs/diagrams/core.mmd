@@ -41,6 +41,7 @@ classDiagram
       -entities
       -systems
       -quit
+      -turn
       -display
       -logger
       -current_level
@@ -48,9 +49,11 @@ classDiagram
       -event_subscribers
       -event_queue
       -command_queue
+      -game_over
       +initialize()
       +update()
       +quit?()
+      +game_over?()
       +level_changed?()
       +add_entity()
       +remove_entity()
@@ -59,6 +62,8 @@ classDiagram
       +find_entity_by_tag()
       +query_entities()
       +add_system()
+      +end_turn()
+      +player_died()
       +queue_command()
       +emit_event()
       +subscribe()
@@ -96,6 +101,8 @@ classDiagram
   end
   %% Relationships
   Entity --> Component : uses
+  World --> World :  emits_turn_ended
+  World --> World :  emits_player_died
   Entity o--> "many" Component : contains
   World o--> "many" Entity : manages
   World o--> "many" System : manages

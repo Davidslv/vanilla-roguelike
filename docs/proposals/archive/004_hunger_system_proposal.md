@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted, not implemented.** Rewritten 2026-10-03 after a design discussion. The original draft (2025-11-12) is in git history. Delivery is three steps, each its own issue and PR, in this order:
+**Implemented** in PRs #163 (game over), #165 (turns), #166 (item use, a prerequisite) and #167 (hunger). Rewritten 2026-10-03 after a design discussion. The original draft (2025-11-12) is in git history. Delivery is three steps, each its own issue and PR, in this order:
 
 1. Game over on player death, with the cause shown (#159).
 2. A real turn: one `turn_ended` event per player action that takes time (#160).

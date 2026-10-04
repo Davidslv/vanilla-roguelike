@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted.** Design agreed 2026-08-15 from a code exploration session. Not yet implemented.
+**Implemented** in PRs #136 to #140 (`spec/support/`, `spec/integration/`). Design agreed 2026-08-15 from a code exploration session.
 
 **Created:** 2026-08-15
 **Project:** vanilla-roguelike

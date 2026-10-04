@@ -11,6 +11,16 @@ classDiagram
     }
   end
   subgraph Components
+    class CombatComponent {
+      -attack_power
+      -defense
+      -accuracy
+      +initialize()
+      +type()
+      +to_hash()
+    }
+    Component <|-- CombatComponent
+    style CombatComponent fill:#ffcccc
     class Component {
       -component_classes
       +register()
@@ -43,6 +53,16 @@ classDiagram
       +to_hash()
     }
     style CurrencyComponent fill:#ffcccc
+    class DevModeComponent {
+      -fov_disabled
+      -show_all_entities
+      +initialize()
+      +type()
+      +toggle_fov()
+      +to_hash()
+    }
+    Component <|-- DevModeComponent
+    style DevModeComponent fill:#ffcccc
     class DurabilityComponent {
       -max_durability
       -current_durability
@@ -86,6 +106,15 @@ classDiagram
     }
     Component <|-- EquippableComponent
     style EquippableComponent fill:#ffcccc
+    class FactionComponent {
+      -faction_id
+      -hostile_to
+      +initialize()
+      +type()
+      +to_hash()
+    }
+    Component <|-- FactionComponent
+    style FactionComponent fill:#ffcccc
     class HealthComponent {
       -max_health
       -current_health
@@ -129,6 +158,9 @@ classDiagram
       -stack_size
       +initialize()
       +type()
+      +stackable?()
+      +increase_stack()
+      +decrease_stack()
       +to_hash()
     }
     Component <|-- ItemComponent
@@ -155,6 +187,15 @@ classDiagram
     }
     Component <|-- MovementComponent
     style MovementComponent fill:#ffcccc
+    class NutritionComponent {
+      -food_left
+      -max_food
+      +initialize()
+      +type()
+      +to_hash()
+    }
+    Component <|-- NutritionComponent
+    style NutritionComponent fill:#ffcccc
     class PositionComponent {
       -row
       -column
@@ -184,6 +225,23 @@ classDiagram
     }
     Component <|-- StairsComponent
     style StairsComponent fill:#ffcccc
+    class VisibilityComponent {
+      -vision_radius
+      -visible_tiles
+      -explored_tiles
+      -blocks_vision
+      +initialize()
+      +type()
+      +add_visible_tile()
+      +clear_visible_tiles()
+      +clear_explored_tiles()
+      +reset()
+      +tile_visible?()
+      +tile_explored?()
+      +to_hash()
+    }
+    Component <|-- VisibilityComponent
+    style VisibilityComponent fill:#ffcccc
     class TestPositionComponent {
       -row
       -column
@@ -199,12 +257,15 @@ classDiagram
   DurabilityComponent --> Component : uses
   EffectComponent --> Component : uses
   EquippableComponent --> Component : uses
+  FactionComponent --> FactionComponent : uses
+  FactionComponent --> Component : uses
   HealthComponent --> Component : uses
   InputComponent --> Component : uses
   InventoryComponent --> Component : uses
   ItemComponent --> Component : uses
   KeyComponent --> Component : uses
   MovementComponent --> Component : uses
+  NutritionComponent --> Component : uses
   PositionComponent --> Component : uses
   RenderComponent --> Component : uses
   StairsComponent --> Component : uses
