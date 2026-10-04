@@ -4,7 +4,7 @@ This page takes you from a fresh clone to a running game and a passing test suit
 
 ## 1. Install Ruby
 
-Vanilla needs the Ruby version pinned in [`.ruby-version`](../.ruby-version). CI runs on that minor version on Ubuntu and macOS.
+Vanilla needs the Ruby version pinned in [`.ruby-version`](../.ruby-version). CI tests that version and the others listed in [`.github/workflows/test.yml`](../.github/workflows/test.yml), on Ubuntu and macOS.
 
 Any version manager works. With rbenv:
 

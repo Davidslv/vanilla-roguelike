@@ -97,7 +97,8 @@ RSpec.describe 'Repository documentation' do # rubocop:disable RSpec/DescribeCla
     end
 
     it 'is not hard-coded in the docs' do
-      stale = doc_files.select do |doc|
+      # The changelog is history: naming the version that changed is correct there.
+      stale = (doc_files - ['CHANGELOG.md']).select do |doc|
         File.read(File.join(root, doc)).match?(/\bruby[\s:(-]*(version[\s:]*|v)?(>=\s*)?\d+\.\d+/i)
       end
 

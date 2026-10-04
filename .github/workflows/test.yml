@@ -15,9 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        # Ruby 4.0 needs a lockfile bump first: unicode-emoji 4.0.4 (via
-        # rubocop) declares ruby < 4.0.
-        ruby: ['3.4']
+        # 3.4 is .ruby-version; 4.0 runs since unicode-emoji 4.3 (#152).
+        ruby: ['3.4', '4.0']
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout code
