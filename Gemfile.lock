@@ -109,7 +109,7 @@ GEM
     unicode-display_width (3.1.4)
       unicode-emoji (~> 4.0, >= 4.0.4)
     unicode-emoji (4.0.4)
-    yard (0.9.37)
+    yard (0.9.45)
     yard-solargraph (0.1.0)
       yard (~> 0.9)
 
