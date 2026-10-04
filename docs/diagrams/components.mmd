@@ -187,6 +187,15 @@ classDiagram
     }
     Component <|-- MovementComponent
     style MovementComponent fill:#ffcccc
+    class NutritionComponent {
+      -food_left
+      -max_food
+      +initialize()
+      +type()
+      +to_hash()
+    }
+    Component <|-- NutritionComponent
+    style NutritionComponent fill:#ffcccc
     class PositionComponent {
       -row
       -column
@@ -256,6 +265,7 @@ classDiagram
   ItemComponent --> Component : uses
   KeyComponent --> Component : uses
   MovementComponent --> Component : uses
+  NutritionComponent --> Component : uses
   PositionComponent --> Component : uses
   RenderComponent --> Component : uses
   StairsComponent --> Component : uses

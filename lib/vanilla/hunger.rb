@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Vanilla
-  # Hunger rules (#161, docs/proposals/004_hunger_system_proposal.md).
+  # Hunger rules (#161, docs/proposals/archive/004_hunger_system_proposal.md).
   #
   # NutritionComponent only stores how much food is left. The rules live here,
   # so HungerSystem and the HUD read the same thresholds. Values are scaled to

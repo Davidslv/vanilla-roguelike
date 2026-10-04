@@ -41,6 +41,7 @@ classDiagram
       -entities
       -systems
       -quit
+      -turn
       -display
       -logger
       -current_level
@@ -48,9 +49,11 @@ classDiagram
       -event_subscribers
       -event_queue
       -command_queue
+      -game_over
       +initialize()
       +update()
       +quit?()
+      +game_over?()
       +level_changed?()
       +add_entity()
       +remove_entity()
@@ -59,6 +62,8 @@ classDiagram
       +find_entity_by_tag()
       +query_entities()
       +add_system()
+      +end_turn()
+      +player_died()
       +queue_command()
       +emit_event()
       +subscribe()
@@ -248,6 +253,15 @@ classDiagram
     }
     Component <|-- MovementComponent
     style MovementComponent fill:#ffcccc
+    class NutritionComponent {
+      -food_left
+      -max_food
+      +initialize()
+      +type()
+      +to_hash()
+    }
+    Component <|-- NutritionComponent
+    style NutritionComponent fill:#ffcccc
     class PositionComponent {
       -row
       -column
@@ -348,6 +362,14 @@ classDiagram
       +entities_with()
     }
     System <|-- FOVSystem
+    class HungerSystem {
+      +initialize()
+      +update()
+      +handle_event()
+      +tick()
+      +starve()
+    }
+    System <|-- HungerSystem
     class InputSystem {
       -logger
       -input_handler
@@ -394,6 +416,8 @@ classDiagram
       -logger
       +initialize()
       +update()
+      +drop_item()
+      +place()
     }
     System <|-- ItemDropSystem
     class ItemInteractionSystem {
@@ -415,6 +439,9 @@ classDiagram
       -logger
       +initialize()
       +update()
+      +use_item()
+      +apply_effect()
+      +use_up()
     }
     System <|-- ItemUseSystem
     class LootSystem {
@@ -469,6 +496,8 @@ classDiagram
       +handle_item_action_callback()
       +handle_use_item()
       +handle_drop_item()
+      +close_item_menu()
+      +item_label()
       +process_message_queue()
       +trim_message_queue()
       +importance_value()
@@ -476,6 +505,7 @@ classDiagram
       +handle_combat_miss()
       +handle_combat_damage()
       +handle_combat_death()
+      +handle_player_died()
       +handle_flee_success()
       +handle_loot_dropped()
       +handle_pickup_loot_callback()
@@ -622,6 +652,14 @@ classDiagram
       +initialize()
       +execute()
     }
+    class DropItemCommand {
+      -entity
+      -item
+      -executed
+      +initialize()
+      +execute()
+    }
+    Command <|-- DropItemCommand
     class ExitCommand {
       -logger
       -executed
@@ -670,6 +708,14 @@ classDiagram
       +execute()
     }
     Command <|-- ToggleMenuModeCommand
+    class UseItemCommand {
+      -entity
+      -item
+      -executed
+      +initialize()
+      +execute()
+    }
+    Command <|-- UseItemCommand
     class DisplayHandler {
       -keyboard_handler
       +initialize()
@@ -750,7 +796,6 @@ classDiagram
       -seed
       -dev_mode
       -logger
-      -turn
       -world
       -display
       -event_manager
@@ -760,8 +805,10 @@ classDiagram
       +initialize()
       +start()
       +cleanup()
+      +turn()
       +setup_world()
       +game_loop()
+      +show_game_over()
       +render()
     }
     class InputHandler {
@@ -1028,9 +1075,11 @@ classDiagram
       -difficulty
       -player_health
       -player_max_health
+      -player_hunger
       +initialize()
       +set_game_info()
       +set_player_health()
+      +set_player_hunger()
       +draw_grid()
       +clear()
       +present()
@@ -1150,7 +1199,6 @@ classDiagram
       -captured_events
       -seed
       -difficulty
-      -turn
       -previous_seed
       -world
       -keyboard
@@ -1174,6 +1222,8 @@ classDiagram
       +grid()
       +selection_mode?()
       +quit?()
+      +turn()
+      +game_over?()
       +events()
       +recent_messages()
       +flush_pending_events()
@@ -1253,6 +1303,7 @@ classDiagram
   ItemComponent --> Component : uses
   KeyComponent --> Component : uses
   MovementComponent --> Component : uses
+  NutritionComponent --> Component : uses
   PositionComponent --> Component : uses
   RenderComponent --> Component : uses
   StairsComponent --> Component : uses
@@ -1272,6 +1323,7 @@ classDiagram
   EntityFactory --> HealthComponent : uses
   EntityFactory --> CombatComponent : uses
   EntityFactory --> InventoryComponent : uses
+  EntityFactory --> NutritionComponent : uses
   EntityFactory --> CurrencyComponent : uses
   EntityFactory --> VisibilityComponent : uses
   EntityFactory --> FactionComponent : uses
@@ -1323,16 +1375,19 @@ classDiagram
   EquipmentSystem --> Logger : uses
   EquipmentSystem --> World :  emits_item_unequipped
   EquipmentSystem --> World :  emits_item_equipped
+  HungerSystem --> World :  emits_hunger_status_changed
+  HungerSystem --> World :  emits_starvation_damage
   InputSystem --> Logger : uses
   InputSystem --> InputHandler : uses
   InputSystem --> ToggleMenuModeCommand : uses
   InventorySystem --> PositionComponent : uses
   ItemDropSystem --> Logger : uses
+  ItemDropSystem --> PositionComponent : uses
+  ItemDropSystem --> RenderComponent : uses
   ItemDropSystem --> World :  emits_item_dropped
   ItemPickupSystem --> Logger : uses
   ItemPickupSystem --> World :  emits_item_picked_up
   ItemUseSystem --> Logger : uses
-  ItemUseSystem --> EffectComponent : uses
   ItemUseSystem --> World :  emits_item_used
   LootSystem --> Logger : uses
   LootSystem --> Entity : uses
@@ -1347,8 +1402,8 @@ classDiagram
   MessageSystem --> MessageManager : uses
   MessageSystem --> AttackCommand : uses
   MessageSystem --> RunAwayCommand : uses
-  MessageSystem --> PositionComponent : uses
-  MessageSystem --> RenderComponent : uses
+  MessageSystem --> UseItemCommand : uses
+  MessageSystem --> DropItemCommand : uses
   MessageSystem --> CurrencyComponent : uses
   MonsterSystem --> Logger : uses
   MonsterSystem --> EntityFactory : uses
@@ -1365,6 +1420,8 @@ classDiagram
   RenderSystemFactory --> Logger : uses
   World --> DisplayHandler : uses
   World --> Logger : uses
+  World --> World :  emits_turn_ended
+  World --> World :  emits_player_died
   ServiceRegistry --> ServiceRegistry : uses
   ServiceRegistry --> Game : uses
   Scheduler --> ServiceRegistry : uses
@@ -1386,7 +1443,10 @@ classDiagram
   HeadlessGame --> CombatSystem : uses
   HeadlessGame --> CollisionSystem : uses
   HeadlessGame --> LootSystem : uses
+  HeadlessGame --> ItemUseSystem : uses
+  HeadlessGame --> ItemDropSystem : uses
   HeadlessGame --> MonsterSystem : uses
+  HeadlessGame --> HungerSystem : uses
   HeadlessGame --> MessageSystem : uses
   ScriptedKeyboard --> ServiceRegistry : uses
   ScriptedKeyboard --> World : uses
@@ -1401,7 +1461,10 @@ classDiagram
   ScriptedKeyboard --> CombatSystem : uses
   ScriptedKeyboard --> CollisionSystem : uses
   ScriptedKeyboard --> LootSystem : uses
+  ScriptedKeyboard --> ItemUseSystem : uses
+  ScriptedKeyboard --> ItemDropSystem : uses
   ScriptedKeyboard --> MonsterSystem : uses
+  ScriptedKeyboard --> HungerSystem : uses
   ScriptedKeyboard --> MessageSystem : uses
   StairsBot --> HeadlessGame : uses
   CertificationFailure --> HeadlessGame : uses

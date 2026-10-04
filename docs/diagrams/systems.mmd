@@ -55,6 +55,14 @@ classDiagram
       +entities_with()
     }
     System <|-- FOVSystem
+    class HungerSystem {
+      +initialize()
+      +update()
+      +handle_event()
+      +tick()
+      +starve()
+    }
+    System <|-- HungerSystem
     class InputSystem {
       -logger
       -input_handler
@@ -101,6 +109,8 @@ classDiagram
       -logger
       +initialize()
       +update()
+      +drop_item()
+      +place()
     }
     System <|-- ItemDropSystem
     class ItemInteractionSystem {
@@ -122,6 +132,9 @@ classDiagram
       -logger
       +initialize()
       +update()
+      +use_item()
+      +apply_effect()
+      +use_up()
     }
     System <|-- ItemUseSystem
     class LootSystem {
@@ -176,6 +189,8 @@ classDiagram
       +handle_item_action_callback()
       +handle_use_item()
       +handle_drop_item()
+      +close_item_menu()
+      +item_label()
       +process_message_queue()
       +trim_message_queue()
       +importance_value()
@@ -183,6 +198,7 @@ classDiagram
       +handle_combat_miss()
       +handle_combat_damage()
       +handle_combat_death()
+      +handle_player_died()
       +handle_flee_success()
       +handle_loot_dropped()
       +handle_pickup_loot_callback()
