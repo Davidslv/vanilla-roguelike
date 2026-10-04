@@ -6,7 +6,7 @@ source 'https://rubygems.org'
 gem 'yard'
 
 # Locatization
-gem 'i18n', '~> 1.14'
+gem 'i18n', '~> 1.15'
 
 gem 'logger'
 
