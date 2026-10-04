@@ -43,6 +43,7 @@ module Vanilla
 
   # faction hostility/ally queries (operate on FactionComponent data)
   require_relative 'vanilla/factions'
+  require_relative 'vanilla/hunger'
 
   # event system
   require_relative 'vanilla/events'

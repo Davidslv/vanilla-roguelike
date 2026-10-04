@@ -102,6 +102,16 @@
 - **Description**: An entity died as a result of combat
 - **Data**: { entity_id: String, killer_id: String }
 
+### HUNGER_STATUS_CHANGED
+- **Type**: `hunger_status_changed`
+- **Description**: An entity's hunger status changed (ok, hungry, weak, starving)
+- **Data**: { entity_id: String, from: Symbol, to: Symbol, food_left: Integer }
+
+### STARVATION_DAMAGE
+- **Type**: `starvation_damage`
+- **Description**: A starving entity lost health
+- **Data**: { entity_id: String, damage: Integer, current_health: Integer }
+
 ### PLAYER_DIED
 - **Type**: `player_died`
 - **Description**: The player died and the game is over

@@ -11,6 +11,7 @@ Vanilla has no tagged releases yet. Changes before this file was restarted are i
 
 ### Added
 
+- Hunger (#161): food runs down one per turn, the HUD shows `Hungry`, `Weak` or `Starving`, starving costs 2 HP a turn and can kill, and apples restore 60 food. `NutritionComponent`, `HungerSystem`, `Vanilla::Hunger`.
 - A real turn: `World#end_turn` counts each player action that takes time and emits `turn_ended` (#160). The message log's turn number and effect durations now use it, so menus, `f` and unknown keys no longer advance it.
 - Game over: when the player dies the game shows the cause, the floor reached and the seed, waits for a key, and exits (#159). New `player_died` event.
 - Community files: `SUPPORT.md`, `GOVERNANCE.md`, `MAINTAINERS.md`, `CITATION.cff`, `.editorconfig`.

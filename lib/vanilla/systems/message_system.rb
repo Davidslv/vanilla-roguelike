@@ -31,6 +31,7 @@ module Vanilla
         @world.subscribe(:combat_miss, self)
         @world.subscribe(:combat_death, self)
         @world.subscribe(:player_died, self)
+        @world.subscribe(:hunger_status_changed, self)
         @world.subscribe(:combat_flee_success, self)
         @world.subscribe(:combat_flee_failed, self)
         @world.subscribe(:loot_dropped, self)
@@ -235,6 +236,7 @@ module Vanilla
         when :combat_death
           handle_combat_death(data)
         when :player_died then handle_player_died(data)
+        when :hunger_status_changed then add_message("hunger.#{data[:to]}", importance: :warning, category: :system)
         when :combat_flee_success
           handle_flee_success(data)
         when :combat_flee_failed

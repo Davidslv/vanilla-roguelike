@@ -63,6 +63,7 @@ Systems run each turn in priority order (order between equal priorities is not g
 | 3.5 | ItemUseSystem |
 | 3.6 | ItemDropSystem |
 | 4 | MonsterSystem |
+| 4.5 | HungerSystem |
 | 5 | MessageSystem |
 | 10 | RenderSystem |
 

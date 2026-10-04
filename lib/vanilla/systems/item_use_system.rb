@@ -35,6 +35,9 @@ module Vanilla
         when :heal
           health = entity.get_component(:health)
           health.current_health += effect[:amount] if health # the setter caps at max
+        when :nourish
+          nutrition = entity.get_component(:nutrition)
+          nutrition.food_left = [nutrition.food_left + effect[:amount], nutrition.max_food].min if nutrition
         else
           @logger.warn("[ItemUseSystem] Unsupported effect: #{effect[:type].inspect}")
         end

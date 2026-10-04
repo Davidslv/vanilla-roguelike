@@ -36,6 +36,8 @@ module Vanilla
           if health_component
             @renderer.set_player_health(current: health_component.current_health, max: health_component.max_health)
           end
+          nutrition = player.get_component(:nutrition)
+          @renderer.set_player_hunger(status: Vanilla::Hunger.status(nutrition.food_left)) if nutrition
         end
       end
 

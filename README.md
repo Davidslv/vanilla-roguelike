@@ -52,6 +52,9 @@ Find the stairs to go down a level. Each level is a new maze, with more monsters
 | `f` | Toggle field of view |
 | `q` or `Ctrl+C` | Quit |
 
+> [!IMPORTANT]
+> You get hungry as you play. Every action that takes time uses up food, and the HUD warns you with `Hungry`, then `Weak`, then `Starving`. Starving costs health each turn and can kill you. Monsters sometimes drop apples: pick them up, then eat one with `m`, `i`, the apple's number, then `1`.
+
 > [!NOTE]
 > Arrow keys don't work. Use `h` `j` `k` `l`.
 

@@ -69,6 +69,21 @@ RSpec.describe Vanilla::Systems::ItemUseSystem do
       expect(player.get_component(:health).current_health).to eq(50)
     end
 
+    it 'restores food for a :nourish effect, up to the maximum' do
+      player.add_component(Vanilla::Components::NutritionComponent.new(food_left: 10, max_food: 50))
+      apple.get_component(:consumable).effects << { type: :nourish, amount: 60 }
+
+      system.use_item(player, apple)
+
+      expect(player.get_component(:nutrition).food_left).to eq(50)
+    end
+
+    it 'ignores :nourish for an entity that does not eat' do
+      apple.get_component(:consumable).effects << { type: :nourish, amount: 60 }
+
+      expect(system.use_item(player, apple)).to be(true)
+    end
+
     it 'refuses an item that is not consumable' do
       sword = Vanilla::Entities::Entity.new
       player.get_component(:inventory).add(sword)

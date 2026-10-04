@@ -18,6 +18,7 @@ module Vanilla
       player.add_component(Vanilla::Components::HealthComponent.new(max_health: 100))
       player.add_component(Vanilla::Components::CombatComponent.new(attack_power: 10, defense: 2, accuracy: 0.8))
       player.add_component(Vanilla::Components::InventoryComponent.new(max_size: 20))
+      player.add_component(Vanilla::Components::NutritionComponent.new)
       player.add_component(Vanilla::Components::CurrencyComponent.new(0, :gold))
       player.add_component(Vanilla::Components::VisibilityComponent.new(vision_radius: 3))
       player.add_component(Vanilla::Components::FactionComponent.new(faction_id: Vanilla::Factions::HERO, hostile_to: [Vanilla::Factions::MONSTER]))

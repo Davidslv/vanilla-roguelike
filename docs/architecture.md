@@ -185,6 +185,7 @@ Systems contain the logic that operates on entities with specific component comb
 | 3.5 | ItemUseSystem | Applies an item's effects when the player uses it (via `UseItemCommand`) |
 | 3.6 | ItemDropSystem | Puts a dropped item on the floor (via `DropItemCommand`) |
 | 4 | MonsterSystem | Spawns and despawns monsters |
+| 4.5 | HungerSystem | Food clock: one food per turn, starvation damage and death |
 | 5 | MessageSystem | Message log and option menus |
 | 10 | RenderSystem | Draws the frame |
 

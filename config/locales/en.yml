@@ -79,6 +79,12 @@ en:
     starving: "Your stomach growls. You need food soon."
     rested: "You feel refreshed and ready to continue."
 
+  hunger:
+    ok: "You feel full."
+    hungry: "You are getting hungry."
+    weak: "You feel weak with hunger."
+    starving: "You are starving!"
+
   death:
     player_dies: "You have fallen to the %{enemy}. Your adventure ends here."
     generic_death: "The dungeon claims your life."

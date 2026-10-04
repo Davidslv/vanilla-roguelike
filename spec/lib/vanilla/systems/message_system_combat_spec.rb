@@ -121,6 +121,17 @@ RSpec.describe Vanilla::Systems::MessageSystem do
       end
     end
 
+    describe 'hunger_status_changed' do
+      it 'warns with the message for the new status' do
+        system.handle_event(:hunger_status_changed, { entity_id: player.id, from: :ok, to: :hungry, food_left: 50 })
+        system.update(nil)
+
+        warning = messages.find { |m| m.content == 'hunger.hungry' }
+        expect(warning).not_to be_nil
+        expect(warning.importance).to eq(:warning)
+      end
+    end
+
     describe 'player_died' do
       it 'names the killer when the cause is combat' do
         system.handle_event(:player_died, { cause: :combat, killer_id: monster.id, killer_name: 'Goblin', floor: 2 })
