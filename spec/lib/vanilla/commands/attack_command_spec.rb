@@ -15,6 +15,7 @@ RSpec.describe Vanilla::Commands::AttackCommand do
     allow(logger).to receive(:info)
     allow(logger).to receive(:error)
     allow(logger).to receive(:warn)
+    allow(world).to receive(:end_turn)
   end
 
   describe '#initialize' do
@@ -50,6 +51,29 @@ RSpec.describe Vanilla::Commands::AttackCommand do
         command.execute(world)
         expect(combat_system).not_to receive(:process_attack)
         command.execute(world)
+      end
+    end
+
+    context 'when counting turns' do
+      before do
+        allow(world).to receive(:systems).and_return([[combat_system, 3]])
+        allow(combat_system).to receive(:is_a?).with(Vanilla::Systems::CombatSystem).and_return(true)
+        allow(combat_system).to receive(:process_attack)
+        allow(combat_system).to receive(:process_turn_based_combat)
+      end
+
+      it 'ends the turn when the player attacks' do
+        attacker.add_tag(:player)
+
+        command.execute(world)
+
+        expect(world).to have_received(:end_turn).once
+      end
+
+      it 'does not end the turn for a monster attack' do
+        command.execute(world)
+
+        expect(world).not_to have_received(:end_turn)
       end
     end
 

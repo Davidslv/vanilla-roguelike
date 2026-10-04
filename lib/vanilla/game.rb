@@ -2,7 +2,7 @@
 
 module Vanilla
   class Game
-    attr_reader :turn, :world, :level
+    attr_reader :world, :level
 
     # --- Initialization ---
     def initialize(options = {})
@@ -10,8 +10,6 @@ module Vanilla
       @seed = options[:seed] || Random.new_seed
       @dev_mode = options[:dev_mode] || options[:fov_disabled] || false
       @logger = Vanilla::Logger.instance
-      @turn = 0
-
       setup_world
       Vanilla::ServiceRegistry.register(:game, self)
 
@@ -41,6 +39,12 @@ module Vanilla
       @logger.info("Game cleanup")
       @display&.cleanup
       Vanilla::ServiceRegistry.unregister(:game)
+    end
+
+    # --- State Queries ---
+    # Player turns so far (#160). The world counts them; see World#end_turn.
+    def turn
+      @world.turn
     end
 
     # --- Private Implementation Details ---
@@ -80,8 +84,7 @@ module Vanilla
     end
 
     def game_loop
-      @turn = 0
-      @logger.debug("[Game] Starting game loop, turn: #{@turn}")
+      @logger.debug("[Game] Starting game loop, turn: #{turn}")
       message_system = Vanilla::ServiceRegistry.get(:message_system)
       input_system = @world.systems.find { |s, _| s.is_a?(Vanilla::Systems::InputSystem) }[0]
 
@@ -92,7 +95,7 @@ module Vanilla
         end
 
         if message_system&.selection_mode?
-          @logger.debug("[Game] In menu mode, waiting for input, turn: #{@turn}")
+          @logger.debug("[Game] In menu mode, waiting for input, turn: #{turn}")
           input_system.update(nil) # Wait for input
           # Process events and messages immediately after input to avoid frame delay
           @world.send(:process_events) if @world.respond_to?(:process_events, true)
@@ -101,12 +104,11 @@ module Vanilla
           render
           @world.update(nil) # Process queued commands (but don't re-render systems)
         else
-          @logger.debug("[Game] Running game loop, turn: #{@turn}")
+          @logger.debug("[Game] Running game loop, turn: #{turn}")
           @world.update(nil)
-          @turn += 1
           render
         end
-        @logger.debug("[Game] Game#game_loop - Rendered, turn: #{@turn}")
+        @logger.debug("[Game] Game#game_loop - Rendered, turn: #{turn}")
       end
     end
 

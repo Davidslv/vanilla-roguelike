@@ -19,6 +19,7 @@ RSpec.describe Vanilla::Systems::MessageSystem do
     allow(logger).to receive(:warn)
     allow(world).to receive(:subscribe)
     allow(world).to receive(:queue_command)
+    allow(world).to receive(:end_turn)
     allow(world).to receive(:get_entity).and_return(nil)
     allow(Vanilla::ServiceRegistry).to receive(:register)
   end

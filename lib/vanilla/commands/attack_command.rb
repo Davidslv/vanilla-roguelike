@@ -43,6 +43,7 @@ module Vanilla
           # Single attack for everything else (e.g. a monster striking back).
           combat_system.process_attack(@attacker, @target)
         end
+        world.end_turn if @attacker.has_tag?(:player)
 
         @executed = true
       end

@@ -38,6 +38,7 @@ RSpec.describe Vanilla::Systems::MessageSystem do
     allow(world).to receive(:get_entity).and_return(nil)
     allow(world).to receive(:get_entity_by_name).and_return(nil)
     allow(world).to receive(:add_entity)
+    allow(world).to receive(:end_turn)
     allow(world).to receive(:current_level).and_return(instance_double('Vanilla::Level', add_entity: nil, update_grid_with_entity: nil))
     allow(world).to receive(:respond_to?).with(:process_events, true).and_return(true)
     allow(world).to receive(:send).with(:process_events)
@@ -241,6 +242,20 @@ RSpec.describe Vanilla::Systems::MessageSystem do
         expect(used_messages).not_to be_empty
       end
 
+      it 'ends the turn when the item is used' do
+        system.handle_item_action_callback(:use_item, item1.id)
+
+        expect(world).to have_received(:end_turn).once
+      end
+
+      it 'does not end the turn when the item cannot be used' do
+        allow(inventory_system).to receive(:use_item).and_return(false)
+
+        system.handle_item_action_callback(:use_item, item1.id)
+
+        expect(world).not_to have_received(:end_turn)
+      end
+
       it 'exits selection mode after using item' do
         system.instance_variable_get(:@manager).toggle_selection_mode
         expect(system.selection_mode?).to be true
@@ -280,6 +295,12 @@ RSpec.describe Vanilla::Systems::MessageSystem do
         messages = system.instance_variable_get(:@manager).instance_variable_get(:@message_log).messages
         dropped_messages = messages.select { |m| m.content.to_s == "inventory.item_dropped" }
         expect(dropped_messages).not_to be_empty
+      end
+
+      it 'ends the turn when the item is dropped' do
+        system.handle_item_action_callback(:drop_item, item1.id)
+
+        expect(world).to have_received(:end_turn).once
       end
 
       it 'exits selection mode after dropping item' do

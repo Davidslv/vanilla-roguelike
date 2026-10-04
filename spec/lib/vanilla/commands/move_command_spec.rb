@@ -23,6 +23,7 @@ RSpec.describe Vanilla::Commands::MoveCommand do
     allow(world).to receive(:queue_command)
     allow(movement_system).to receive(:is_a?).with(Vanilla::Systems::MovementSystem).and_return(true)
     allow(movement_system).to receive(:move).and_return(true)
+    allow(world).to receive(:end_turn)
   end
 
   describe '#initialize' do
@@ -50,6 +51,20 @@ RSpec.describe Vanilla::Commands::MoveCommand do
       command = described_class.new(entity, :north)
       expect(movement_system).to receive(:move).with(entity, :north)
       command.execute(world)
+    end
+
+    it 'ends the turn when the entity moves' do
+      described_class.new(entity, :north).execute(world)
+
+      expect(world).to have_received(:end_turn).once
+    end
+
+    it 'does not end the turn when the move is blocked' do
+      allow(movement_system).to receive(:move).and_return(false)
+
+      described_class.new(entity, :north).execute(world)
+
+      expect(world).not_to have_received(:end_turn)
     end
 
     it 'does not execute twice' do
