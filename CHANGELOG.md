@@ -24,6 +24,7 @@ Vanilla has no tagged releases yet. Changes before this file was restarted are i
 
 ### Changed
 
+- CI also tests on Ruby 4.0, now that the lockfile allows it (#152).
 - Implemented proposals (001, 002, 003, 004, 005, 010, 011, 012) moved to `docs/proposals/archive/`, with an index of open and implemented proposals in `docs/proposals/README.md`.
 - Class diagrams in `docs/diagrams/` regenerated; they were missing eight systems.
 - BUG-0001 moved from `docs/bugs/` to issue #157. Bugs are tracked in GitHub issues.
