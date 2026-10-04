@@ -67,6 +67,18 @@ Starting values. Tune them in step 3 with the same bot measurement, and record t
 
 A gentler first version (1 HP every 5 turns) would let a starving player with 100 HP walk about 38 more levels, so starvation would almost never decide a run.
 
+### Tuning result (2026-10-04, #161)
+
+Measured with hunger implemented: the stairs bot over seeds 1 to 40, playing for depth. It picks up apples but never eats, so this is the worst case for food.
+
+| Outcome | Seeds | Depth reached, median (range) |
+|---|---|---|
+| Starved | 9 | 13 (12 to 17), at about 168 turns |
+| Killed in combat | 8 | 13 (9 to 15) |
+| Bot stuck in a menu (a bot limitation, not the game) | 23 | 8 (3 to 14) |
+
+A player who never eats starves at about the depth where monsters start winning anyway. Hunger ends runs without dominating them. The starting values above are kept.
+
 Each `turn_ended`:
 
 1. `food_left` goes down by 1, never below 0.
