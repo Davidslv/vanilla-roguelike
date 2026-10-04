@@ -30,6 +30,7 @@ Vanilla has no tagged releases yet. Changes before this file was restarted are i
 
 ### Fixed
 
+- Using an item from the inventory menu did nothing, so apples never healed (#164). Item use and drop are now commands (`UseItemCommand`, `DropItemCommand`) backed by `ItemUseSystem` and `ItemDropSystem`, which are now registered.
 - The custom `ECS/ComponentBehavior` cop crashed on class methods, so RuboCop exited 1 while reporting no offences.
 - `scripts/generate_events_md.rb` works from any directory.
 

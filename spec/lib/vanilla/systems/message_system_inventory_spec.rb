@@ -38,7 +38,6 @@ RSpec.describe Vanilla::Systems::MessageSystem do
     allow(world).to receive(:get_entity).and_return(nil)
     allow(world).to receive(:get_entity_by_name).and_return(nil)
     allow(world).to receive(:add_entity)
-    allow(world).to receive(:end_turn)
     allow(world).to receive(:current_level).and_return(instance_double('Vanilla::Level', add_entity: nil, update_grid_with_entity: nil))
     allow(world).to receive(:respond_to?).with(:process_events, true).and_return(true)
     allow(world).to receive(:send).with(:process_events)
@@ -213,104 +212,74 @@ RSpec.describe Vanilla::Systems::MessageSystem do
     end
   end
 
+  # Item use and drop run as commands (#164). These examples cover what
+  # MessageSystem still owns: running the command, the message, the menu.
+  # The item behaviour itself is in item_use_system_apple_spec,
+  # item_drop_system_spec and spec/integration/items_spec.
   describe '#handle_item_action_callback' do
+    let(:use_command) { instance_double(Vanilla::Commands::UseItemCommand, execute: true) }
+    let(:drop_command) { instance_double(Vanilla::Commands::DropItemCommand, execute: true) }
+
+    def message_keys
+      system.instance_variable_get(:@manager).instance_variable_get(:@message_log).messages.map { |m| m.content.to_s }
+    end
+
     before do
       allow(world).to receive(:get_entity_by_name).with('Player').and_return(player)
       player.get_component(:inventory).add(item1)
+      allow(Vanilla::Commands::UseItemCommand).to receive(:new).with(player, item1).and_return(use_command)
+      allow(Vanilla::Commands::DropItemCommand).to receive(:new).with(player, item1).and_return(drop_command)
+      system.instance_variable_get(:@manager).toggle_selection_mode
     end
 
     context 'when using an item' do
-      let(:inventory_system) { instance_double('Vanilla::Systems::InventorySystem') }
-
-      before do
-        allow(Vanilla::ServiceRegistry).to receive(:get).with(:inventory_system).and_return(inventory_system)
-        allow(inventory_system).to receive(:use_item).and_return(true)
-      end
-
-      it 'calls inventory system to use item' do
-        expect(inventory_system).to receive(:use_item).with(player, item1)
+      it 'runs UseItemCommand against the world' do
         system.handle_item_action_callback(:use_item, item1.id)
-        system.update(nil)
+
+        expect(use_command).to have_received(:execute).with(world)
       end
 
-      it 'shows success message when item is used' do
+      it 'says the item was used and closes the menu' do
         system.handle_item_action_callback(:use_item, item1.id)
         system.update(nil)
 
-        messages = system.instance_variable_get(:@manager).instance_variable_get(:@message_log).messages
-        used_messages = messages.select { |m| m.content.to_s == "inventory.item_used" }
-        expect(used_messages).not_to be_empty
-      end
-
-      it 'ends the turn when the item is used' do
-        system.handle_item_action_callback(:use_item, item1.id)
-
-        expect(world).to have_received(:end_turn).once
-      end
-
-      it 'does not end the turn when the item cannot be used' do
-        allow(inventory_system).to receive(:use_item).and_return(false)
-
-        system.handle_item_action_callback(:use_item, item1.id)
-
-        expect(world).not_to have_received(:end_turn)
-      end
-
-      it 'exits selection mode after using item' do
-        system.instance_variable_get(:@manager).toggle_selection_mode
-        expect(system.selection_mode?).to be true
-
-        system.handle_item_action_callback(:use_item, item1.id)
-        system.update(nil)
-
+        expect(message_keys).to include('inventory.item_used')
         expect(system.selection_mode?).to be false
+      end
+
+      it 'says the item cannot be used when the command fails' do
+        allow(use_command).to receive(:execute).and_return(false)
+
+        system.handle_item_action_callback(:use_item, item1.id)
+        system.update(nil)
+
+        expect(message_keys).to include('inventory.cannot_use')
+        expect(message_keys).not_to include('inventory.item_used')
       end
     end
 
     context 'when dropping an item' do
-      before do
-        allow(world).to receive(:current_level).and_return(
-          instance_double('Vanilla::Level', 
-            add_entity: nil, 
-            update_grid_with_entity: nil
-          )
-        )
-      end
-
-      it 'removes item from inventory' do
-        expect(player.get_component(:inventory).items).to include(item1)
+      it 'runs DropItemCommand against the world' do
         system.handle_item_action_callback(:drop_item, item1.id)
-        expect(player.get_component(:inventory).items).not_to include(item1)
+
+        expect(drop_command).to have_received(:execute).with(world)
       end
 
-      it 'adds item to world at player position' do
-        expect(world).to receive(:add_entity).with(item1)
-        system.handle_item_action_callback(:drop_item, item1.id)
-      end
-
-      it 'shows drop message' do
+      it 'says the item was dropped and closes the menu' do
         system.handle_item_action_callback(:drop_item, item1.id)
         system.update(nil)
 
-        messages = system.instance_variable_get(:@manager).instance_variable_get(:@message_log).messages
-        dropped_messages = messages.select { |m| m.content.to_s == "inventory.item_dropped" }
-        expect(dropped_messages).not_to be_empty
-      end
-
-      it 'ends the turn when the item is dropped' do
-        system.handle_item_action_callback(:drop_item, item1.id)
-
-        expect(world).to have_received(:end_turn).once
-      end
-
-      it 'exits selection mode after dropping item' do
-        system.instance_variable_get(:@manager).toggle_selection_mode
-        expect(system.selection_mode?).to be true
-
-        system.handle_item_action_callback(:drop_item, item1.id)
-        system.update(nil)
-
+        expect(message_keys).to include('inventory.item_dropped')
         expect(system.selection_mode?).to be false
+      end
+
+      it 'says nothing when the drop fails' do
+        allow(drop_command).to receive(:execute).and_return(false)
+
+        system.handle_item_action_callback(:drop_item, item1.id)
+        system.update(nil)
+
+        expect(message_keys).not_to include('inventory.item_dropped')
       end
     end
   end
